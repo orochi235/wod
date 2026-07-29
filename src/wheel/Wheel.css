@@ -1,0 +1,23 @@
+.wheel {
+  display: block;
+  width: 100%;
+  max-width: 40rem;
+  height: auto;
+}
+
+.wheel__segment {
+  stroke: var(--wheel-segment-stroke, #11111a);
+  stroke-width: 1;
+}
+
+.wheel__label {
+  fill: var(--wheel-label-color, #11111a);
+  font-family: system-ui, sans-serif;
+  font-weight: 600;
+  pointer-events: none;
+  user-select: none;
+}
+
+.wheel__pointer {
+  fill: var(--wheel-pointer-color, #11111a);
+}
