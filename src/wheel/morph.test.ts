@@ -107,6 +107,28 @@ describe('applyMorphs', () => {
     const result = applyMorphs(base, [swell], 500)
     expect(result[0].label).toBe('free beer')
   })
+
+  it('holds the base label until a late keyframe rather than applying it from the start', () => {
+    const lateReveal: Morph = {
+      segmentId: 'dave',
+      durationMs: 1000,
+      keyframes: [{ at: 1, label: 'LOSER' }],
+    }
+    expect(applyMorphs(base, [lateReveal], 0)[1].label).toBe('Dave')
+    expect(applyMorphs(base, [lateReveal], 400)[1].label).toBe('Dave')
+    expect(applyMorphs(base, [lateReveal], 1000)[1].label).toBe('LOSER')
+  })
+
+  it('interpolates weight from the segment base when the first keyframe is late', () => {
+    const lateSwell: Morph = {
+      segmentId: 'beer',
+      durationMs: 1000,
+      keyframes: [{ at: 1, weight: 3 }],
+    }
+    expect(applyMorphs(base, [lateSwell], 0)[0].weight).toBeCloseTo(1)
+    expect(applyMorphs(base, [lateSwell], 500)[0].weight).toBeCloseTo(2)
+    expect(applyMorphs(base, [lateSwell], 1000)[0].weight).toBeCloseTo(3)
+  })
 })
 
 describe('landingSegments', () => {

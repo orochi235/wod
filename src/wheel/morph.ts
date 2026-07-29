@@ -71,14 +71,40 @@ function bracket<K extends keyof MorphKeyframe>(
   return { from: last, to: last, t: 1 }
 }
 
-function sampleWeight(keyframes: MorphKeyframe[], p: number): number | undefined {
-  const found = bracket(pointsFor(keyframes, 'weight'), p)
+/**
+ * If the first declared keyframe starts after 0, prepend an implicit keyframe
+ * at `at: 0` holding the property's current base value. This matches Web
+ * Animations semantics for a missing 0% offset, so a lone late keyframe (e.g.
+ * `{ at: 1, label: 'LOSER' }`) reveals at the end instead of from the start.
+ */
+function withImplicitBase<K extends keyof MorphKeyframe>(
+  points: Defined<K>[],
+  key: K,
+  base: MorphKeyframe[K] | undefined,
+): Defined<K>[] {
+  if (points.length === 0 || points[0].at <= 0 || base === undefined) return points
+  const implicit = { at: 0, [key]: base } as Defined<K>
+  return [implicit, ...points]
+}
+
+function sampleWeight(
+  keyframes: MorphKeyframe[],
+  p: number,
+  base: number | undefined,
+): number | undefined {
+  const points = withImplicitBase(pointsFor(keyframes, 'weight'), 'weight', base)
+  const found = bracket(points, p)
   if (!found) return undefined
   return found.from.weight + (found.to.weight - found.from.weight) * found.t
 }
 
-function sampleColor(keyframes: MorphKeyframe[], p: number): string | undefined {
-  const found = bracket(pointsFor(keyframes, 'color'), p)
+function sampleColor(
+  keyframes: MorphKeyframe[],
+  p: number,
+  base: string | undefined,
+): string | undefined {
+  const points = withImplicitBase(pointsFor(keyframes, 'color'), 'color', base)
+  const found = bracket(points, p)
   if (!found) return undefined
   return lerpColor(found.from.color, found.to.color, found.t)
 }
@@ -88,8 +114,9 @@ function sampleStep<K extends 'label' | 'media'>(
   keyframes: MorphKeyframe[],
   key: K,
   p: number,
+  base: MorphKeyframe[K] | undefined,
 ): MorphKeyframe[K] | undefined {
-  const points = pointsFor(keyframes, key)
+  const points = withImplicitBase(pointsFor(keyframes, key), key, base)
   if (points.length === 0) return undefined
   let value = points[0][key]
   for (const point of points) {
@@ -106,13 +133,13 @@ export function applyMorphs(segments: Segment[], morphs: Morph[], elapsedMs: num
     const out: Segment = { ...segment }
     for (const morph of relevant) {
       const p = morphProgress(morph, elapsedMs)
-      const weight = sampleWeight(morph.keyframes, p)
+      const weight = sampleWeight(morph.keyframes, p, out.weight)
       if (weight !== undefined) out.weight = weight
-      const color = sampleColor(morph.keyframes, p)
+      const color = sampleColor(morph.keyframes, p, out.color)
       if (color !== undefined) out.color = color
-      const label = sampleStep(morph.keyframes, 'label', p)
+      const label = sampleStep(morph.keyframes, 'label', p, out.label)
       if (label !== undefined) out.label = label as string
-      const media = sampleStep(morph.keyframes, 'media', p)
+      const media = sampleStep(morph.keyframes, 'media', p, out.media)
       if (media !== undefined) out.media = media as Media
     }
     return out
