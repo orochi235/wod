@@ -104,3 +104,60 @@ describe('arcPath', () => {
     }
   })
 })
+
+import { angleToSegment, pointerTurn, targetRotationDeg } from './geometry'
+
+describe('angleToSegment', () => {
+  const list = arcs([
+    { id: 'a', weight: 1 },
+    { id: 'b', weight: 1 },
+    { id: 'c', weight: 2 },
+  ])
+
+  it('finds the segment containing a turn', () => {
+    expect(angleToSegment(list, 0.1)).toBe('a')
+    expect(angleToSegment(list, 0.3)).toBe('b')
+    expect(angleToSegment(list, 0.7)).toBe('c')
+  })
+
+  it('treats arc start as inside and arc end as outside', () => {
+    expect(angleToSegment(list, 0.25)).toBe('b')
+  })
+
+  it('wraps turns outside the unit range', () => {
+    expect(angleToSegment(list, 1.1)).toBe('a')
+    expect(angleToSegment(list, -0.9)).toBe('a')
+  })
+
+  it('never returns a zero-width segment', () => {
+    const withGhost = arcs([
+      { id: 'real', weight: 1 },
+      { id: 'ghost', weight: 0 },
+    ])
+    for (let t = 0; t < 1; t += 0.01) {
+      expect(angleToSegment(withGhost, t)).toBe('real')
+    }
+  })
+
+  it('returns null when there is nothing to land on', () => {
+    expect(angleToSegment([], 0.5)).toBeNull()
+  })
+})
+
+describe('rotation mapping', () => {
+  it('is the exact inverse of the pointer mapping', () => {
+    for (const turn of [0, 0.001, 0.25, 0.5, 0.75, 0.999]) {
+      for (const spins of [0, 1, 5]) {
+        expect(pointerTurn(targetRotationDeg(turn, spins))).toBeCloseTo(turn, 9)
+      }
+    }
+  })
+
+  it('adds a full revolution per requested spin', () => {
+    expect(targetRotationDeg(0, 5)).toBe(1800)
+  })
+
+  it('rotates counter to the turn so the pointer meets it', () => {
+    expect(targetRotationDeg(0.25, 0)).toBe(270)
+  })
+})

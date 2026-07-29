@@ -56,3 +56,33 @@ export function arcPath(start: number, end: number, radius: number): string {
   const r = round(radius)
   return `M 0 0 L ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1} Z`
 }
+
+const wrapTurn = (turn: number): number => ((turn % 1) + 1) % 1
+
+export function angleToSegment(list: Arc[], turn: number): string | null {
+  const t = wrapTurn(turn)
+  for (const arc of list) {
+    if (arc.end > arc.start && t >= arc.start && t < arc.end) return arc.id
+  }
+  // Float drift can leave a sliver at the very top uncovered. Fall back to the
+  // last segment that actually has width rather than reporting no winner.
+  for (let i = list.length - 1; i >= 0; i--) {
+    if (list[i].end > list[i].start) return list[i].id
+  }
+  return null
+}
+
+/**
+ * The wheel rotates; the pointer is fixed at 12 o'clock. To bring wheel-local
+ * `landingTurn` under the pointer, rotate by its complement, plus whole
+ * revolutions for the spin.
+ */
+export function targetRotationDeg(landingTurn: number, fullSpins: number): number {
+  const t = wrapTurn(landingTurn)
+  return fullSpins * 360 + ((360 - t * 360) % 360)
+}
+
+/** Which wheel-local turn currently sits under the pointer. */
+export function pointerTurn(rotationDeg: number): number {
+  return wrapTurn(-rotationDeg / 360)
+}
