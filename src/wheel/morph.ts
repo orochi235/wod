@@ -38,7 +38,8 @@ export function morphProgress(morph: Morph, elapsedMs: number): number {
   return EASINGS[morph.easing ?? 'linear'](clamped)
 }
 
-type Defined<K extends keyof MorphKeyframe> = MorphKeyframe & Record<K, NonNullable<MorphKeyframe[K]>>
+type Defined<K extends keyof MorphKeyframe> = MorphKeyframe &
+  Record<K, NonNullable<MorphKeyframe[K]>>
 
 function pointsFor<K extends keyof MorphKeyframe>(
   keyframes: MorphKeyframe[],

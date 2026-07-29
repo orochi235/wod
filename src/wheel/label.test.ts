@@ -21,11 +21,7 @@ describe('fitLabel', () => {
   })
 
   it('truncates with an ellipsis when the text is too long', () => {
-    const fitted = fitLabel(
-      'my boss buys the team beer for the next decade',
-      0.25,
-      200,
-    )
+    const fitted = fitLabel('my boss buys the team beer for the next decade', 0.25, 200)
     expect(fitted?.text.endsWith('…')).toBe(true)
     expect(fitted?.text.length).toBeLessThan(46)
   })

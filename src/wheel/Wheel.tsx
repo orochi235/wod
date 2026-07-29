@@ -50,7 +50,10 @@ export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: Whe
           )
         })}
       </g>
-      <polygon className="wheel__pointer" points={`0,${-radius - 4} -12,${-radius + 18} 12,${-radius + 18}`} />
+      <polygon
+        className="wheel__pointer"
+        points={`0,${-radius - 4} -12,${-radius + 18} 12,${-radius + 18}`}
+      />
     </svg>
   )
 }

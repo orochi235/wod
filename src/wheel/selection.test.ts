@@ -56,29 +56,51 @@ describe('weightedRandom', () => {
   })
 
   it('selects the first candidate at the bottom of the range', () => {
-    expect(weightedRandom([{ id: 'a', weight: 1 }, { id: 'b', weight: 1 }], () => 0)).toBe('a')
+    expect(
+      weightedRandom(
+        [
+          { id: 'a', weight: 1 },
+          { id: 'b', weight: 1 },
+        ],
+        () => 0,
+      ),
+    ).toBe('a')
   })
 
   it('selects the last candidate at the top of the range', () => {
     const almostOne = () => 1 - Number.EPSILON
-    expect(weightedRandom([{ id: 'a', weight: 1 }, { id: 'b', weight: 1 }], almostOne)).toBe('b')
+    expect(
+      weightedRandom(
+        [
+          { id: 'a', weight: 1 },
+          { id: 'b', weight: 1 },
+        ],
+        almostOne,
+      ),
+    ).toBe('b')
   })
 })
 
 describe('forced', () => {
   it('returns its target when the target still has weight', () => {
-    const result = forced('rigged')([
-      { id: 'fair', weight: 10 },
-      { id: 'rigged', weight: 1 },
-    ], lcg(3))
+    const result = forced('rigged')(
+      [
+        { id: 'fair', weight: 10 },
+        { id: 'rigged', weight: 1 },
+      ],
+      lcg(3),
+    )
     expect(result).toBe('rigged')
   })
 
   it('falls back to a fair draw when the target has been zeroed out', () => {
-    const result = forced('gone')([
-      { id: 'here', weight: 1 },
-      { id: 'gone', weight: 0 },
-    ], lcg(3))
+    const result = forced('gone')(
+      [
+        { id: 'here', weight: 1 },
+        { id: 'gone', weight: 0 },
+      ],
+      lcg(3),
+    )
     expect(result).toBe('here')
   })
 
