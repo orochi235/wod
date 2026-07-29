@@ -16,11 +16,12 @@ export function arcs(items: Weighted[]): Arc[] {
   const out: Arc[] = []
   let cursor = 0
   for (let i = 0; i < items.length; i++) {
+    const start = Math.min(cursor, 1)
     const isLast = i === items.length - 1
     // Snap the final non-empty arc to exactly 1 so float drift cannot leave a gap
     // at the top of the wheel. A zero-weight final segment must stay zero-width.
-    const end = isLast && fractions[i] > 0 ? 1 : cursor + fractions[i]
-    out.push({ id: items[i].id, start: cursor, end })
+    const end = isLast && fractions[i] > 0 ? 1 : Math.min(1, start + fractions[i])
+    out.push({ id: items[i].id, start, end })
     cursor = end
   }
   return out

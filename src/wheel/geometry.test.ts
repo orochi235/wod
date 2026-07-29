@@ -61,6 +61,27 @@ describe('arcs', () => {
     ])
     expect(result[0]).toEqual({ id: 'beer', start: 0, end: 1 })
   })
+
+  it('never emits an arc that is backwards or runs past one', () => {
+    const distributions = [
+      Array.from({ length: 200 }, (_, i) => ({ id: `s${i}`, weight: 1 })).concat([
+        { id: 'tail', weight: 1e-16 },
+      ]),
+      Array.from({ length: 50 }, (_, i) => ({ id: `t${i}`, weight: 1 / 3 })),
+      [
+        { id: 'a', weight: 1e300 },
+        { id: 'b', weight: 1e-300 },
+        { id: 'c', weight: 0 },
+      ],
+    ]
+    for (const items of distributions) {
+      for (const arc of arcs(items)) {
+        expect(arc.end).toBeGreaterThanOrEqual(arc.start)
+        expect(arc.end).toBeLessThanOrEqual(1)
+        expect(arc.start).toBeGreaterThanOrEqual(0)
+      }
+    }
+  })
 })
 
 import { arcPath } from './geometry'
