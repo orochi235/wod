@@ -34,7 +34,7 @@ Each math module is independently testable with no DOM. `useSpin.ts` is delibera
 ## Task 1: Project scaffold
 
 **Files:**
-- Create: `package.json`, `tsconfig.json`, `tsconfig.node.json`, `vite.config.ts`, `biome.json`, `index.html`, `src/main.tsx`, `src/App.tsx`, `src/vitest.setup.ts`, `.gitignore`
+- Create: `package.json`, `tsconfig.json`, `vite.config.ts`, `biome.json`, `index.html`, `src/main.tsx`, `src/App.tsx`, `src/vitest.setup.ts`, `.gitignore`
 
 - [ ] **Step 1: Create `package.json`**
 
@@ -46,7 +46,7 @@ Each math module is independently testable with no DOM. `useSpin.ts` is delibera
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -96,8 +96,10 @@ Each math module is independently testable with no DOM. `useSpin.ts` is delibera
 - [ ] **Step 3: Create `vite.config.ts`**
 
 ```ts
+// Import defineConfig from vitest/config, not vite — the plain vite version
+// does not know about the `test` key and rejects it as an unknown property.
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react()],
@@ -190,9 +192,9 @@ dist
 
 - [ ] **Step 10: Install and verify the toolchain runs**
 
-Run: `npm install && npx tsc -b --dry 2>/dev/null; npm test`
+Run: `npm install && npx tsc --noEmit && npm test -- --passWithNoTests`
 
-Expected: `npm install` succeeds. `npm test` exits successfully reporting **no test files found** — this confirms Vitest is wired up before any tests exist.
+Expected: `npm install` succeeds, `tsc` reports no errors, and Vitest starts and reports **no test files found** while still exiting 0. This confirms the toolchain is wired up before any tests exist. (`--passWithNoTests` is needed only here — Vitest exits non-zero on an empty suite by default, which is the behavior we want for every later task.)
 
 - [ ] **Step 11: Commit**
 
