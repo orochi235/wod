@@ -23,11 +23,17 @@ export function useSpin(
   const rotorRef = useRef<SVGGElement | null>(null)
   const frameRef = useRef<number | null>(null)
   const animationRef = useRef<Animation | null>(null)
+  const lastSegmentsRef = useRef(segments)
   const [displaySegments, setDisplaySegments] = useState(segments)
   const [isSpinning, setIsSpinning] = useState(false)
   const [winnerId, setWinnerId] = useState<string | null>(null)
 
   useEffect(() => {
+    // Only resync when the caller actually swaps the segment array. Resyncing on
+    // every isSpinning transition would wipe out the landed state, which is the
+    // whole visual payoff when weights morph mid-spin.
+    if (lastSegmentsRef.current === segments) return
+    lastSegmentsRef.current = segments
     if (!isSpinning) setDisplaySegments(segments)
   }, [segments, isSpinning])
 
@@ -50,6 +56,7 @@ export function useSpin(
 
       setIsSpinning(true)
       setWinnerId(null)
+      setDisplaySegments(segments)
 
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
       const durationMs = reduceMotion ? 300 : config.durationMs
