@@ -1860,7 +1860,10 @@ git commit -m "feat(wheel): animate spins with a two-track rotation and morph lo
 
 ## Done When
 
-- `npm test` passes with 69 tests across 6 files.
+- `npm test` passes with 75 tests across 6 files. (The plan as written produces
+  69; adversarial review and browser verification added six more covering
+  boundary precision, arc invariants, label orientation, and the
+  arcs → rotation → pointer → segment round trip.)
 - `npx tsc --noEmit` is clean.
 - `npm run check` is clean.
 - All seven manual checks in Task 11 Step 5 pass.
