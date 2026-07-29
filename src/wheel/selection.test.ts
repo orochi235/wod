@@ -108,4 +108,15 @@ describe('forced', () => {
     const result = forced('missing')([{ id: 'here', weight: 1 }], lcg(3))
     expect(result).toBe('here')
   })
+
+  it('rigs a visible target on an all-zero-weight wheel', () => {
+    const zeros = [
+      { id: 'a', weight: 0 },
+      { id: 'b', weight: 0 },
+      { id: 'c', weight: 0 },
+    ]
+    for (let i = 0; i < 50; i++) {
+      expect(forced('c')(zeros, lcg(i))).toBe('c')
+    }
+  })
 })

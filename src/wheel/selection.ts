@@ -1,4 +1,4 @@
-import { normalizeWeights } from './geometry'
+import { arcs, normalizeWeights } from './geometry'
 import type { Weighted } from './geometry'
 
 /** Returns a float in [0, 1). */
@@ -32,8 +32,10 @@ export const weightedRandom: SelectionStrategy = (candidates, rng) => {
 /** The rig. Degrades to a fair draw rather than erroring mid-spin. */
 export function forced(segmentId: string): SelectionStrategy {
   return (candidates, rng) => {
-    const target = candidates.find((c) => c.id === segmentId)
-    if (target && target.weight > 0) return segmentId
+    // Gate on rendered arc width, not raw weight: an all-zero wheel renders as
+    // equal slices, and a target visibly occupying one of them must be riggable.
+    const arc = arcs(candidates).find((a) => a.id === segmentId)
+    if (arc && arc.end > arc.start) return segmentId
     return weightedRandom(candidates, rng)
   }
 }
