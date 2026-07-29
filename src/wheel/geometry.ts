@@ -57,7 +57,11 @@ export function arcPath(start: number, end: number, radius: number): string {
   return `M 0 0 L ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1} Z`
 }
 
-const wrapTurn = (turn: number): number => ((turn % 1) + 1) % 1
+const wrapTurn = (turn: number): number => {
+  let t = turn % 1
+  if (t < 0) t += 1
+  return t
+}
 
 export function angleToSegment(list: Arc[], turn: number): string | null {
   const t = wrapTurn(turn)

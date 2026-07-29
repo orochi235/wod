@@ -142,6 +142,19 @@ describe('angleToSegment', () => {
   it('returns null when there is nothing to land on', () => {
     expect(angleToSegment([], 0.5)).toBeNull()
   })
+
+  it('returns the correct slice at non-binary-exact arc boundaries', () => {
+    const five = arcs(['s0', 's1', 's2', 's3', 's4'].map((id) => ({ id, weight: 1 })))
+    expect(angleToSegment(five, 0.2)).toBe('s1')
+    expect(angleToSegment(five, 0.4)).toBe('s2')
+    expect(angleToSegment(five, 0.6)).toBe('s3')
+    expect(angleToSegment(five, 0.8)).toBe('s4')
+  })
+
+  it('does not wrap the largest turn below one back to the first segment', () => {
+    const four = arcs(['a', 'b', 'c', 'd'].map((id) => ({ id, weight: 1 })))
+    expect(angleToSegment(four, 1 - 2 ** -53)).toBe('d')
+  })
 })
 
 describe('rotation mapping', () => {
