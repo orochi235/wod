@@ -347,9 +347,11 @@ The wheel never breaks the bit:
   segment, zero-weight segment).
 - `composer`: merge, exclusion filtering, draw removal with renormalization,
   repeat-avoidance modifier math.
-- **Wheel geometry: `angleToSegment` is the exact inverse of `segmentToAngle`.**
-  This is the highest-value test — the failure it catches is the pointer landing
-  visually on a different slice than the one reported as the winner.
+- **Wheel geometry: the rotation mapping is exactly invertible** — recovering
+  the pointer's wheel-local position from a computed target rotation returns the
+  position that was aimed at. This is the highest-value test; the failure it
+  catches is the pointer landing visually on a different slice than the one
+  reported as the winner.
 - Geometry degenerate cases, asserted directly because the headline gag produces
   them: a zero-weight segment yields a valid empty render with no `NaN` in the
   path; a segment holding all the weight renders a complete 360° ring rather
