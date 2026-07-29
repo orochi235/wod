@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { Weighted } from './geometry'
 import { arcs, normalizeWeights } from './geometry'
 
 describe('normalizeWeights', () => {
@@ -193,5 +194,53 @@ describe('rotation mapping', () => {
 
   it('rotates counter to the turn so the pointer meets it', () => {
     expect(targetRotationDeg(0.25, 0)).toBe(270)
+  })
+})
+
+describe('pointer round trip', () => {
+  const distributions: Weighted[][] = [
+    [1, 1, 1, 1, 1],
+    [1, 1, 1],
+    [9, 1],
+    [1, 3, 7, 11],
+    [95, 5],
+    [1, 0, 1, 0, 1],
+    [0.02, 1, 1, 1, 1, 1],
+    [1],
+    [0, 0, 1],
+    Array.from({ length: 40 }, () => 1),
+  ].map((weights) => weights.map((weight, i) => ({ id: `s${i}`, weight })))
+
+  it('reports the owning segment at every arc start', () => {
+    for (const items of distributions) {
+      const list = arcs(items)
+      for (const arc of list) {
+        if (!(arc.end > arc.start)) continue
+        expect(angleToSegment(list, arc.start)).toBe(arc.id)
+      }
+    }
+  })
+
+  // Converting a turn to degrees and back is not exactly invertible in IEEE-754,
+  // so a probe sitting exactly ON a boundary can come back one ulp low and read
+  // as the previous segment. The guarantee this round trip actually offers is
+  // for points strictly inside an arc, which is why planSpin insets its landing
+  // point away from the edges. Probes below use a 2% margin — six orders of
+  // magnitude larger than the observed drift.
+  it('survives the full arc to rotation to pointer to segment round trip', () => {
+    for (const items of distributions) {
+      const list = arcs(items)
+      for (const arc of list) {
+        const width = arc.end - arc.start
+        if (!(width > 0)) continue
+        const probes = [arc.start + width * 0.02, arc.start + width * 0.5, arc.end - width * 0.02]
+        for (const probe of probes) {
+          for (const spins of [0, 1, 7]) {
+            const recovered = pointerTurn(targetRotationDeg(probe, spins))
+            expect(angleToSegment(list, recovered)).toBe(arc.id)
+          }
+        }
+      }
+    }
   })
 })

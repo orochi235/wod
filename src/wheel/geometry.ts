@@ -12,15 +12,27 @@ export function normalizeWeights(items: Weighted[]): number[] {
 }
 
 export function arcs(items: Weighted[]): Arc[] {
-  const fractions = normalizeWeights(items)
+  if (items.length === 0) return []
+  const safe = items.map((i) => (Number.isFinite(i.weight) && i.weight > 0 ? i.weight : 0))
+  const total = safe.reduce((sum, w) => sum + w, 0)
+
   const out: Arc[] = []
   let cursor = 0
+  let running = 0
   for (let i = 0; i < items.length; i++) {
-    const start = Math.min(cursor, 1)
+    running += safe[i]
     const isLast = i === items.length - 1
-    // Snap the final non-empty arc to exactly 1 so float drift cannot leave a gap
-    // at the top of the wheel. A zero-weight final segment must stay zero-width.
-    const end = isLast && fractions[i] > 0 ? 1 : Math.min(1, start + fractions[i])
+    // Derive each boundary from ONE division of the running weight total rather
+    // than accumulating already-rounded fractions. Repeated addition drifts —
+    // 0.2 + 0.2 + 0.2 is 0.6000000000000001, not 0.6 — which pushes boundaries
+    // off the value a caller computes directly and lands the pointer on the
+    // neighboring slice. Falls back to equal spacing when nothing has weight.
+    const boundary = total > 0 ? running / total : (i + 1) / items.length
+    // The last arc snaps to exactly 1 so drift cannot leave a gap at the top. A
+    // zero-weight final segment still ends up zero-width, because the segment
+    // before it already reaches a boundary of exactly 1.
+    const end = isLast ? 1 : Math.min(1, boundary)
+    const start = Math.min(cursor, end)
     out.push({ id: items[i].id, start, end })
     cursor = end
   }
