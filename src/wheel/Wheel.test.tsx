@@ -54,4 +54,19 @@ describe('Wheel', () => {
     const { container } = render(<Wheel segments={[]} />)
     expect(container.querySelectorAll('path.wheel__segment')).toHaveLength(0)
   })
+
+  it('flips labels that would otherwise read upside down', () => {
+    const four: Segment[] = ['n', 'e', 's', 'w'].map((id) => ({
+      id,
+      label: id.toUpperCase(),
+      weight: 1,
+    }))
+    const { container } = render(<Wheel segments={four} />)
+    const transforms = [...container.querySelectorAll('text.wheel__label')].map(
+      (t) => t.getAttribute('transform') ?? '',
+    )
+    const flipped = transforms.filter((t) => t.includes('rotate(180)'))
+    expect(flipped.length).toBeGreaterThan(0)
+    expect(flipped.length).toBeLessThan(transforms.length)
+  })
 })

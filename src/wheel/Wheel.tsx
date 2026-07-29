@@ -31,6 +31,9 @@ export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: Whe
           const color = segment.color ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length]
           const fitted = fitLabel(segment.label, width, radius)
           const midDeg = (arc.start + width / 2) * 360
+          // Radial text reads upside down when its baseline points leftward on
+          // screen. Flip those segments so every label reads left-to-right.
+          const flipped = Math.cos(((midDeg + 90) * Math.PI) / 180) < 0
 
           return (
             <g key={segment.id}>
@@ -41,7 +44,7 @@ export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: Whe
                   fontSize={fitted.fontSize}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  transform={`rotate(${midDeg}) translate(0 ${-radius * 0.62}) rotate(90)`}
+                  transform={`rotate(${midDeg}) translate(0 ${-radius * 0.62}) rotate(90)${flipped ? ' rotate(180)' : ''}`}
                 >
                   {fitted.text}
                 </text>
