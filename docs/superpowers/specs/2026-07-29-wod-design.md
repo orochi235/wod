@@ -109,7 +109,10 @@ Renders and animates. Knows nothing about people, meetings, or who should win.
   center and repeated viewing reveals that the outcome is precomputed — which
   would expose rigged spins.
 - **Long-label fitting:** shrink font → radial wrap → truncate with full text in
-  the reveal. Required so narrow slivers stay legible.
+  the reveal. Required so narrow slivers stay legible. **Radial wrap is not yet
+  built** — the shipped implementation shrinks then truncates. Wrapping is worth
+  adding when a real label proves unreadable; until then truncation plus the
+  reveal covers it.
 - **Near-miss** is an animation concern only: `nearMiss: { decoyId, creepMs }`
   eases to the decoy's boundary, holds, then creeps across into the target. The
   decoy defaults to the segment immediately preceding the target in rotation
