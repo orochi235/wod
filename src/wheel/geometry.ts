@@ -25,3 +25,34 @@ export function arcs(items: Weighted[]): Arc[] {
   }
   return out
 }
+
+const TAU = Math.PI * 2
+
+const round = (n: number): number => {
+  const r = Number(n.toFixed(3))
+  return Object.is(r, -0) ? 0 : r
+}
+
+/** Turn 0 is 12 o'clock; turns increase clockwise. SVG y grows downward. */
+function pointOnCircle(turn: number, radius: number): [number, number] {
+  const angle = turn * TAU
+  return [round(radius * Math.sin(angle)), round(-radius * Math.cos(angle))]
+}
+
+export function arcPath(start: number, end: number, radius: number): string {
+  const width = end - start
+  if (!(width > 0)) return ''
+
+  // A full circle cannot be drawn as one arc: its start and end points are the
+  // same, and SVG renders that as nothing. Two half-arcs instead.
+  if (width >= 1) {
+    const r = round(radius)
+    return `M 0 ${-r} A ${r} ${r} 0 1 1 0 ${r} A ${r} ${r} 0 1 1 0 ${-r} Z`
+  }
+
+  const [x0, y0] = pointOnCircle(start, radius)
+  const [x1, y1] = pointOnCircle(end, radius)
+  const largeArc = width > 0.5 ? 1 : 0
+  const r = round(radius)
+  return `M 0 0 L ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1} Z`
+}
