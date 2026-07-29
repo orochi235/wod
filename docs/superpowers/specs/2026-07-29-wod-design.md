@@ -109,7 +109,10 @@ Renders and animates. Knows nothing about people, meetings, or who should win.
   center and repeated viewing reveals that the outcome is precomputed — which
   would expose rigged spins.
 - **Long-label fitting:** shrink font → radial wrap → truncate with full text in
-  the reveal. Required so narrow slivers stay legible.
+  the reveal. Required so narrow slivers stay legible. **Radial wrap is not yet
+  built** — the shipped implementation shrinks then truncates. Wrapping is worth
+  adding when a real label proves unreadable; until then truncation plus the
+  reveal covers it.
 - **Near-miss** is an animation concern only: `nearMiss: { decoyId, creepMs }`
   eases to the decoy's boundary, holds, then creeps across into the target. The
   decoy defaults to the segment immediately preceding the target in rotation
@@ -338,7 +341,13 @@ The wheel never breaks the bit:
 - A rig targets a segment that no longer exists (that person left) → silently
   falls back to a fair spin. No on-screen error mid-joke.
 - Zero segments → spin control disabled with an explanatory empty state.
-- Weights summing to zero, or any non-finite weight → fall back to equal weights.
+- Any non-finite or negative weight → treated as zero.
+- **Weights summing to zero → every segment gets an equal slice.** This is a
+  deliberate exception to "weight 0 occupies no arc": the alternative is a blank
+  wheel, and an evenly divided wheel is the more useful reading of "nothing has
+  been weighted." The consequence to be aware of is that a morph driving *every*
+  weight to zero snaps the wheel from one filled slice to N equal slices in a
+  single frame. Morphs should leave at least one segment with weight.
 
 ## Testing (Vitest)
 

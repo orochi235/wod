@@ -1,0 +1,34 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.app__controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.app__button {
+  padding: 0.6rem 1.4rem;
+  font: inherit;
+  font-weight: 600;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.app__button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.app__result {
+  min-height: 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
