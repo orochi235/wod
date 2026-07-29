@@ -1,0 +1,46 @@
+export type Media = { kind: 'emoji' | 'image' | 'gif'; value: string }
+
+export type Reveal = {
+  headline?: string
+  body?: string
+  media?: Media
+  sound?: string
+  effect?: 'confetti' | 'none'
+  holdMs?: number
+}
+
+export type Segment = {
+  id: string
+  label: string
+  /** Relative, not a percentage. Normalized at render time. Zero means present but invisible. */
+  weight: number
+  color?: string
+  media?: Media
+  reveal?: Reveal
+}
+
+export type EasingName = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut'
+
+export type MorphKeyframe = {
+  /** Position within the morph's own duration, 0..1. */
+  at: number
+  weight?: number
+  color?: string
+  label?: string
+  media?: Media
+}
+
+export type Morph = {
+  segmentId: string
+  keyframes: MorphKeyframe[]
+  durationMs: number
+  easing?: EasingName
+}
+
+export type SpinConfig = {
+  durationMs: number
+  fullSpins: number
+  /** CSS easing string, handed to the Web Animations API. */
+  easing: string
+  morphs: Morph[]
+}
