@@ -19,6 +19,8 @@ running it. There is no server.
 - Enough presentation flexibility to keep adding new visual gags indefinitely
   without touching the wheel's internals.
 - Covertly riggable spins that are visually indistinguishable from fair ones.
+- Segment properties that animate mid-spin, so the wheel itself can be part of
+  the joke rather than just a delivery mechanism for one.
 
 ## Non-goals (v1)
 
@@ -56,6 +58,13 @@ type Segment = {
 Weight being first-class is what allows a 0.5%-of-the-circle joke prize to sit
 alongside eight equal-weight humans.
 
+A segment with weight `0` is present but occupies no arc: invisible, unlabeled,
+and unable to win. This is how segments appear and vanish (see **Morphs**) —
+the segment array itself never changes during a spin, which keeps geometry
+continuous and avoids reindexing mid-flight. The practical consequence is that
+joke wedges are **pre-loaded at weight 0** before the meeting and revealed
+during it; a genuinely new segment cannot be conjured mid-spin.
+
 The reveal is the landing takeover — where the punchline actually lands, and the
 part most likely to keep growing. It is deliberately a small, open-ended shape:
 
@@ -80,8 +89,21 @@ Renders and animates. Knows nothing about people, meetings, or who should win.
 
 - One SVG `<g>` rotated via the Web Animations API. Segments are `<path>` arcs
   sized by normalized weight. Pointer is fixed at 12 o'clock.
-- Given a `targetSegmentId`, it computes the final rotation and animates there,
-  then emits `onLanded(segmentId)`. It never chooses a winner.
+- Given a `targetSegmentId`, it computes the landing rotation and animates
+  there, then emits `onLanded(segmentId)`. It never chooses a winner.
+- **Two-track animation.** Rotation is a single transform on the `<g>`, which
+  stays cheap and compositor-friendly. Geometry morphing is a separate track:
+  every segment's `d` is regenerated per frame under `requestAnimationFrame`.
+  The two tracks are independent and must not be conflated — rotation never
+  recomputes paths, morphing never touches the rotation transform.
+- **Degenerate geometry** must be handled explicitly, because the headline gag
+  produces it:
+  - A segment at weight `0` renders nothing and skips label layout entirely.
+    Arc generation must not emit `NaN` or an invalid `d` for a zero-radian arc.
+  - A segment holding **all** the weight spans 360°, where arc start and end
+    coincide and a naive single-arc path renders as nothing. This case renders
+    as a full circle (or two half-arcs) instead. "Free beer fills the wheel" is
+    exactly this input.
 - **Landing jitter:** the final angle is randomized *within* the winning arc
   rather than snapping to the arc's midpoint. Without this, every spin ends dead
   center and repeated viewing reveals that the outcome is precomputed — which
@@ -111,6 +133,20 @@ type SelectionStrategy = (segments: Segment[]) => string
 The winner is chosen **before** the animation, and the animation is derived from
 it. This is what makes weights exact (physics-simulated randomness only
 approximates them) and makes rigging nearly free.
+
+**Selection samples the weight distribution as it will be at landing, not as it
+is at launch.** When weights morph during a spin (see **Morphs**) the launch
+distribution is not the one the pointer will meet, so sampling it would aim at
+an arc that no longer belongs to the winner.
+
+This yields one hard constraint, which happens to be the desired behavior rather
+than a limitation:
+
+> A segment with zero weight at landing cannot win. A segment that grows to hold
+> the entire circle is therefore *guaranteed* to win.
+
+The wedge swallowing the wheel and the wedge winning are the same fact, enforced
+by geometry rather than by a special case.
 
 ### 3. `sources` + `composer` — what's on the wheel
 
@@ -154,15 +190,74 @@ Note: `BroadcastChannel` is same-origin, so any tab on the same origin can
 observe rig commands. Acceptable for a single-operator local tool; it is not a
 security boundary.
 
+## Morphs
+
+A morph animates segment properties *during* a spin — the flagship case being a
+tiny "free beer" wedge swelling to fill the entire circle while the wheel is
+still turning. Morphs are cross-cutting: they touch both `wheel` (geometry) and
+`selection` (which distribution to sample).
+
+```ts
+type MorphKeyframe = {
+  at: number              // 0..1 through the morph's own duration
+  weight?: number
+  color?: string
+  label?: string
+  media?: Media
+}
+
+type Morph = {
+  segmentId: string
+  keyframes: MorphKeyframe[]
+  durationMs: number
+  easing?: string
+}
+```
+
+Morphable properties are **weight, color, label, and media**. Appearing and
+vanishing are not separate features — they are weight morphs to and from `0`.
+
+### Scheduled morphs
+
+Attached to the spin config and known at launch. The landing weight distribution
+is computable up front, so selection and target-angle math are exact and fully
+deterministic. This is the foundation and ships first.
+
+### Live-fired morphs
+
+Sent through the control channel mid-spin, from the unshared admin window. The
+landing distribution changes while the wheel is already turning, so the wheel
+must **re-target in flight**:
+
+1. Recompute the weight distribution as it will now be at landing.
+2. **Keep the existing winner if it still has nonzero landing weight; otherwise
+   re-select from the new landing distribution.** This preserves the fairness of
+   the original draw whenever the morph doesn't invalidate it, and forces the
+   correct outcome when it does (a wedge grown to 100% leaves no alternative).
+3. Recompute the target angle against the new landing geometry.
+4. Cancel the in-flight rotation, read the current angle, and start a new
+   animation from there.
+
+Step 4 is the main implementation risk. The spin is a decelerating ease-out, so
+naively retargeting can produce a visible jerk or an abrupt slowdown when the
+new target is only slightly ahead of the current angle. The mitigation is to
+add whole extra revolutions to the new target until it is far enough ahead that
+the remaining duration preserves apparent angular velocity. A morph that is
+visible because the wheel stuttered is a morph that gave away the mechanism.
+
 ## Data flow
 
 ```
 sources → composer → Segment[] → wheel (render)
 
 [spin pressed]
-  → armed rig ? forced(id) : weightedRandom
-  → targetSegmentId
-  → wheel animates (optionally via near-miss)
+  → resolve landing weights (apply scheduled morphs)
+  → armed rig ? forced(id) : weightedRandom(landing weights)
+  → targetSegmentId → landing angle
+  → wheel animates: rotation track + morph track
+       ├─ [live morph fired] → recompute landing weights
+       │                     → keep or re-select winner
+       │                     → re-target, resume without a seam
   → onLanded
   → reveal overlay
   → composer records the draw
@@ -255,17 +350,39 @@ The wheel never breaks the bit:
 - **Wheel geometry: `angleToSegment` is the exact inverse of `segmentToAngle`.**
   This is the highest-value test — the failure it catches is the pointer landing
   visually on a different slice than the one reported as the winner.
+- Geometry degenerate cases, asserted directly because the headline gag produces
+  them: a zero-weight segment yields a valid empty render with no `NaN` in the
+  path; a segment holding all the weight renders a complete 360° ring rather
+  than nothing; a single-segment wheel is always its own winner.
+- `morphs`: keyframe interpolation at boundaries and midpoints; landing weights
+  resolved from scheduled morphs match the geometry actually rendered at
+  landing; a segment morphing to zero is never selected; a segment morphing to
+  full weight is always selected.
+- Live re-targeting: an existing winner with nonzero landing weight is retained,
+  one with zero landing weight is replaced, and the recomputed target angle maps
+  back to the winner under the new geometry.
 - `control`: arming is consumed exactly once, then cleared.
 
-Animation quality is verified by eye, not asserted.
+Animation quality — including whether a live re-target is visually seamless —
+is verified by eye, not asserted.
 
 ## Build order
 
 1. `wheel` + `selection` + geometry, with hardcoded segments — funny on day one.
-2. `composer` + presets + `localStorage`.
-3. Reveals, skins, near-miss.
-4. Admin window + rig channel.
-5. `meetRoster` source.
+   Includes the degenerate cases (zero-weight, full-weight) from the start,
+   since morphs depend on them being correct.
+2. **Scheduled morphs** — the morph track, landing-weight resolution, and
+   selection against the landing distribution.
+3. `composer` + presets + `localStorage`.
+4. Reveals, skins, near-miss.
+5. Admin window + rig channel + **live-fired morphs** with in-flight
+   re-targeting.
+6. `meetRoster` source.
+
+Scheduled morphs come second because live-firing is the same machinery plus
+re-targeting; building the deterministic version first means the hard case has a
+correct, testable foundation underneath it rather than being the first thing
+attempted.
 
 Meet integration is deliberately last: it is the riskiest piece, the least fun,
 and the only one with an external dependency that may not cooperate. Everything
