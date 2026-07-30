@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PRESET_KEY, parsePreset } from '../preset/storage'
 import { Editor } from './Editor'
 
@@ -84,5 +84,64 @@ describe('Editor integration', () => {
     expect(screen.getByRole('status', { name: /slow burn conflicts/i })).toHaveTextContent(
       /also written by another trick/i,
     )
+  })
+})
+
+/**
+ * Only what a landing needs: a controllable `finished` promise. The frame loop
+ * is stubbed to a no-op so the morph tick never runs — the landed geometry
+ * comes from the animation settling, which is exactly the path under test.
+ */
+function installSpinHarness() {
+  const finishers: (() => void)[] = []
+  const realAnimate = Element.prototype.animate
+  Element.prototype.animate = function animate() {
+    let settle: (animation: Animation) => void = () => undefined
+    const finished = new Promise<Animation>((resolve) => {
+      settle = resolve
+    })
+    const animation = { finished, cancel: () => undefined } as unknown as Animation
+    finishers.push(() => settle(animation))
+    return animation
+  } as unknown as Element['animate']
+
+  vi.stubGlobal('requestAnimationFrame', () => 1)
+  vi.stubGlobal('cancelAnimationFrame', () => undefined)
+
+  return {
+    async land() {
+      for (const finish of finishers) finish()
+      // Two ticks: one for `finished.then`, one for the state it sets.
+      await act(async () => undefined)
+    },
+    restore() {
+      Element.prototype.animate = realAnimate
+      vi.unstubAllGlobals()
+    },
+  }
+}
+
+describe('Editor spin', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('keeps the landed wheel on screen after the spin ends', async () => {
+    const harness = installSpinHarness()
+    try {
+      render(<Editor />)
+      await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+      await userEvent.click(screen.getByRole('button', { name: /spin with these tricks/i }))
+      await harness.land()
+
+      // A full-share takeover drives every other wedge to zero, so the landed
+      // wheel carries exactly one label. Falling back to the scrub position
+      // instead would put the five names back the instant the spin ended.
+      const wheel = screen.getByRole('img', { name: 'wheel' })
+      expect(within(wheel).getByText('free beer')).toBeInTheDocument()
+      expect(within(wheel).queryByText('Ana')).not.toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
   })
 })

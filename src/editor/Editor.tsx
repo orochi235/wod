@@ -46,9 +46,24 @@ export function Editor() {
 
   const { displaySegments, isSpinning, spin, rotorRef } = useSpin(resolved.segments, spinConfig)
   const [scrubbed, setScrubbed] = useState<Segment[] | null>(null)
+  // Handing the wheel back to the scrubber the moment `isSpinning` goes false
+  // would erase the landing — the one frame the whole trick exists to produce.
+  // `useSpin` keeps that geometry in `displaySegments`, so the editor holds it
+  // until the operator moves the scrubber again.
+  const [spun, setSpun] = useState(false)
 
-  // A running spin owns the geometry; otherwise the scrubber does.
-  const shown = isSpinning ? displaySegments : (scrubbed ?? resolved.segments)
+  const handleScrub = useCallback((segments: Segment[]) => {
+    setScrubbed(segments)
+    setSpun(false)
+  }, [])
+
+  const handleSpin = useCallback(() => {
+    setSpun(true)
+    spin()
+  }, [spin])
+
+  // A spin owns the geometry, running or landed; otherwise the scrubber does.
+  const shown = isSpinning || spun ? displaySegments : (scrubbed ?? resolved.segments)
 
   return (
     <LabShell
@@ -77,8 +92,8 @@ export function Editor() {
             morphs={resolved.morphs}
             durationMs={preset.spin.durationMs}
             isSpinning={isSpinning}
-            onSpin={() => spin()}
-            onScrub={setScrubbed}
+            onSpin={handleSpin}
+            onScrub={handleScrub}
           />
         </section>
         <section className="editor__column editor__column--right">
