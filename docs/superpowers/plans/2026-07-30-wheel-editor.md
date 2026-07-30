@@ -2461,9 +2461,11 @@ export function SegmentList({
 }
 ```
 
-**Note on `Button`:** weasel-ui builds on `react-aria-components`, so its click
-handler is `onPress`, not `onClick`. If the button does not fire in tests, that
-is the reason.
+**Note on `Button`:** verify its props against
+`node_modules/@weasel-js/labkit/dist/passthrough/weasel-ui.d.ts` before use.
+Despite weasel-ui depending on `react-aria-components`, the installed
+`ButtonProps` exposes `onClick`, not `onPress` — an `onPress` handler would
+silently never fire.
 
 - [ ] **Step 4: Add the styles**
 

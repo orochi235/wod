@@ -34,7 +34,9 @@
 
 .segment-list__row {
   display: grid;
-  grid-template-columns: 1fr 4.5rem 2rem 1.75rem;
+  /* label, weight, color, move, delete — five controls need five tracks, or the
+     last one wraps onto an implicit second row. */
+  grid-template-columns: 1fr 4.5rem 2rem 1.75rem 1.75rem;
   gap: 0.35rem;
   align-items: center;
 }
