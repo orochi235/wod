@@ -52,10 +52,27 @@ describe('Transport', () => {
     expect(scrubbed.at(-1)).toEqual(applyMorphs(segments, morphs, 500))
   })
 
-  it('maps t to applyMorphs at t times the duration', () => {
+  it('reports the same geometry a real spin would show at that instant', () => {
     // The invariant the scrubber exists to preserve: preview geometry is the
-    // same function a real spin uses, sampled at a fixed instant.
-    expect(applyMorphs(segments, morphs, 0.25 * 1000).find((s) => s.id === 'beer')?.weight).toBe(1)
+    // same function a real spin uses, sampled at a fixed instant. Driven
+    // through the component, since asserting on applyMorphs alone would pass
+    // no matter what Transport did with it.
+    const scrubbed: Segment[][] = []
+    render(
+      <Transport
+        segments={segments}
+        morphs={morphs}
+        durationMs={1000}
+        onSpin={vi.fn()}
+        isSpinning={false}
+        onScrub={(next) => scrubbed.push(next)}
+      />,
+    )
+
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      fireEvent.change(screen.getByLabelText(/scrub/i), { target: { value: String(t) } })
+      expect(scrubbed.at(-1)).toEqual(applyMorphs(segments, morphs, t * 1000))
+    }
   })
 
   it('triggers a spin', async () => {
