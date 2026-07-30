@@ -42,10 +42,17 @@ export function resolveTricks(
   return { segments: all, morphs }
 }
 
-/** Which trick, if any, owns a given segment. Derived, never stored. */
+/**
+ * Which trick, if any, owns a given segment. Derived, never stored.
+ *
+ * Skips disabled tricks for the same reason `resolveTricks` does: a disabled
+ * trick contributes no wedge, so reporting ownership of one would describe a
+ * segment that is not on the wheel.
+ */
 export function wedgeOwners(tricks: Trick[]): Map<string, Trick> {
   const owners = new Map<string, Trick>()
   for (const trick of tricks) {
+    if (!trick.enabled) continue
     const recipe = getRecipe(trick.recipe)
     if (!recipe) continue
     for (const segment of recipe.provides(trick.params, trick.id)) {

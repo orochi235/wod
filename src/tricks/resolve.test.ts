@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { landingSegments } from '../wheel/morph'
 import type { Segment } from '../wheel/types'
-import { resolveTricks } from './resolve'
+import { getRecipe } from './registry'
+import { resolveTricks, wedgeOwners } from './resolve'
 import type { Trick } from './types'
 
 const people: Segment[] = [
@@ -88,5 +89,48 @@ describe('resolveTricks', () => {
     const result = resolveTricks(people, [beerTakeover], 1000)
     const landed = landingSegments(result.segments, result.morphs, 1000)
     expect(landed.filter((segment) => segment.weight > 0).map((s) => s.id)).toEqual(['beer:wedge'])
+  })
+})
+
+describe('trick data that names something on Object.prototype', () => {
+  // Recipe ids come out of localStorage. A bare `RECIPES[id] ?? null` lookup
+  // resolves these through the prototype chain to something non-undefined, so
+  // the coalesce never fires and the caller treats Object as a recipe.
+  const inherited = ['constructor', 'toString', 'hasOwnProperty', 'valueOf', '__proto__']
+
+  for (const id of inherited) {
+    it(`treats '${id}' as an unknown recipe`, () => {
+      expect(getRecipe(id)).toBeNull()
+    })
+
+    it(`resolves a trick naming '${id}' without throwing`, () => {
+      const trick = {
+        id: 'x',
+        name: 'x',
+        recipe: id,
+        params: {},
+        enabled: true,
+      } as unknown as Trick
+
+      expect(() => resolveTricks(people, [trick], 1000)).not.toThrow()
+      expect(resolveTricks(people, [trick], 1000).morphs).toEqual([])
+    })
+  }
+})
+
+describe('wedgeOwners', () => {
+  it('reports the trick that contributed a wedge', () => {
+    expect(wedgeOwners([beerTakeover]).get('beer:wedge')?.id).toBe('beer')
+  })
+
+  it('reports nothing for a disabled trick, which contributes no wedge', () => {
+    // Must agree with resolveTricks, or the editor labels a segment that is
+    // not on the wheel.
+    expect(wedgeOwners([{ ...beerTakeover, enabled: false }]).size).toBe(0)
+  })
+
+  it('reports nothing for an unknown recipe', () => {
+    const bogus = { ...beerTakeover, recipe: 'nonsense' } as unknown as Trick
+    expect(wedgeOwners([bogus]).size).toBe(0)
   })
 })
