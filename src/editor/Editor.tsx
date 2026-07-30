@@ -8,6 +8,7 @@ import { Wheel } from '../wheel/Wheel'
 import type { Segment } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
+import { PresetIo } from './PresetIo'
 import { SegmentList } from './SegmentList'
 import { Transport } from './Transport'
 import { TrickLibrary } from './TrickLibrary'
@@ -50,7 +51,15 @@ export function Editor() {
   const shown = isSpinning ? displaySegments : (scrubbed ?? resolved.segments)
 
   return (
-    <LabShell title="wod editor" header={<a href="#/">Show page</a>}>
+    <LabShell
+      title="wod editor"
+      header={
+        <>
+          <a href="#/">Show page</a>
+          <PresetIo preset={preset} onImport={update} />
+        </>
+      }
+    >
       <div className="editor">
         <section className="editor__column editor__column--left">
           <SegmentList

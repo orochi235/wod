@@ -203,3 +203,26 @@
   display: inline-flex;
   align-items: center;
 }
+
+.preset-io {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* The raw file input is wide enough to shove the rest of the header off the
+   bar, so the label carries the affordance and the input itself is hidden
+   from sight but not from the accessibility tree or a click on the label. */
+.preset-io__import input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.preset-io__import span {
+  cursor: pointer;
+  text-decoration: underline;
+}
