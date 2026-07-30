@@ -470,7 +470,7 @@ export function readUnit(params: TrickParams, key: string, fallback: number): nu
 - [ ] **Step 5: Run the test and verify it passes**
 
 Run: `npm test -- src/tricks/params.test.ts`
-Expected: PASS, 10 tests
+Expected: PASS, 11 tests
 
 - [ ] **Step 6: Commit**
 
