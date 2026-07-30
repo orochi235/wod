@@ -17,4 +17,12 @@ describe('routeFromHash', () => {
   it('ignores a trailing slash', () => {
     expect(routeFromHash('#/edit/')).toBe('edit')
   })
+
+  it('ignores a query string', () => {
+    expect(routeFromHash('#/edit?x=1')).toBe('edit')
+  })
+
+  it('ignores a query string after a trailing slash', () => {
+    expect(routeFromHash('#/edit/?x=1')).toBe('edit')
+  })
 })
