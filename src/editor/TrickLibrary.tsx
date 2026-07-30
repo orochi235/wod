@@ -51,6 +51,11 @@ export function TrickLibrary({
   return (
     <PropertyPanel title="Tricks" className="trick-library">
       <EffectCardList
+        // EffectCardList seeds its expanded set once at mount and never
+        // re-syncs, so a selection made anywhere else — clicking a ghost row in
+        // the segment list — would call onSelect without ever showing the form.
+        // Keying on the selection remounts the list so the seed is re-read.
+        key={selectedId ?? 'none'}
         items={tricks}
         defaultExpandedIds={selectedId ? [selectedId] : []}
         empty={<p>No tricks yet.</p>}
@@ -129,7 +134,13 @@ export function TrickLibrary({
                 id,
                 name: recipe.name,
                 recipe: recipe.id,
-                params: { ...recipe.defaults },
+                // Deep, not a spread. Several recipes declare array params such
+                // as `targets: []`, and a shallow copy hands every trick of that
+                // recipe the same array instance as each other and as the
+                // module-level default. Nothing mutates in place today, but one
+                // `params.targets.push(...)` anywhere would corrupt every trick
+                // built from that recipe, past and future.
+                params: structuredClone(recipe.defaults),
                 enabled: false,
               },
             ])

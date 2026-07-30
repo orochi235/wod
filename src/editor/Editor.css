@@ -1,6 +1,8 @@
 .editor {
   display: grid;
-  grid-template-columns: minmax(14rem, 20rem) 1fr minmax(16rem, 24rem);
+  /* The trick column holds a generated parameter form, which is denser than the
+     segment list — it needs the wider minimum or its labels clip. */
+  grid-template-columns: minmax(14rem, 20rem) 1fr minmax(22rem, 28rem);
   gap: 1rem;
   align-items: start;
   padding: 1rem;
@@ -42,15 +44,26 @@
 }
 
 .segment-list__row--ghost {
+  /* Two stacked lines of text, so it must not inherit the fixed row height the
+     editable rows get from their inputs — it would clip the owner tag. */
   grid-template-columns: 1fr 4.5rem;
+  align-items: start;
+  padding: 0.2rem 0;
   opacity: 0.55;
 }
 
+.segment-list__row--ghost .segment-list__weight-readout {
+  align-self: center;
+}
+
 .segment-list__ghost-button {
+  /* One line, not stacked: the row's height comes from the input-bearing rows
+     above it, and a second line just gets clipped. */
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   background: none;
   border: 0;
   padding: 0.2rem 0;
@@ -160,4 +173,33 @@
 .transport__scrub output {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* An <input type="color"> carries an intrinsic width that ignores its grid
+   track, so without this it overflows and sits on top of the move buttons. */
+.segment-list__label,
+.segment-list__weight,
+.segment-list__color {
+  min-width: 0;
+  width: 100%;
+}
+
+/* The wheel is an SVG with no intrinsic cap, so it grows to fill the centre
+   column and pushes the side panels to the far edges of a wide window. */
+.editor__column--center .wheel {
+  width: 100%;
+  max-width: 30rem;
+  height: auto;
+}
+
+.trick-library__add {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.trick-card__enable {
+  display: inline-flex;
+  align-items: center;
 }
