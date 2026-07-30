@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { App } from './App'
 import { DEFAULT_PRESET } from './preset/defaults'
@@ -31,5 +31,61 @@ describe('App', () => {
     // Present in the segment set but zero-width, so the wheel draws no label.
     expect(screen.queryByText('free beer')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /spin/i })).toBeEnabled()
+  })
+
+  it('renders the stored preset rather than a built-in list', () => {
+    // The decisive test. The default preset's names happen to match the array
+    // App.tsx used to hardcode, so asserting against them passes either way.
+    // These names exist nowhere in the source.
+    const custom = {
+      ...DEFAULT_PRESET,
+      segments: [
+        { id: 'zed', label: 'Zebediah', weight: 1 },
+        { id: 'quo', label: 'Quorra', weight: 1 },
+      ],
+    }
+    window.localStorage.setItem(PRESET_KEY, JSON.stringify(custom))
+
+    render(<App />)
+
+    expect(screen.getByText('Zebediah')).toBeInTheDocument()
+    expect(screen.getByText('Quorra')).toBeInTheDocument()
+    expect(screen.queryByText('Ana')).not.toBeInTheDocument()
+  })
+
+  it('draws no arc for the zero-width wedge', () => {
+    // A weight-0 segment must occupy no arc at all, not a hairline one.
+    const { container, unmount } = render(<App />)
+    const withoutTrick = container.querySelectorAll('.wheel__segment').length
+    unmount()
+
+    const enabled = {
+      ...DEFAULT_PRESET,
+      tricks: DEFAULT_PRESET.tricks.map((trick) => ({ ...trick, enabled: true })),
+    }
+    window.localStorage.setItem(PRESET_KEY, JSON.stringify(enabled))
+    const second = render(<App />)
+
+    expect(second.container.querySelectorAll('.wheel__segment')).toHaveLength(withoutTrick)
+  })
+
+  it('follows a preset written by another window', () => {
+    // The editor lives at #/edit in a separate window; the storage event is how
+    // an already-open show window learns about an edit without a reload.
+    render(<App />)
+    expect(screen.getByText('Ana')).toBeInTheDocument()
+
+    const edited = {
+      ...DEFAULT_PRESET,
+      segments: [{ id: 'new', label: 'Wilhelmina', weight: 1 }],
+    }
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', { key: PRESET_KEY, newValue: JSON.stringify(edited) }),
+      )
+    })
+
+    expect(screen.getByText('Wilhelmina')).toBeInTheDocument()
+    expect(screen.queryByText('Ana')).not.toBeInTheDocument()
   })
 })
