@@ -5,8 +5,11 @@ import type { Preset } from '../preset/types'
 import { findConflicts } from '../tricks/conflicts'
 import { resolveTricks } from '../tricks/resolve'
 import { Wheel } from '../wheel/Wheel'
+import type { Segment } from '../wheel/types'
+import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
 import { SegmentList } from './SegmentList'
+import { Transport } from './Transport'
 import { TrickLibrary } from './TrickLibrary'
 
 export function Editor() {
@@ -30,6 +33,22 @@ export function Editor() {
     [preset],
   )
 
+  const spinConfig = useMemo(
+    () => ({
+      durationMs: preset.spin.durationMs,
+      fullSpins: preset.spin.fullSpins,
+      easing: preset.spin.easing,
+      morphs: resolved.morphs,
+    }),
+    [preset.spin, resolved.morphs],
+  )
+
+  const { displaySegments, isSpinning, spin, rotorRef } = useSpin(resolved.segments, spinConfig)
+  const [scrubbed, setScrubbed] = useState<Segment[] | null>(null)
+
+  // A running spin owns the geometry; otherwise the scrubber does.
+  const shown = isSpinning ? displaySegments : (scrubbed ?? resolved.segments)
+
   return (
     <LabShell title="wod editor" header={<a href="#/">Show page</a>}>
       <div className="editor">
@@ -43,7 +62,15 @@ export function Editor() {
           />
         </section>
         <section className="editor__column editor__column--center">
-          <Wheel segments={resolved.segments} />
+          <Wheel segments={shown} rotorRef={rotorRef} />
+          <Transport
+            segments={resolved.segments}
+            morphs={resolved.morphs}
+            durationMs={preset.spin.durationMs}
+            isSpinning={isSpinning}
+            onSpin={() => spin()}
+            onScrub={setScrubbed}
+          />
         </section>
         <section className="editor__column editor__column--right">
           <TrickLibrary
