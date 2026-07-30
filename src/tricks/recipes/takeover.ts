@@ -1,3 +1,4 @@
+import { parseHex } from '../../wheel/morph'
 import { effectiveColor } from '../../wheel/palette'
 import type { Morph, MorphKeyframe, Segment } from '../../wheel/types'
 import { readEasing, readOptionalString, readString, readUnit } from '../params'
@@ -160,6 +161,13 @@ export const takeover: Recipe = {
   },
 
   validate(params: TrickParams, segments: Segment[]): string | null {
+    // lerpColor only understands hex; anything else holds the start color for
+    // the whole spin and cuts on the last frame instead of fading.
+    for (const key of ['endColor', 'wedgeColor']) {
+      const color = readOptionalString(params, key)
+      if (color && !parseHex(color)) return `not a hex color: ${color}`
+    }
+
     if (isNewMode(params)) return null
     const id = readString(params, 'wedgeSegmentId', '')
     if (id === '') return 'no wedge chosen'

@@ -1,3 +1,4 @@
+import { parseHex } from '../../wheel/morph'
 import { effectiveColor } from '../../wheel/palette'
 import type { Morph, Segment } from '../../wheel/types'
 import { readEasing, readString, readStringArray, readUnit } from '../params'
@@ -64,6 +65,12 @@ export const recolor: Recipe = {
     const missing = readStringArray(params, 'targets').filter(
       (id) => !segments.some((segment) => segment.id === id),
     )
-    return missing.length === 0 ? null : `unknown wedge: ${missing.join(', ')}`
+    if (missing.length > 0) return `unknown wedge: ${missing.join(', ')}`
+
+    // lerpColor only understands hex. A named CSS color parses as nothing, so
+    // it holds the start color for the whole spin and then cuts to the target
+    // on the final frame — a fade that never fades. Better to refuse it.
+    const toColor = readString(params, 'toColor', '#888888')
+    return parseHex(toColor) ? null : `not a hex color: ${toColor}`
   },
 }

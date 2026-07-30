@@ -41,6 +41,29 @@ describe('a recipe honors its own declared easing default', () => {
   }
 })
 
+describe('a color a recipe cannot actually fade is refused', () => {
+  // lerpColor only parses hex. A named CSS color would hold the start color for
+  // the whole spin then cut on the last frame, so validate rejects it rather
+  // than letting the editor promise a fade that never happens.
+  const cases = [
+    { recipe: recolor, key: 'toColor' },
+    { recipe: takeover, key: 'endColor' },
+    { recipe: takeover, key: 'wedgeColor' },
+  ]
+
+  for (const { recipe, key } of cases) {
+    it(`${recipe.id} rejects a named color in ${key}`, () => {
+      const params = { ...recipe.defaults, [key]: 'rebeccapurple' }
+      expect(recipe.validate(params, segments)).toMatch(/rebeccapurple/)
+    })
+
+    it(`${recipe.id} accepts hex in ${key}`, () => {
+      const params = { ...recipe.defaults, [key]: '#ff8811' }
+      expect(recipe.validate(params, segments)).toBeNull()
+    })
+  }
+})
+
 describe('timing parameters at their extremes stay well formed', () => {
   // At 0 and 1 the recipes emit duplicate `at` offsets. That resolves correctly
   // today, but only because of how morph.ts brackets keyframes — these lock the
