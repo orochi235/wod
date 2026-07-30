@@ -9,5 +9,13 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/vitest.setup.ts'],
+    poolOptions: {
+      forks: {
+        // Node 22+'s experimental global `localStorage` shadows jsdom's window.localStorage
+        // (jsdom/jsdom#3862-style conflict), leaving it undefined under Vitest. Disabling it
+        // lets jsdom provide the real implementation.
+        execArgv: ['--no-experimental-webstorage'],
+      },
+    },
   },
 })
