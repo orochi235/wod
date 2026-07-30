@@ -124,6 +124,55 @@ function byWrite(a: { segmentId: string; property: string }, b: typeof a): numbe
   return a.segmentId.localeCompare(b.segmentId) || a.property.localeCompare(b.property)
 }
 
+describe('takeover when nobody else has weight', () => {
+  // The proportional solve collapses to zero here, which would leave every
+  // segment at weight 0 and make normalizeWeights split the circle evenly —
+  // the opposite of the requested share.
+  const idle: Segment[] = [
+    { id: 'ana', label: 'Ana', weight: 0 },
+    { id: 'ben', label: 'Ben', weight: 0 },
+  ]
+  const params = { wedgeMode: 'existing', wedgeSegmentId: 'ana', holdUntil: 0, endShare: 0.5 }
+  const ctx: RecipeContext = { trickId: 't1', segments: idle, durationMs: 1000 }
+
+  it('gives the wedge the whole circle rather than an even split', () => {
+    const landed = landingSegments(idle, takeover.resolve(params, ctx), 1000)
+    const nonZero = landed.filter((segment) => segment.weight > 0)
+    expect(nonZero.map((segment) => segment.id)).toEqual(['ana'])
+  })
+
+  it('declares the other weights it now writes', () => {
+    expect(takeover.writes(params, ctx)).toContainEqual({ segmentId: 'ben', property: 'weight' })
+  })
+})
+
+describe('takeover color on a wedge left to the palette', () => {
+  // `wedge.color` is undefined for a palette-colored segment, so reading it
+  // directly would drop the requested end color without any signal.
+  const plain: Segment[] = [
+    { id: 'ana', label: 'Ana', weight: 1 },
+    { id: 'ben', label: 'Ben', weight: 1 },
+  ]
+  const params = {
+    wedgeMode: 'existing',
+    wedgeSegmentId: 'ana',
+    holdUntil: 0,
+    endShare: 1,
+    endColor: '#ff8811',
+  }
+  const ctx: RecipeContext = { trickId: 't1', segments: plain, durationMs: 1000 }
+
+  it('animates from the painted palette color', () => {
+    const [morph] = takeover.resolve(params, ctx)
+    expect(morph.keyframes[0].color).toBe('#f4a261')
+    expect(morph.keyframes.at(-1)?.color).toBe('#ff8811')
+  })
+
+  it('declares the color it writes', () => {
+    expect(takeover.writes(params, ctx)).toContainEqual({ segmentId: 'ana', property: 'color' })
+  })
+})
+
 describe('takeover.validate', () => {
   it('rejects an existing-mode target that is gone', () => {
     expect(takeover.validate({ wedgeMode: 'existing', wedgeSegmentId: 'ghost' }, people)).toMatch(

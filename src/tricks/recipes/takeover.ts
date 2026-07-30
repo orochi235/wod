@@ -1,3 +1,4 @@
+import { effectiveColor } from '../../wheel/palette'
 import type { Morph, MorphKeyframe, Segment } from '../../wheel/types'
 import { readEasing, readOptionalString, readString, readUnit } from '../params'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
@@ -13,6 +14,21 @@ function isNewMode(params: TrickParams): boolean {
 
 function wedgeId(params: TrickParams, trickId: string): string {
   return isNewMode(params) ? wedgeIdFor(trickId) : readString(params, 'wedgeSegmentId', '')
+}
+
+/**
+ * Whether the wedge ends up owning the whole circle — either because it was
+ * asked to, or because nobody else has weight left to share.
+ *
+ * The second case matters: with `othersTotal` at 0 the proportional solve
+ * collapses to `share * 0 / (1 - share)` = 0, so every segment including the
+ * wedge would land at zero weight. `normalizeWeights` reads an all-zero wheel
+ * as "nothing has been weighted" and splits it evenly, which is the opposite of
+ * the requested share. Shared by `resolve` and `writes` so the two cannot
+ * disagree about which branch ran.
+ */
+function takesWholeCircle(endShare: number, othersTotal: number): boolean {
+  return endShare >= 1 || othersTotal <= 0
 }
 
 export const takeover: Recipe = {
@@ -86,17 +102,22 @@ export const takeover: Recipe = {
 
     // At a full share the others must go to zero, so the wedge's own number is
     // arbitrary. Below that, solve w / (w + T) = share for w.
-    const takesAll = endShare >= 1
+    const takesAll = takesWholeCircle(endShare, othersTotal)
     const endWeight = takesAll ? 1 : (endShare * othersTotal) / (1 - endShare)
+
+    // The color the wheel actually paints, which is what the fade has to start
+    // from. `wedge.color` is undefined for any segment left to the palette, and
+    // reading that directly would silently drop the requested end color.
+    const baseColor = effectiveColor(ctx.segments, id)
 
     const grow: MorphKeyframe[] = [
       { at: 0, weight: wedge.weight },
       { at: holdUntil, weight: wedge.weight },
       { at: 1, weight: endWeight },
     ]
-    if (endColor && wedge.color) {
-      grow[0] = { ...grow[0], color: wedge.color }
-      grow[1] = { ...grow[1], color: wedge.color }
+    if (endColor && baseColor) {
+      grow[0] = { ...grow[0], color: baseColor }
+      grow[1] = { ...grow[1], color: baseColor }
       grow[2] = { ...grow[2], color: endColor }
     }
 
@@ -123,13 +144,16 @@ export const takeover: Recipe = {
     const wedge = ctx.segments.find((segment) => segment.id === id)
     if (!wedge) return []
 
+    const others = ctx.segments.filter((segment) => segment.id !== id)
+    const othersTotal = others.reduce((sum, segment) => sum + segment.weight, 0)
+
     const writes: Write[] = [{ segmentId: id, property: 'weight' }]
-    if (readOptionalString(params, 'endColor') && wedge.color) {
+    if (readOptionalString(params, 'endColor') && effectiveColor(ctx.segments, id)) {
       writes.push({ segmentId: id, property: 'color' })
     }
-    if (readUnit(params, 'endShare', 1) >= 1) {
-      for (const segment of ctx.segments) {
-        if (segment.id !== id) writes.push({ segmentId: segment.id, property: 'weight' })
+    if (takesWholeCircle(readUnit(params, 'endShare', 1), othersTotal)) {
+      for (const segment of others) {
+        writes.push({ segmentId: segment.id, property: 'weight' })
       }
     }
     return writes
