@@ -52,9 +52,11 @@ export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: Whe
           )
         })}
       </g>
+      {/* Apex inward: the tip is the thing that names a winner, so it sits on
+          the wheel rather than above it. The base stays just past the rim. */}
       <polygon
         className="wheel__pointer"
-        points={`0,${-radius - 4} -12,${-radius + 18} 12,${-radius + 18}`}
+        points={`0,${-radius + 18} -12,${-radius - 4} 12,${-radius - 4}`}
       />
     </svg>
   )
