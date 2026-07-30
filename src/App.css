@@ -27,6 +27,13 @@
   cursor: default;
 }
 
+.app__empty {
+  min-height: 2rem;
+  font-size: 1.1rem;
+  opacity: 0.7;
+  text-align: center;
+}
+
 .app__result {
   min-height: 2rem;
   font-size: 1.5rem;

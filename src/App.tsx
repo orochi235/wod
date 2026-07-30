@@ -33,19 +33,31 @@ export function App() {
     config,
   )
   const winner = displaySegments.find((segment) => segment.id === winnerId)
+  // Nothing to land on. planSpin would return null and the click would quietly
+  // do nothing, which reads as a broken button rather than an empty wheel.
+  const isEmpty = displaySegments.length === 0
 
   return (
     <main className="app">
       <Wheel segments={displaySegments} rotorRef={rotorRef} />
       <div className="app__controls">
-        <button className="app__button" type="button" onClick={() => spin()} disabled={isSpinning}>
+        <button
+          className="app__button"
+          type="button"
+          onClick={() => spin()}
+          disabled={isSpinning || isEmpty}
+        >
           Spin
         </button>
         <a className="app__button" href="#/edit">
           Edit
         </a>
       </div>
-      <p className="app__result">{winner ? winner.label : ''}</p>
+      {isEmpty ? (
+        <p className="app__empty">Nothing on the wheel yet — add some segments in the editor.</p>
+      ) : (
+        <p className="app__result">{winner ? winner.label : ''}</p>
+      )}
     </main>
   )
 }

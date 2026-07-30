@@ -69,6 +69,27 @@ describe('App', () => {
     expect(second.container.querySelectorAll('.wheel__segment')).toHaveLength(withoutTrick)
   })
 
+  it('disables spinning and explains itself when the wheel is empty', () => {
+    // The design doc requires an explanatory empty state rather than a live
+    // button that silently does nothing, which is what planSpin returning null
+    // would otherwise look like.
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({ ...DEFAULT_PRESET, segments: [], tricks: [] }),
+    )
+
+    render(<App />)
+
+    expect(screen.getByRole('button', { name: /spin/i })).toBeDisabled()
+    expect(screen.getByText(/nothing on the wheel yet/i)).toBeInTheDocument()
+  })
+
+  it('keeps spinning available as soon as there is a segment', () => {
+    render(<App />)
+    expect(screen.getByRole('button', { name: /spin/i })).toBeEnabled()
+    expect(screen.queryByText(/nothing on the wheel yet/i)).not.toBeInTheDocument()
+  })
+
   it('follows a preset written by another window', () => {
     // The editor lives at #/edit in a separate window; the storage event is how
     // an already-open show window learns about an edit without a reload.
