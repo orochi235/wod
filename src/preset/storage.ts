@@ -20,11 +20,21 @@ function readSegments(value: unknown): Segment[] {
       typeof entry.weight === 'number' && Number.isFinite(entry.weight)
         ? Math.max(0, entry.weight)
         : 0
+    // Ids have to be unique: the wheel keys its arcs by segment id, and lookups
+    // in spin and selection resolve to whichever duplicate comes first, so a
+    // repeated id makes the pointer and the announced winner disagree.
+    if (segments.some((existing) => existing.id === entry.id)) continue
+
     const segment: Segment = { id: entry.id, label: entry.label, weight }
     if (typeof entry.color === 'string') segment.color = entry.color
     segments.push(segment)
   }
   return segments
+}
+
+/** Positive and finite, or the fallback. */
+function readPositive(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback
 }
 
 /**
@@ -75,13 +85,14 @@ export function parsePreset(raw: string | null): Preset {
     segments,
     tricks: readTricks(data.tricks, segments),
     spin: {
-      durationMs:
-        typeof spin.durationMs === 'number' && Number.isFinite(spin.durationMs)
-          ? spin.durationMs
-          : DEFAULT_PRESET.spin.durationMs,
+      // Must be positive, not merely finite. Element.animate() throws
+      // synchronously on a negative duration, so a hand-edited preset would
+      // crash the wheel at spin time — the exact failure this module exists to
+      // prevent.
+      durationMs: readPositive(spin.durationMs, DEFAULT_PRESET.spin.durationMs),
       fullSpins:
         typeof spin.fullSpins === 'number' && Number.isFinite(spin.fullSpins)
-          ? spin.fullSpins
+          ? Math.max(0, spin.fullSpins)
           : DEFAULT_PRESET.spin.fullSpins,
       easing: typeof spin.easing === 'string' ? spin.easing : DEFAULT_PRESET.spin.easing,
     },

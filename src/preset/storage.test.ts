@@ -66,3 +66,41 @@ describe('loadPreset and savePreset', () => {
     expect(loadPreset()).toEqual(edited)
   })
 })
+
+describe('parsePreset guards values the wheel would choke on', () => {
+  it('rejects a negative spin duration', () => {
+    // Element.animate() throws synchronously on a negative duration.
+    const raw = { ...DEFAULT_PRESET, spin: { ...DEFAULT_PRESET.spin, durationMs: -500 } }
+    expect(parsePreset(JSON.stringify(raw)).spin.durationMs).toBe(
+      DEFAULT_PRESET.spin.durationMs,
+    )
+  })
+
+  it('rejects a zero spin duration', () => {
+    const raw = { ...DEFAULT_PRESET, spin: { ...DEFAULT_PRESET.spin, durationMs: 0 } }
+    expect(parsePreset(JSON.stringify(raw)).spin.durationMs).toBe(
+      DEFAULT_PRESET.spin.durationMs,
+    )
+  })
+
+  it('clamps negative fullSpins rather than spinning backwards', () => {
+    const raw = { ...DEFAULT_PRESET, spin: { ...DEFAULT_PRESET.spin, fullSpins: -3 } }
+    expect(parsePreset(JSON.stringify(raw)).spin.fullSpins).toBe(0)
+  })
+
+  it('drops a duplicate segment id, keeping the first', () => {
+    // The wheel keys arcs by id, and spin/selection lookups resolve to the
+    // first match — duplicates make the pointer and the winner disagree.
+    const raw = {
+      ...DEFAULT_PRESET,
+      segments: [
+        { id: 'ana', label: 'Ana', weight: 1 },
+        { id: 'ana', label: 'Impostor', weight: 9 },
+        { id: 'ben', label: 'Ben', weight: 1 },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.segments.map((segment) => segment.id)).toEqual(['ana', 'ben'])
+    expect(parsed.segments[0].label).toBe('Ana')
+  })
+})
