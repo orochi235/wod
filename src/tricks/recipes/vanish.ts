@@ -34,7 +34,7 @@ export const vanish: Recipe = {
 
   resolve(params: TrickParams, ctx: RecipeContext): Morph[] {
     const startAt = readUnit(params, 'startAt', 0.5)
-    const easing = readEasing(params, 'easing')
+    const easing = readEasing(params, 'easing', 'easeIn')
     return resolveTargets(params, ctx.segments).map((segment) => ({
       segmentId: segment.id,
       durationMs: ctx.durationMs,

@@ -33,7 +33,7 @@ export const recolor: Recipe = {
   resolve(params: TrickParams, ctx: RecipeContext): Morph[] {
     const toColor = readString(params, 'toColor', '#888888')
     const startAt = readUnit(params, 'startAt', 0.5)
-    const easing = readEasing(params, 'easing')
+    const easing = readEasing(params, 'easing', 'easeInOut')
 
     return resolveTargets(params, ctx.segments).map((segment) => {
       // An explicit at:0 keyframe is required. `morph.ts` only synthesizes an

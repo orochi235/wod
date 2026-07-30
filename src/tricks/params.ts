@@ -32,11 +32,15 @@ export function readStringArray(params: TrickParams, key: string): string[] {
  * `Object.hasOwn`, not `in`: `in` walks the prototype chain and would accept
  * 'toString' as an easing.
  */
-export function readEasing(params: TrickParams, key: string): EasingName {
+export function readEasing(
+  params: TrickParams,
+  key: string,
+  fallback: EasingName = 'linear',
+): EasingName {
   const value = params[key]
   return typeof value === 'string' && Object.hasOwn(EASINGS, value)
     ? (value as EasingName)
-    : 'linear'
+    : fallback
 }
 
 /** Clamps to 0..1, which every timing parameter needs. */

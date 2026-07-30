@@ -79,7 +79,7 @@ export const takeover: Recipe = {
     const holdUntil = readUnit(params, 'holdUntil', 0.6)
     const endShare = readUnit(params, 'endShare', 1)
     const endColor = readOptionalString(params, 'endColor')
-    const easing = readEasing(params, 'easing')
+    const easing = readEasing(params, 'easing', 'easeIn')
 
     const others = ctx.segments.filter((segment) => segment.id !== id)
     const othersTotal = others.reduce((sum, segment) => sum + segment.weight, 0)
