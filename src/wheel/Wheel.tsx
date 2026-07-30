@@ -12,9 +12,23 @@ export type WheelProps = {
   rotorRef?: Ref<SVGGElement>
 }
 
+/**
+ * How far the tip reaches past the rim. A physical pointer wants to just brush
+ * each wedge as it goes by — enough to catch an edge, not enough to jam the
+ * wheel — so this stays small on purpose.
+ */
+const POINTER_BITE = 3
+const POINTER_LENGTH = 22
+const POINTER_HALF_WIDTH = 12
+/** The outer end, which is where a flicking pointer would pivot. */
+const POINTER_BASE = POINTER_LENGTH - POINTER_BITE
+// Two extra units so the base is not sitting exactly on the clip edge.
+const VIEWBOX_PAD = POINTER_BASE + 2
+
 export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: WheelProps) {
   const layout = arcs(segments)
-  const viewBox = `${-radius - 4} ${-radius - 4} ${(radius + 4) * 2} ${(radius + 4) * 2}`
+  const half = radius + VIEWBOX_PAD
+  const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
 
   return (
     <svg className="wheel" viewBox={viewBox} role="img" aria-label="wheel">
@@ -52,11 +66,11 @@ export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: Whe
           )
         })}
       </g>
-      {/* Apex inward: the tip is the thing that names a winner, so it sits on
-          the wheel rather than above it. The base stays just past the rim. */}
+      {/* Apex inward: the tip is the thing that names a winner, so it points at
+          the wedge rather than away from it, dipping just past the rim. */}
       <polygon
         className="wheel__pointer"
-        points={`0,${-radius + 18} -12,${-radius - 4} 12,${-radius - 4}`}
+        points={`0,${-radius + POINTER_BITE} ${-POINTER_HALF_WIDTH},${-radius - POINTER_BASE} ${POINTER_HALF_WIDTH},${-radius - POINTER_BASE}`}
       />
     </svg>
   )
