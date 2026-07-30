@@ -73,7 +73,16 @@ export function SegmentList({
             />
             <button
               type="button"
+              aria-label={`Move ${segment.label} up`}
+              disabled={index === 0}
+              onClick={() => move(index, -1)}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
               aria-label={`Move ${segment.label} down`}
+              disabled={index === segments.length - 1}
               onClick={() => move(index, 1)}
             >
               ↓
@@ -103,7 +112,11 @@ export function SegmentList({
               onClick={() => onSelectTrick(trick.id)}
             >
               <span className="segment-list__label-text">
-                {String(trick.params.wedgeLabel ?? segmentId)}
+                {/* Never fall back to the segment id — that would put the
+                    internal 'trickId:wedge' string on screen. */}
+                {typeof trick.params.wedgeLabel === 'string' && trick.params.wedgeLabel !== ''
+                  ? trick.params.wedgeLabel
+                  : 'unnamed wedge'}
               </span>
               <span className="segment-list__owner">↳ {trick.name}</span>
             </button>

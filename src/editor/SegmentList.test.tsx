@@ -163,3 +163,58 @@ describe('SegmentList', () => {
     expect(onSelectTrick).toHaveBeenCalledWith('beer')
   })
 })
+
+describe('SegmentList reordering', () => {
+  it('moves a segment up', async () => {
+    const onChange = vi.fn()
+    render(
+      <SegmentList
+        segments={segments}
+        tricks={[]}
+        selectedTrickId={null}
+        onChange={onChange}
+        onSelectTrick={vi.fn()}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /move ben up/i }))
+    expect(onChange).toHaveBeenCalledWith([segments[1], segments[0]])
+  })
+
+  it('disables the controls that would run off either end', () => {
+    // They previously rendered live and silently did nothing when clicked.
+    render(
+      <SegmentList
+        segments={segments}
+        tricks={[]}
+        selectedTrickId={null}
+        onChange={vi.fn()}
+        onSelectTrick={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /move ana up/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /move ben down/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /move ana down/i })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /move ben up/i })).toBeEnabled()
+  })
+
+  it('never shows the internal wedge id when a trick has no label', () => {
+    const unlabelled = {
+      id: 'beer',
+      name: 'slow burn',
+      recipe: 'takeover' as const,
+      params: { wedgeMode: 'new', wedgeColor: '#ffd166' },
+      enabled: true,
+    }
+    render(
+      <SegmentList
+        segments={segments}
+        tricks={[unlabelled]}
+        selectedTrickId={null}
+        onChange={vi.fn()}
+        onSelectTrick={vi.fn()}
+      />,
+    )
+    expect(screen.queryByText(/beer:wedge/)).not.toBeInTheDocument()
+    expect(screen.getByText('unnamed wedge')).toBeInTheDocument()
+  })
+})
