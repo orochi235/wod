@@ -1,10 +1,9 @@
 import type { Ref } from 'react'
 import { arcPath, arcs } from './geometry'
 import { fitLabel } from './label'
+import { paletteColor } from './palette'
 import type { Segment } from './types'
 import './Wheel.css'
-
-const DEFAULT_PALETTE = ['#f4a261', '#2a9d8f', '#e76f51', '#e9c46a', '#8ab17d', '#5f8dd3']
 
 export type WheelProps = {
   segments: Segment[]
@@ -28,7 +27,7 @@ export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: Whe
           const d = arcPath(arc.start, arc.end, radius)
           if (d === '') return null
 
-          const color = segment.color ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length]
+          const color = segment.color ?? paletteColor(index)
           const fitted = fitLabel(segment.label, width, radius)
           const midDeg = (arc.start + width / 2) * 360
           // Radial text reads upside down when its baseline points leftward on
