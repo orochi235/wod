@@ -75,3 +75,68 @@
   outline: 2px solid currentColor;
   border-radius: 0.3rem;
 }
+
+.trick-library__cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trick-card {
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.trick-card--selected {
+  outline: 2px solid currentColor;
+}
+
+.trick-card__head {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.trick-card__title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trick-card__recipe {
+  font-size: 0.8em;
+  opacity: 0.75;
+}
+
+.trick-card__conflict {
+  margin: 0;
+  font-size: 0.85em;
+}
+
+.recipe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.recipe-form__row {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 0.4rem;
+  align-items: center;
+}

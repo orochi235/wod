@@ -2,10 +2,12 @@ import { LabShell } from '@weasel-js/labkit'
 import { useCallback, useMemo, useState } from 'react'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
+import { findConflicts } from '../tricks/conflicts'
 import { resolveTricks } from '../tricks/resolve'
 import { Wheel } from '../wheel/Wheel'
 import './Editor.css'
 import { SegmentList } from './SegmentList'
+import { TrickLibrary } from './TrickLibrary'
 
 export function Editor() {
   const [preset, setPreset] = useState<Preset>(loadPreset)
@@ -20,6 +22,11 @@ export function Editor() {
 
   const resolved = useMemo(
     () => resolveTricks(preset.segments, preset.tricks, preset.spin.durationMs),
+    [preset],
+  )
+
+  const conflicts = useMemo(
+    () => findConflicts(preset.segments, preset.tricks, preset.spin.durationMs),
     [preset],
   )
 
@@ -39,7 +46,14 @@ export function Editor() {
           <Wheel segments={resolved.segments} />
         </section>
         <section className="editor__column editor__column--right">
-          <h2>Tricks</h2>
+          <TrickLibrary
+            tricks={preset.tricks}
+            segments={resolved.segments}
+            conflicts={conflicts}
+            selectedId={selectedTrickId}
+            onChange={(tricks) => update({ ...preset, tricks })}
+            onSelect={setSelectedTrickId}
+          />
         </section>
       </div>
     </LabShell>
