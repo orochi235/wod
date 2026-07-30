@@ -28,8 +28,11 @@ describe('a recipe honors its own declared easing default', () => {
   // animating with the wrong curve.
   for (const recipe of [vanish, takeover, recolor]) {
     it(`${recipe.id} uses defaults.easing when params omit it`, () => {
-      const params = { ...recipe.defaults }
-      delete params.easing
+      // Built without the key rather than set to undefined — the point is the
+      // behavior when a stored preset omits it entirely.
+      const params = Object.fromEntries(
+        Object.entries(recipe.defaults).filter(([key]) => key !== 'easing'),
+      )
 
       const morphs = recipe.resolve(params, ctxFor(recipe, params))
 
