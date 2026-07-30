@@ -45,23 +45,35 @@ parameter happens to say "free beer". Recipe names never mention the joke.
 ```ts
 type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel'
 
-type Recipe<P> = {
+type TrickParams = Record<string, unknown>
+
+/** All segments (including provided wedges), plus what the recipe needs to resolve. */
+type RecipeContext = {
+  trickId: string
+  segments: Segment[]
+  durationMs: number
+}
+
+type Recipe = {
   id: RecipeId
   /** Structural. "One wedge swallows the wheel", never "free beer". */
   name: string
   description: string
-  defaults: P
+  defaults: TrickParams
   /** Drives the generated parameter form. */
   fields: RecipeField[]
 
   /** Weight-0 segments this recipe contributes. Usually empty. */
-  provides(params: P, trickId: string): Segment[]
+  provides(params: TrickParams, trickId: string): Segment[]
 
   /** Pure. The only thing that affects what actually runs. */
-  resolve(params: P, segments: Segment[], durationMs: number): Morph[]
+  resolve(params: TrickParams, ctx: RecipeContext): Morph[]
 
   /** Editor-facing only. Never consulted during resolution. */
-  writes(params: P, segments: Segment[]): Write[]
+  writes(params: TrickParams, ctx: RecipeContext): Write[]
+
+  /** Human-readable reason this trick cannot run, or null. */
+  validate(params: TrickParams, segments: Segment[]): string | null
 }
 
 type Write = {
@@ -202,12 +214,23 @@ editor, which generates its parameter form from `fields`; no change to `wheel`,
 
 ## The editor
 
-Route `/edit`, rendered in a labkit `LabShell`. Three columns.
+Route `#/edit`, rendered in a labkit `LabShell`. Three columns.
+
+Routing is hash-based and hand-rolled — about fifteen lines in `main.tsx`, no
+router dependency. A static SPA on GitHub Pages cannot serve a clean `/edit`
+path without a server rewrite, and the parent spec's `/admin` window has the
+same constraint, so hash routes are the honest choice for both.
 
 ### Left — segment list
 
-A labkit `LayerStack`: reorder by drag, add, delete, rename. Weight is a
-`SliderRow`, color a `ColorRow`.
+A labkit `PropertyPanel` wrapping one compact row per segment: rename, reorder,
+delete, a `NumberRow` weight and a `ColorRow`.
+
+Not `LayerStack`, despite it being the obvious candidate. Its API is built
+around effect *kinds* — it requires `paletteKinds`, `kind`, and
+`onPrimaryChange` per item — and segments have no kind. Forcing a segment list
+through it would mean inventing a fake kind for every person on the wheel.
+`PropertyPanel` plus rows is the primitive that actually fits.
 
 Trick-owned wedges appear as dimmed rows with a read-only weight, tagged with
 the owning trick's name. Clicking one selects that trick in the right column.
@@ -252,7 +275,9 @@ additive.
 `/edit` writes; `/` reads. A `storage` event listener on the show window picks
 up edits live, so an open screen-shared wheel updates without a reload.
 
-Presets export and import as JSON.
+Presets export and import as JSON, through a download link and a file picker in
+the editor header. Import runs through the same defensive parser as load, so a
+hand-edited or stale file degrades rather than throwing.
 
 ### Loading is defensive
 
