@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { readEasing, readNumber, readString, readStringArray } from './params'
+import { EASINGS } from '../wheel/morph'
+import {
+  readEasing,
+  readNumber,
+  readOptionalString,
+  readString,
+  readStringArray,
+  readUnit,
+} from './params'
 
 describe('readNumber', () => {
   it('reads a finite number', () => {
@@ -50,5 +58,56 @@ describe('readEasing', () => {
 
   it('falls back to linear on an unknown easing', () => {
     expect(readEasing({ e: 'bouncy' }, 'e')).toBe('linear')
+  })
+
+  it('accepts every easing the wheel actually implements', () => {
+    // Guards the sync between this reader and the wheel's easing table.
+    for (const name of Object.keys(EASINGS)) {
+      expect(readEasing({ e: name }, 'e')).toBe(name)
+    }
+  })
+
+  it('does not mistake an inherited property for an easing', () => {
+    expect(readEasing({ e: 'toString' }, 'e')).toBe('linear')
+  })
+
+  it('falls back to linear on a non-string', () => {
+    expect(readEasing({ e: 3 }, 'e')).toBe('linear')
+  })
+})
+
+describe('readOptionalString', () => {
+  it('reads a non-empty string', () => {
+    expect(readOptionalString({ s: 'hi' }, 's')).toBe('hi')
+  })
+
+  it('treats an empty string as absent', () => {
+    expect(readOptionalString({ s: '' }, 's')).toBeUndefined()
+  })
+
+  it('returns undefined for a missing key', () => {
+    expect(readOptionalString({}, 's')).toBeUndefined()
+  })
+})
+
+describe('readUnit', () => {
+  it('passes an in-range value through', () => {
+    expect(readUnit({ t: 0.6 }, 't', 0)).toBe(0.6)
+  })
+
+  it('clamps above one', () => {
+    expect(readUnit({ t: 4 }, 't', 0)).toBe(1)
+  })
+
+  it('clamps below zero', () => {
+    expect(readUnit({ t: -4 }, 't', 0)).toBe(0)
+  })
+
+  it('clamps the fallback too, so the result is always in range', () => {
+    expect(readUnit({}, 't', 5)).toBe(1)
+  })
+
+  it('falls back on a non-finite value', () => {
+    expect(readUnit({ t: Number.NaN }, 't', 0.25)).toBe(0.25)
   })
 })
