@@ -71,16 +71,12 @@ describe('parsePreset guards values the wheel would choke on', () => {
   it('rejects a negative spin duration', () => {
     // Element.animate() throws synchronously on a negative duration.
     const raw = { ...DEFAULT_PRESET, spin: { ...DEFAULT_PRESET.spin, durationMs: -500 } }
-    expect(parsePreset(JSON.stringify(raw)).spin.durationMs).toBe(
-      DEFAULT_PRESET.spin.durationMs,
-    )
+    expect(parsePreset(JSON.stringify(raw)).spin.durationMs).toBe(DEFAULT_PRESET.spin.durationMs)
   })
 
   it('rejects a zero spin duration', () => {
     const raw = { ...DEFAULT_PRESET, spin: { ...DEFAULT_PRESET.spin, durationMs: 0 } }
-    expect(parsePreset(JSON.stringify(raw)).spin.durationMs).toBe(
-      DEFAULT_PRESET.spin.durationMs,
-    )
+    expect(parsePreset(JSON.stringify(raw)).spin.durationMs).toBe(DEFAULT_PRESET.spin.durationMs)
   })
 
   it('clamps negative fullSpins rather than spinning backwards', () => {
