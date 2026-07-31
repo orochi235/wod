@@ -1874,4 +1874,4 @@ git commit -m "feat(wheel): animate spins with a two-track rotation and morph lo
 2. **Presets and storage** — `localStorage` persistence, JSON export/import.
 3. **Reveals and skins** — the landing takeover, plus the near-miss.
 4. **Admin window and rig** — `BroadcastChannel` control channel, live-fired morphs, in-flight re-targeting.
-5. **Meet roster source** — blocked on the open verification item in the spec (whether the participant scope also confers transcript access).
+5. **Meet roster source** — gated on the liveness probe, not on scope. The scope question is resolved (the scopes are bundled; see the spec's auth section) and is a disclosure matter rather than a blocker. What gates the build is whether `conferenceRecords.participants` tracks joins and leaves mid-meeting fast enough to describe the room. If it doesn't, this source is dropped rather than degraded — there is no live fallback.

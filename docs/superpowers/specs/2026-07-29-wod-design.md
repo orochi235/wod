@@ -307,29 +307,57 @@ Defense in depth, in descending order of how convincing it is to an admin:
    endpoints.** The app is small enough that an admin can verify this by
    grepping it.
 
-**Open verification item:** it is not confirmed that the scope granting
-`conferenceRecords.participants` is distinct from the one granting
-`conferenceRecords.transcripts` and `.recordings`. If Google bundles them under
-a single `meetings.space.readonly`-style scope, then "this app cannot read
-transcripts" is not enforceable at the OAuth layer and must instead rest on
-points 1–4 above. This is resolved before the `meetRoster` source is built, and
-the answer is stated plainly to the admin either way — the pitch must not
-overclaim what the scope actually restricts.
+**Resolved (2026-07-30): the scopes are bundled.** Google's Meet REST API
+reference lists the same pair — `meetings.space.readonly` and
+`meetings.space.created` — for `conferenceRecords.participants.list` *and*
+`conferenceRecords.transcripts.list`. There is no narrower scope that returns a
+participant list without also conferring transcript access.
 
-If the bundled-scope case turns out to be true and is a blocker, the fallback is
-to drop the Meet API entirely and populate the wheel from the Calendar event's
-invitee list (a narrower, better-understood permission) or from manual paste.
+The consequence is that **"this app cannot read transcripts" is not enforceable
+at the OAuth layer** and must rest entirely on points 1–4 above. The pitch to an
+admin says exactly that, in those words. Claiming the scope prevents transcript
+access would be false, and the app is small enough that an admin who checks will
+find out. The honest framing — "the granted scope permits it; the app has no
+backend to send it to, a CSP that blocks egress, and no line of code that names
+the endpoint" — is both true and, for a static page, genuinely strong.
+
+This is a disclosure obligation, not a build gate. It does not block
+`meetRoster`.
 
 ## Risk: live Meet roster
 
-It is not confirmed that the Meet REST API returns a *live* participant list
-mid-meeting, as opposed to one that only settles once the conference record
-closes. This is verified before the `meetRoster` source is built (it is last in
-the build order, so nothing else waits on it).
+**Liveness is a hard requirement, not a nice-to-have.** A roster that reflects
+who was invited, or who was present when the meeting ended, is not the feature.
+The joke depends on the wheel matching who is in the room *right now* — a stale
+list puts absent people on the wheel and leaves out the person who just joined,
+which is exactly the moment the bit stops working.
 
-Mitigation if it disappoints: `meetRoster` degrades to a one-shot fetch or drops
-out entirely, and `manualList` covers the gap. Because sources share one
-interface, no other module changes.
+The API surface is built for live state: `conferenceRecords.list` documents an
+`end_time IS NULL` filter for in-progress conferences, and
+`conferenceRecords.participants.list` documents `latest_end_time IS NULL` as
+returning "active participants in the conference." What remains unverified is
+behavior, not surface — how quickly a join propagates, whether `latestEndTime`
+is stamped promptly on leave, and whether the list is stable rather than flapping
+between polls. A probe answers this against a real meeting before any
+`meetRoster` code is written.
+
+**There is no live fallback.** This is a correction to an earlier draft, which
+offered the Calendar event's invitee list as a graceful degradation. An invitee
+list is who was *invited*, not who is present; it carries no live signal at all,
+and neither does manual paste. So the mitigations are not mitigations — under a
+hard liveness requirement they fail the requirement outright.
+
+The real branch:
+
+- **Live, with acceptable latency** → build `meetRoster` as a poller.
+- **Not live, or too laggy to track the room** → the source does not get built.
+  `manualList` is the whole story, and the wheel is filled by hand. Nothing else
+  in the app changes, because sources share one interface — but the feature is
+  dropped rather than degraded.
+
+Latency threshold: if a join is not reflected within roughly the length of a
+turn at the meeting — call it fifteen seconds — the wheel is describing a room
+that no longer exists, and manual entry is honestly better.
 
 ## Error handling
 
