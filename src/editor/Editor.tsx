@@ -5,7 +5,7 @@ import type { Preset } from '../preset/types'
 import { findConflicts } from '../tricks/conflicts'
 import { resolveTricks } from '../tricks/resolve'
 import { Wheel } from '../wheel/Wheel'
-import type { Segment } from '../wheel/types'
+import type { Segment, SpinConfig } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
 import { PresetIo } from './PresetIo'
@@ -34,10 +34,11 @@ export function Editor() {
     [preset],
   )
 
-  const spinConfig = useMemo(
+  const spinConfig = useMemo<SpinConfig>(
     () => ({
       durationMs: preset.spin.durationMs,
       fullSpins: preset.spin.fullSpins,
+      direction: 'cw',
       easing: preset.spin.easing,
       morphs: resolved.morphs,
     }),

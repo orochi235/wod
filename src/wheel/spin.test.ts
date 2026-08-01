@@ -24,6 +24,7 @@ const people: Segment[] = [
 const config: SpinConfig = {
   durationMs: 4000,
   fullSpins: 5,
+  direction: 'cw',
   easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
   morphs: [],
 }

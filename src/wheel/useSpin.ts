@@ -87,8 +87,13 @@ export function useSpin(
       // Continue from the resting angle: add the requested revolutions plus
       // however much more is needed to bring the winner under the pointer.
       const from = rotationRef.current
+      const forward = (((plan.restingRotationDeg - from) % 360) + 360) % 360
+      // The inner % 360 on the reverse case matters: without it a `forward` of
+      // exactly zero becomes a spurious extra revolution.
       const delta =
-        config.fullSpins * 360 + ((((plan.restingRotationDeg - from) % 360) + 360) % 360)
+        config.direction === 'ccw'
+          ? -(config.fullSpins * 360 + ((360 - forward) % 360))
+          : config.fullSpins * 360 + forward
       const to = from + delta
 
       // Track 1: rotation. One transform on one element, left to the compositor.
@@ -123,7 +128,10 @@ export function useSpin(
             cancelAnimationFrame(frameRef.current)
             frameRef.current = null
           }
-          rotationRef.current = to % 360
+          // JavaScript's % keeps the sign of the dividend, so a counter-clockwise
+          // spin would otherwise store a negative resting angle and the next spin
+          // would start from a nonsense origin.
+          rotationRef.current = ((to % 360) + 360) % 360
           spinningRef.current = false
           setDisplaySegments(plan.landing)
           setIsSpinning(false)

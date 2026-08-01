@@ -22,6 +22,7 @@ export function App() {
     () => ({
       durationMs: preset.spin.durationMs,
       fullSpins: preset.spin.fullSpins,
+      direction: 'cw',
       easing: preset.spin.easing,
       morphs: resolved.morphs,
     }),

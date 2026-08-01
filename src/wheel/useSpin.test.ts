@@ -40,6 +40,7 @@ const MORPHS: Morph[] = [
 const MORPHING: SpinConfig = {
   durationMs: DURATION_MS,
   fullSpins: 6,
+  direction: 'cw',
   easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
   morphs: MORPHS,
 }
@@ -236,7 +237,7 @@ describe('useSpin', () => {
     // Two distinct values, neither the production default of 6, so the delta
     // has to actually read config.fullSpins rather than hardcode a constant.
     for (const fullSpins of [3, 9]) {
-      const { result } = renderSpin({ ...PLAIN, fullSpins })
+      const { result } = renderSpin({ ...PLAIN, fullSpins, direction: 'cw' })
       act(() => {
         result.current.spin()
       })
@@ -248,6 +249,38 @@ describe('useSpin', () => {
       expect(travelled).toBeGreaterThanOrEqual(fullSpins * 360)
       expect(travelled).toBeLessThan((fullSpins + 1) * 360)
     }
+  })
+
+  it('travels backwards for a counter-clockwise spin', () => {
+    const { result } = renderSpin({ ...PLAIN, fullSpins: 3, direction: 'ccw' })
+    act(() => {
+      result.current.spin()
+    })
+    const calls = harness.animateCalls
+    const { keyframes } = calls[calls.length - 1]
+    const travelled = degreesOf(keyframes[1]) - degreesOf(keyframes[0])
+    expect(travelled).toBeLessThanOrEqual(-3 * 360)
+    expect(travelled).toBeGreaterThan(-4 * 360)
+  })
+
+  it('keeps the stored resting angle positive across alternating directions', async () => {
+    // Regression: `to % 360` keeps the sign of the dividend, so a ccw spin used
+    // to store a negative resting angle and the NEXT spin started from a
+    // nonsense origin. The first spin must FINISH — the resting angle is
+    // written in the `finished` handler.
+    const { result } = renderSpin({ ...PLAIN, direction: 'ccw' })
+    act(() => {
+      result.current.spin()
+    })
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    act(() => {
+      result.current.spin()
+    })
+    const start = degreesOf(harness.animateCalls[1].keyframes[0])
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(start).toBeLessThan(360)
   })
 
   it('refuses a second spin started in the same tick as the first', () => {
