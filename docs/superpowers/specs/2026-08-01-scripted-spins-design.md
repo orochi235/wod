@@ -308,7 +308,11 @@ the start color and cutting on the last frame.
 ## Testing (Vitest)
 
 - **Resolution fixtures** — preset plus a frozen roll resolves to an expected
-  winner and an expected ordered list of fired node ids.
+  winner, motion, and segment list. Which nodes fired is asserted *indirectly*,
+  through the outcome each one produces, because `Resolution` deliberately does
+  not record a trace: no consumer needs one yet. A `firedNodeIds: string[]` on
+  both arms is the natural addition when the editor wants a "why did it pick
+  this?" affordance, and it is cheap to add before callers exist.
 - **Determinism** — identical roll and preset resolve identically across runs.
 - **Re-evaluation earns its keep** — a parent `modify` changes which child
   matches; assert the sibling that would have matched before the modifier does
