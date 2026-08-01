@@ -14,16 +14,16 @@ export function App() {
   useEffect(() => subscribePreset(setPreset), [])
 
   const resolved = useMemo(
-    () => resolveTricks(preset.segments, preset.tricks, preset.spin.durationMs),
+    () => resolveTricks(preset.segments, preset.tricks, preset.spin.motion.durationMs),
     [preset],
   )
 
   const config = useMemo<SpinConfig>(
     () => ({
-      durationMs: preset.spin.durationMs,
-      fullSpins: preset.spin.fullSpins,
-      direction: 'cw',
-      easing: preset.spin.easing,
+      durationMs: preset.spin.motion.durationMs,
+      fullSpins: preset.spin.motion.turns,
+      direction: preset.spin.motion.direction,
+      easing: preset.spin.motion.easing,
       morphs: resolved.morphs,
     }),
     [preset.spin, resolved.morphs],
