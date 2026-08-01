@@ -58,14 +58,14 @@ describe('planSpin', () => {
       expect(plan).not.toBeNull()
       if (!plan) continue
       const landing = arcs(landingSegments(people, config.morphs, config.durationMs))
-      expect(angleToSegment(landing, pointerTurn(plan.targetRotationDeg))).toBe(plan.winnerId)
+      expect(angleToSegment(landing, pointerTurn(plan.restingRotationDeg))).toBe(plan.winnerId)
     }
   })
 
-  it('honors the requested number of full spins', () => {
+  it('reports a resting angle inside a single revolution', () => {
     const plan = planSpin(people, config, weightedRandom, lcg(5))
-    expect(plan?.targetRotationDeg).toBeGreaterThanOrEqual(5 * 360)
-    expect(plan?.targetRotationDeg).toBeLessThan(6 * 360)
+    expect(plan?.restingRotationDeg).toBeGreaterThanOrEqual(0)
+    expect(plan?.restingRotationDeg).toBeLessThan(360)
   })
 
   it('lands on the winner even when the geometry morphs during the spin', () => {
@@ -77,7 +77,7 @@ describe('planSpin', () => {
     expect(plan).not.toBeNull()
     if (!plan) return
     const landing = arcs(landingSegments(people, morphed.morphs, morphed.durationMs))
-    expect(angleToSegment(landing, pointerTurn(plan.targetRotationDeg))).toBe(plan.winnerId)
+    expect(angleToSegment(landing, pointerTurn(plan.restingRotationDeg))).toBe(plan.winnerId)
   })
 
   it('guarantees a wedge that grows to fill the circle wins', () => {
@@ -103,7 +103,7 @@ describe('planSpin', () => {
     const plan = planSpin(people, config, forced('beer'), lcg(8))
     expect(plan?.winnerId).toBe('beer')
     const landing = arcs(landingSegments(people, config.morphs, config.durationMs))
-    expect(angleToSegment(landing, pointerTurn(plan?.targetRotationDeg ?? 0))).toBe('beer')
+    expect(angleToSegment(landing, pointerTurn(plan?.restingRotationDeg ?? 0))).toBe('beer')
   })
 
   it('keeps the landing point away from the arc edges', () => {

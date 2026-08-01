@@ -127,7 +127,7 @@ describe('arcPath', () => {
   })
 })
 
-import { angleToSegment, pointerTurn, targetRotationDeg } from './geometry'
+import { angleToSegment, pointerTurn, restingRotationDeg } from './geometry'
 
 describe('angleToSegment', () => {
   const list = arcs([
@@ -183,17 +183,23 @@ describe('rotation mapping', () => {
   it('is the exact inverse of the pointer mapping', () => {
     for (const turn of [0, 0.001, 0.25, 0.5, 0.75, 0.999]) {
       for (const spins of [0, 1, 5]) {
-        expect(pointerTurn(targetRotationDeg(turn, spins))).toBeCloseTo(turn, 9)
+        // Revolutions are the animator's business now, but adding them back must
+        // not disturb which turn the pointer reads.
+        expect(pointerTurn(restingRotationDeg(turn) + spins * 360)).toBeCloseTo(turn, 9)
       }
     }
   })
 
-  it('adds a full revolution per requested spin', () => {
-    expect(targetRotationDeg(0, 5)).toBe(1800)
+  it('returns a resting angle inside a single revolution', () => {
+    for (const turn of [0, 0.001, 0.25, 0.5, 0.75, 0.999]) {
+      const deg = restingRotationDeg(turn)
+      expect(deg).toBeGreaterThanOrEqual(0)
+      expect(deg).toBeLessThan(360)
+    }
   })
 
   it('rotates counter to the turn so the pointer meets it', () => {
-    expect(targetRotationDeg(0.25, 0)).toBe(270)
+    expect(restingRotationDeg(0.25)).toBe(270)
   })
 })
 
@@ -236,7 +242,7 @@ describe('pointer round trip', () => {
         const probes = [arc.start + width * 0.02, arc.start + width * 0.5, arc.end - width * 0.02]
         for (const probe of probes) {
           for (const spins of [0, 1, 7]) {
-            const recovered = pointerTurn(targetRotationDeg(probe, spins))
+            const recovered = pointerTurn(restingRotationDeg(probe) + spins * 360)
             expect(angleToSegment(list, recovered)).toBe(arc.id)
           }
         }

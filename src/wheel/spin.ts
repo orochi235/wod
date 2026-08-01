@@ -1,4 +1,4 @@
-import { arcs, targetRotationDeg } from './geometry'
+import { arcs, restingRotationDeg } from './geometry'
 import { landingSegments } from './morph'
 import type { Rng, SelectionStrategy } from './selection'
 import type { Segment, SpinConfig } from './types'
@@ -7,7 +7,8 @@ export type SpinPlan = {
   winnerId: string
   /** Wheel-local turn that will sit under the pointer when the wheel stops. */
   landingTurn: number
-  targetRotationDeg: number
+  /** Resting angle in [0, 360). Revolutions are added by the animator. */
+  restingRotationDeg: number
   /** The segments as they will be at the moment of landing. */
   landing: Segment[]
 }
@@ -45,7 +46,7 @@ export function planSpin(
   return {
     winnerId,
     landingTurn,
-    targetRotationDeg: targetRotationDeg(landingTurn, config.fullSpins),
+    restingRotationDeg: restingRotationDeg(landingTurn),
     landing,
   }
 }

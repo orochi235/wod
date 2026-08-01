@@ -87,7 +87,8 @@ export function useSpin(
       // Continue from the resting angle: add the requested revolutions plus
       // however much more is needed to bring the winner under the pointer.
       const from = rotationRef.current
-      const delta = config.fullSpins * 360 + ((((plan.targetRotationDeg - from) % 360) + 360) % 360)
+      const delta =
+        config.fullSpins * 360 + ((((plan.restingRotationDeg - from) % 360) + 360) % 360)
       const to = from + delta
 
       // Track 1: rotation. One transform on one element, left to the compositor.

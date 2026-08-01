@@ -91,12 +91,15 @@ export function angleToSegment(list: Arc[], turn: number): string | null {
 
 /**
  * The wheel rotates; the pointer is fixed at 12 o'clock. To bring wheel-local
- * `landingTurn` under the pointer, rotate by its complement, plus whole
- * revolutions for the spin.
+ * `landingTurn` under the pointer, rotate by its complement.
+ *
+ * Revolutions are deliberately not included. The animator owns how many turns
+ * to add and in which direction; baking them in here meant `useSpin` added them
+ * a second time while an intervening `% 360` discarded the first.
  */
-export function targetRotationDeg(landingTurn: number, fullSpins: number): number {
+export function restingRotationDeg(landingTurn: number): number {
   const t = wrapTurn(landingTurn)
-  return fullSpins * 360 + ((360 - t * 360) % 360)
+  return (360 - t * 360) % 360
 }
 
 /** Which wheel-local turn currently sits under the pointer. */
