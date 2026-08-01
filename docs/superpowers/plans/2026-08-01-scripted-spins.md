@@ -362,16 +362,24 @@ Pure type declarations plus the default preset. No behavior, no parsing yet.
 
 Replace `src/preset/types.ts` entirely:
 
+First, in `src/wheel/types.ts`, extract the direction union Task 2 introduced inline so both types share one definition:
+
+```ts
+export type Direction = 'cw' | 'ccw'
+```
+
+and change `SpinConfig.direction` to use it. Without this, `SpinConfig` and `Motion` each hardcode `'cw' | 'ccw'` and nothing makes them stay in sync — TypeScript would not flag adding a third direction to one and not the other. Then `src/preset/types.ts`:
+
 ```ts
 import type { Trick } from '../tricks/types'
-import type { Segment } from '../wheel/types'
+import type { Direction, Segment } from '../wheel/types'
 
 export type Target = { kind: 'fair' } | { kind: 'forced'; segmentId: string }
 
 export type Motion = {
   durationMs: number
   turns: number
-  direction: 'cw' | 'ccw'
+  direction: Direction
   /** CSS easing string, handed to the Web Animations API. */
   easing: string
 }
