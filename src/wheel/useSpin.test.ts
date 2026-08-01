@@ -232,6 +232,24 @@ describe('useSpin', () => {
     expect(degreesOf(second.keyframes[1])).toBeGreaterThan(resumedAt)
   })
 
+  it('turns the requested number of revolutions', () => {
+    // Two distinct values, neither the production default of 6, so the delta
+    // has to actually read config.fullSpins rather than hardcode a constant.
+    for (const fullSpins of [3, 9]) {
+      const { result } = renderSpin({ ...PLAIN, fullSpins })
+      act(() => {
+        result.current.spin()
+      })
+      const calls = harness.animateCalls
+      const { keyframes } = calls[calls.length - 1]
+      const travelled = degreesOf(keyframes[1]) - degreesOf(keyframes[0])
+      // Pins the magnitude, not just the direction. Dropping a revolution from
+      // the delta used to leave the entire suite green.
+      expect(travelled).toBeGreaterThanOrEqual(fullSpins * 360)
+      expect(travelled).toBeLessThan((fullSpins + 1) * 360)
+    }
+  })
+
   it('refuses a second spin started in the same tick as the first', () => {
     const { result } = renderSpin(MORPHING)
 
