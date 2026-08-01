@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { landingSegments } from './morph'
+import { applyMorphs, landingSegments } from './morph'
 import { forced } from './selection'
 import type { Morph, Segment, SpinConfig } from './types'
 import { useSpin } from './useSpin'
@@ -349,11 +349,17 @@ describe('useSpin', () => {
     const { result } = renderSpin({ ...PLAIN, fullSpins: 9 })
     act(() => {
       result.current.spin({
+        // The pinned draw lands on 'y' of its own accord, so rigging 'x' is
+        // what separates the override strategy from the default fair draw.
         segments: alternate,
         config: { ...PLAIN, fullSpins: 3 },
-        strategy: forced('y'),
+        strategy: forced('x'),
       })
     })
+
+    // The wheel shows the override segments the moment it launches, not the
+    // props it is still mounted with.
+    expect(result.current.displaySegments).toEqual(alternate)
 
     // The override config drove the rotation, not the prop config's 9 turns.
     const calls = harness.animateCalls
@@ -366,6 +372,77 @@ describe('useSpin', () => {
       harness.animateCalls[0].finish()
     })
     // And the winner came from the override segments, which the props never had.
-    expect(result.current.winnerId).toBe('y')
+    expect(result.current.winnerId).toBe('x')
+  })
+
+  it('takes duration, easing, direction, revolutions, and morphs from the override config', () => {
+    // Every field differs from the prop config, so a single missed conversion
+    // in the spin callback cannot hide behind an identical prop value.
+    const { result } = renderSpin({ ...PLAIN, fullSpins: 9, direction: 'cw' })
+    act(() => {
+      result.current.spin({
+        config: {
+          durationMs: 1200,
+          fullSpins: 3,
+          direction: 'ccw',
+          easing: 'linear',
+          morphs: MORPHS,
+        },
+      })
+    })
+
+    const { keyframes, options } = harness.animateCalls[0]
+    expect(options.duration).toBe(1200)
+    expect(options.easing).toBe('linear')
+
+    // Negative pins the direction; the magnitude pins the revolutions, on the
+    // ccw arm of the delta that the cw tests never reach.
+    const travelled = degreesOf(keyframes[1]) - degreesOf(keyframes[0])
+    expect(travelled).toBeLessThanOrEqual(-3 * 360)
+    expect(travelled).toBeGreaterThan(-4 * 360)
+
+    // The prop config carries no morphs, so a running morph track can only mean
+    // the override's list was the one consulted.
+    expect(harness.rafStarts).toBe(1)
+  })
+
+  it('morphs the override segments on the override clock', async () => {
+    // Reduced motion is what separates the two clocks: the rotation runs for
+    // 300ms while the morph must still be scaled against the spin's own
+    // authored duration. Prop and override durations differ so that scaling has
+    // an observable wrong answer.
+    harness.setReducedMotion(true)
+    harness.setNow(1000)
+    const unrelated: Segment[] = [
+      { id: 'x', label: 'Xan', weight: 1 },
+      { id: 'y', label: 'Yun', weight: 1 },
+    ]
+    // Props: segments the morphs do not name, no morphs, a shorter duration.
+    const { result } = renderSpin({ ...PLAIN, durationMs: 900 }, unrelated)
+    act(() => {
+      result.current.spin({ segments: SEGMENTS, config: MORPHING })
+    })
+
+    act(() => {
+      harness.flushFrames(1000 + 240)
+    })
+
+    // 240ms into a 300ms rotation is 80% of the way through, which on the
+    // override's 4500ms morph lands inside the steep final stretch.
+    const elapsedFraction = 240 / 300
+    expect(result.current.displaySegments).toEqual(
+      applyMorphs(SEGMENTS, MORPHS, elapsedFraction * DURATION_MS),
+    )
+    // Scaling against the prop duration instead would still be mid-plateau, so
+    // the assertion above genuinely separates the two clocks.
+    expect(result.current.displaySegments).not.toEqual(
+      applyMorphs(SEGMENTS, MORPHS, elapsedFraction * 900),
+    )
+
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    // The landing was planned from the override's segments and morphs too.
+    expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
   })
 })
