@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
+import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
 import { Wheel } from './wheel/Wheel'
+import { cryptoRng, forced } from './wheel/selection'
 import type { SpinConfig } from './wheel/types'
 import { useSpin } from './wheel/useSpin'
 import './App.css'
@@ -33,6 +35,32 @@ export function App() {
     resolved.segments,
     config,
   )
+
+  const onSpin = useCallback(() => {
+    const resolution = resolveScriptedSpin(
+      preset.segments,
+      preset.tricks,
+      preset.spin,
+      preset.branches,
+      cryptoRng,
+    )
+    if (!resolution) return
+    spin({
+      segments: resolution.segments,
+      config: {
+        durationMs: resolution.motion.durationMs,
+        fullSpins: resolution.motion.turns,
+        direction: resolution.motion.direction,
+        easing: resolution.motion.easing,
+        morphs: resolution.morphs,
+      },
+      // Resolution already decided who wins; planSpin still decides where in
+      // the arc to stop. forced() degrades to a fair draw if that segment's arc
+      // collapsed, which is the safety net for a branch that zeroes its winner.
+      strategy: forced(resolution.winnerId),
+    })
+  }, [preset, spin])
+
   const winner = displaySegments.find((segment) => segment.id === winnerId)
   // Nothing to land on. planSpin would return null and the click would quietly
   // do nothing, which reads as a broken button rather than an empty wheel.
@@ -45,7 +73,7 @@ export function App() {
         <button
           className="app__button"
           type="button"
-          onClick={() => spin()}
+          onClick={onSpin}
           disabled={isSpinning || isEmpty}
         >
           Spin

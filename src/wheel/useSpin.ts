@@ -8,12 +8,23 @@ import type { Segment, SpinConfig } from './types'
 
 const REDUCED_MOTION_MS = 300
 
+/**
+ * Per-spin overrides. A resolved scripted spin supplies its own segments,
+ * config, and winner for one spin without changing the hook's props — which
+ * keeps `useSpin` ignorant of branching.
+ */
+export type SpinOverride = {
+  segments?: Segment[]
+  config?: SpinConfig
+  strategy?: SelectionStrategy
+}
+
 export type UseSpinResult = {
   /** Segments as they currently appear, with any in-flight morph applied. */
   displaySegments: Segment[]
   isSpinning: boolean
   winnerId: string | null
-  spin: (strategy?: SelectionStrategy) => void
+  spin: (override?: SpinOverride) => void
   rotorRef: RefObject<SVGGElement | null>
 }
 
@@ -67,22 +78,26 @@ export function useSpin(
   }, [stopTracks])
 
   const spin = useCallback(
-    (strategy: SelectionStrategy = weightedRandom) => {
+    (override: SpinOverride = {}) => {
       if (spinningRef.current) return
       const rotor = rotorRef.current
       if (!rotor) return
 
-      const plan = planSpin(segments, config, strategy, cryptoRng)
+      const spinSegments = override.segments ?? segments
+      const spinConfig = override.config ?? config
+      const strategy = override.strategy ?? weightedRandom
+
+      const plan = planSpin(spinSegments, spinConfig, strategy, cryptoRng)
       if (!plan) return
 
       stopTracks()
       spinningRef.current = true
       setIsSpinning(true)
       setWinnerId(null)
-      setDisplaySegments(segments)
+      setDisplaySegments(spinSegments)
 
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-      const durationMs = reduceMotion ? REDUCED_MOTION_MS : config.durationMs
+      const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
 
       // Continue from the resting angle: add the requested revolutions plus
       // however much more is needed to bring the winner under the pointer, in
@@ -93,29 +108,29 @@ export function useSpin(
       // spurious extra revolution.
       const backward = (360 - forward) % 360
       const delta =
-        config.direction === 'ccw'
-          ? -(config.fullSpins * 360 + backward)
-          : config.fullSpins * 360 + forward
+        spinConfig.direction === 'ccw'
+          ? -(spinConfig.fullSpins * 360 + backward)
+          : spinConfig.fullSpins * 360 + forward
       const to = from + delta
 
       // Track 1: rotation. One transform on one element, left to the compositor.
       const animation = rotor.animate(
         [{ transform: `rotate(${from}deg)` }, { transform: `rotate(${to}deg)` }],
-        { duration: durationMs, easing: config.easing, fill: 'forwards' },
+        { duration: durationMs, easing: spinConfig.easing, fill: 'forwards' },
       )
       animationRef.current = animation
 
       // Track 2: geometry. Independent of rotation; only regenerates paths.
-      if (config.morphs.length > 0 && durationMs > 0) {
+      if (spinConfig.morphs.length > 0 && durationMs > 0) {
         const startedAt = performance.now()
         const tick = (now: number) => {
           const elapsed = Math.min(now - startedAt, durationMs)
-          // Morphs are authored against config.durationMs, so the clock is scaled
+          // Morphs are authored against the spin's own durationMs, so the clock is scaled
           // to whatever duration actually ran. Without this, reduced motion lands
           // the rotation at 300ms while the morph keeps running for seconds, and
           // the wheel contradicts the announced winner the entire time.
-          const morphElapsed = (elapsed / durationMs) * config.durationMs
-          setDisplaySegments(applyMorphs(segments, config.morphs, morphElapsed))
+          const morphElapsed = (elapsed / durationMs) * spinConfig.durationMs
+          setDisplaySegments(applyMorphs(spinSegments, spinConfig.morphs, morphElapsed))
           if (elapsed < durationMs) {
             frameRef.current = requestAnimationFrame(tick)
           }

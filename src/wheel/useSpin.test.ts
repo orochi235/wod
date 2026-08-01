@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { landingSegments } from './morph'
+import { forced } from './selection'
 import type { Morph, Segment, SpinConfig } from './types'
 import { useSpin } from './useSpin'
 
@@ -338,5 +339,33 @@ describe('useSpin', () => {
 
     expect(result.current.isSpinning).toBe(false)
     expect(result.current.displaySegments).toEqual(swapped)
+  })
+
+  it('spins the override segments, config, and strategy instead of the props', async () => {
+    const alternate: Segment[] = [
+      { id: 'x', label: 'Xan', weight: 1 },
+      { id: 'y', label: 'Yun', weight: 1 },
+    ]
+    const { result } = renderSpin({ ...PLAIN, fullSpins: 9 })
+    act(() => {
+      result.current.spin({
+        segments: alternate,
+        config: { ...PLAIN, fullSpins: 3 },
+        strategy: forced('y'),
+      })
+    })
+
+    // The override config drove the rotation, not the prop config's 9 turns.
+    const calls = harness.animateCalls
+    const { keyframes } = calls[calls.length - 1]
+    const travelled = degreesOf(keyframes[1]) - degreesOf(keyframes[0])
+    expect(travelled).toBeGreaterThanOrEqual(3 * 360)
+    expect(travelled).toBeLessThan(4 * 360)
+
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    // And the winner came from the override segments, which the props never had.
+    expect(result.current.winnerId).toBe('y')
   })
 })
