@@ -3,6 +3,7 @@ import type { Direction, Segment } from '../wheel/types'
 
 export type Target = { kind: 'fair' } | { kind: 'forced'; segmentId: string }
 
+/** Becomes SpinConfig's motion fields at spin time; `turns` → `fullSpins`. */
 export type Motion = {
   durationMs: number
   turns: number
@@ -35,6 +36,9 @@ export type BranchAction =
  * Replacements are embedded inline rather than referenced by name, which is
  * what makes the walk a strict descent: depth is bounded by the authored tree,
  * so a cycle cannot be expressed and does not need detecting.
+ *
+ * A node with neither `do` nor `then` is legal and inert: it matches, does
+ * nothing, and the walk settles there. Not an error case to special-case or reject.
  */
 export type BranchNode = {
   id: string

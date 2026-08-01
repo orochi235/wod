@@ -2,7 +2,7 @@ import { getRecipe } from '../tricks/registry'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 import { DEFAULT_PRESET } from './defaults'
-import type { Preset } from './types'
+import type { Motion, Preset, ScriptedSpin, Target } from './types'
 
 export const PRESET_KEY = 'wod.preset.current'
 
@@ -35,6 +35,47 @@ function readSegments(value: unknown): Segment[] {
 /** Positive and finite, or the fallback. */
 function readPositive(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback
+}
+
+function readTarget(value: unknown): Target {
+  if (!isRecord(value)) return { kind: 'fair' }
+  if (value.kind === 'forced' && typeof value.segmentId === 'string') {
+    return { kind: 'forced', segmentId: value.segmentId }
+  }
+  return { kind: 'fair' }
+}
+
+/** Non-negative and finite, or the fallback. Zero turns is a legitimate spin. */
+function readTurns(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : fallback
+}
+
+function readMotion(value: unknown): Motion {
+  const raw = isRecord(value) ? value : {}
+  const fallback = DEFAULT_PRESET.spin.motion
+  return {
+    // Must be positive, not merely finite. Element.animate() throws
+    // synchronously on a negative duration, so a hand-edited preset would crash
+    // the wheel at spin time — the exact failure this module exists to prevent.
+    durationMs: readPositive(raw.durationMs, fallback.durationMs),
+    turns: readTurns(raw.turns, fallback.turns),
+    direction: raw.direction === 'ccw' ? 'ccw' : 'cw',
+    easing: typeof raw.easing === 'string' ? raw.easing : fallback.easing,
+  }
+}
+
+/** The v1 shape: a flat spin block with `fullSpins`, no target, no branches. */
+function migrateV1Spin(value: unknown): ScriptedSpin {
+  const raw = isRecord(value) ? value : {}
+  return {
+    target: { kind: 'fair' },
+    motion: readMotion({
+      durationMs: raw.durationMs,
+      turns: raw.fullSpins,
+      direction: 'cw',
+      easing: raw.easing,
+    }),
+  }
 }
 
 /**
@@ -74,28 +115,27 @@ export function parsePreset(raw: string | null): Preset {
     return DEFAULT_PRESET
   }
 
-  if (!isRecord(data) || data.version !== 1) return DEFAULT_PRESET
+  if (!isRecord(data)) return DEFAULT_PRESET
+  if (data.version !== 1 && data.version !== 2) return DEFAULT_PRESET
 
   const segments = readSegments(data.segments)
-  const spin = isRecord(data.spin) ? data.spin : {}
+  const spin =
+    data.version === 1
+      ? migrateV1Spin(data.spin)
+      : {
+          target: readTarget(isRecord(data.spin) ? data.spin.target : undefined),
+          motion: readMotion(isRecord(data.spin) ? data.spin.motion : undefined),
+        }
 
   return {
-    version: 1,
+    version: 2,
     name: typeof data.name === 'string' ? data.name : DEFAULT_PRESET.name,
     segments,
     tricks: readTricks(data.tricks, segments),
-    spin: {
-      // Must be positive, not merely finite. Element.animate() throws
-      // synchronously on a negative duration, so a hand-edited preset would
-      // crash the wheel at spin time — the exact failure this module exists to
-      // prevent.
-      durationMs: readPositive(spin.durationMs, DEFAULT_PRESET.spin.durationMs),
-      fullSpins:
-        typeof spin.fullSpins === 'number' && Number.isFinite(spin.fullSpins)
-          ? Math.max(0, spin.fullSpins)
-          : DEFAULT_PRESET.spin.fullSpins,
-      easing: typeof spin.easing === 'string' ? spin.easing : DEFAULT_PRESET.spin.easing,
-    },
+    spin,
+    // Branch parsing lands separately. Until it does, stored branches are
+    // dropped rather than passed through unvalidated.
+    branches: [],
   }
 }
 
