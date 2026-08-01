@@ -4,19 +4,19 @@ import { PRESET_KEY, loadPreset, parsePreset, savePreset } from './storage'
 
 describe('parsePreset', () => {
   it('returns the default for null', () => {
-    expect(parsePreset(null)).toEqual(DEFAULT_PRESET)
+    expect(parsePreset(null)).toBe(DEFAULT_PRESET)
   })
 
   it('returns the default for malformed JSON', () => {
-    expect(parsePreset('{not json')).toEqual(DEFAULT_PRESET)
+    expect(parsePreset('{not json')).toBe(DEFAULT_PRESET)
   })
 
   it('returns the default for a wrong version', () => {
-    expect(parsePreset(JSON.stringify({ version: 99 }))).toEqual(DEFAULT_PRESET)
+    expect(parsePreset(JSON.stringify({ version: 99 }))).toBe(DEFAULT_PRESET)
   })
 
   it('returns the default when the version is missing entirely', () => {
-    expect(parsePreset(JSON.stringify({ name: 'x', segments: [] }))).toEqual(DEFAULT_PRESET)
+    expect(parsePreset(JSON.stringify({ name: 'x', segments: [] }))).toBe(DEFAULT_PRESET)
   })
 
   it('round-trips a valid preset', () => {
@@ -142,6 +142,124 @@ describe('parsePreset', () => {
       spin: { target: { kind: 'forced' }, motion: DEFAULT_PRESET.spin.motion },
     }
     expect(parsePreset(JSON.stringify(raw)).spin.target).toEqual({ kind: 'fair' })
+  })
+
+  it('reads a branch tree', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [
+        {
+          id: 'escape',
+          when: { kind: 'landsOn', segmentIds: ['ana'] },
+          do: { kind: 'modify', modifier: { enableTricks: ['beer'] } },
+        },
+      ],
+    }
+    expect(parsePreset(JSON.stringify(raw)).branches).toEqual(raw.branches)
+  })
+
+  it('reads nested branch children', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [
+        {
+          id: 'outer',
+          when: { kind: 'landsOn', segmentIds: ['ana'] },
+          // biome-ignore lint/suspicious/noThenProperty: `then` is BranchNode's routing field, not a thenable.
+          then: [{ id: 'inner', when: { kind: 'landsOn', segmentIds: ['ben'] } }],
+        },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.branches[0].then?.[0].id).toBe('inner')
+  })
+
+  it('drops a branch node with no usable condition', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [
+        { id: 'bad', when: { kind: 'whenever' } },
+        { id: 'good', when: { kind: 'landsOn', segmentIds: ['ana'] } },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.branches.map((n) => n.id)).toEqual(['good'])
+  })
+
+  it('drops a branch node whose segmentIds filters down to empty', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [
+        { id: 'literal-empty', when: { kind: 'landsOn', segmentIds: [] } },
+        { id: 'all-non-string', when: { kind: 'landsOn', segmentIds: [1, null] } },
+        { id: 'good', when: { kind: 'landsOn', segmentIds: ['ana'] } },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.branches.map((n) => n.id)).toEqual(['good'])
+  })
+
+  it('truncates a then chain nested past the depth cap without throwing', () => {
+    let deep: unknown = { id: 'leaf', when: { kind: 'landsOn', segmentIds: ['ana'] } }
+    for (let i = 0; i < 5000; i++) {
+      deep = {
+        id: `n${i}`,
+        when: { kind: 'landsOn', segmentIds: ['ana'] },
+        // biome-ignore lint/suspicious/noThenProperty: `then` is BranchNode's routing field, not a thenable.
+        then: [deep],
+      }
+    }
+    const raw = { ...DEFAULT_PRESET, branches: [deep] }
+    let parsed: ReturnType<typeof parsePreset> | undefined
+    expect(() => {
+      parsed = parsePreset(JSON.stringify(raw))
+    }).not.toThrow()
+
+    let depth = 0
+    let node = parsed?.branches[0]
+    while (node) {
+      depth++
+      node = node.then?.[0]
+    }
+    expect(depth).toBe(64)
+  })
+
+  it('drops a branch node with a non-string id', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [{ id: 7, when: { kind: 'landsOn', segmentIds: ['ana'] } }],
+    }
+    expect(parsePreset(JSON.stringify(raw)).branches).toEqual([])
+  })
+
+  it('drops an unusable action but keeps the node', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [
+        { id: 'n', when: { kind: 'landsOn', segmentIds: ['ana'] }, do: { kind: 'detonate' } },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.branches).toHaveLength(1)
+    expect(parsed.branches[0].do).toBeUndefined()
+  })
+
+  it('reads branches as empty when absent', () => {
+    const { branches, ...withoutBranches } = DEFAULT_PRESET
+    expect(parsePreset(JSON.stringify(withoutBranches)).branches).toEqual([])
+  })
+
+  it('keeps a legal inert node — a matchable condition with neither do nor then', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [{ id: 'idle', when: { kind: 'landsOn', segmentIds: ['ana'] } }],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.branches).toEqual([
+      { id: 'idle', when: { kind: 'landsOn', segmentIds: ['ana'] } },
+    ])
+    expect(parsed.branches[0].do).toBeUndefined()
+    expect(parsed.branches[0].then).toBeUndefined()
   })
 })
 
