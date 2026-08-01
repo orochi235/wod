@@ -280,6 +280,30 @@ The wheel never breaks the bit:
 | Malformed branch node from storage | Dropped on load, as `getRecipe` drops unknown recipe ids |
 | `branches: []` | Single pass; behaviorally identical to today |
 | Resolution returns no winner | `planSpin` returns null, as it does now for an empty wheel |
+| Modifier enables a trick that failed `validate()` | Contributes `morphs: []`. See below. |
+
+### A modifier can force on a trick that failed validation
+
+`storage.ts` stores a trick whose `validate()` fails as `enabled: false` — disabled, never
+dropped, because losing a trick silently would be worse than showing it switched off. A
+modifier's `enableTricks` names trick *ids* and does not consult validity, so it can switch
+such a trick back on.
+
+This is safe and deliberately left unguarded. Every recipe independently re-guards its own
+structural precondition inside `resolve()` — `vanish`, `relabel`, and `recolor` filter unknown
+targets away; `takeover` returns `[]` when its wedge is missing — so a force-enabled invalid
+trick contributes no morphs rather than garbage. No throw, no non-finite weight, no corrupted
+winner. Recipe *existence* is still re-checked inside `resolveTricks`, so only the `validate`
+half of the stored `runnable` flag is bypassed.
+
+Adding a `validate` call inside the resolver would also be wrong. `validate` takes the base
+segment list, but that list moves during resolution — `takeover.provides` contributes a wedge —
+so there is no stable thing to validate against.
+
+One consequence to know about: `takeover.validate` also rejects a non-hex color. A `takeover`
+that failed validation *only* on its color still rigs the wheel exactly as authored when force
+-enabled — weights correct, winner real — and only the fade degrades, with `lerpColor` holding
+the start color and cutting on the last frame.
 
 ## Testing (Vitest)
 
