@@ -37,11 +37,13 @@ export type Morph = {
   easing?: EasingName
 }
 
+export type Direction = 'cw' | 'ccw'
+
 export type SpinConfig = {
   durationMs: number
   fullSpins: number
   /** Which way the wheel turns. The pointer is fixed either way. */
-  direction: 'cw' | 'ccw'
+  direction: Direction
   /** CSS easing string, handed to the Web Animations API. */
   easing: string
   morphs: Morph[]

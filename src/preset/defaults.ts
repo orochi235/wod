@@ -6,7 +6,7 @@ import type { Preset } from './types'
  * grows a sixth wedge out of nothing.
  */
 export const DEFAULT_PRESET: Preset = {
-  version: 1,
+  version: 2,
   name: 'standup',
   segments: [
     { id: 'ana', label: 'Ana', weight: 1 },
@@ -34,8 +34,13 @@ export const DEFAULT_PRESET: Preset = {
     },
   ],
   spin: {
-    durationMs: 4500,
-    fullSpins: 6,
-    easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
+    target: { kind: 'fair' },
+    motion: {
+      durationMs: 4500,
+      turns: 6,
+      direction: 'cw',
+      easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
+    },
   },
+  branches: [],
 }
