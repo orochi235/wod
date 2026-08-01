@@ -223,27 +223,20 @@ Renamed to restingRotationDeg because it no longer returns the target."
 
 Append to `src/wheel/useSpin.test.ts`, inside the existing `describe('useSpin', …)`. This file already provides everything needed: `harness` (from `installHarness()` in `beforeEach`), `renderSpin(config)`, `degreesOf(keyframe)`, and the `PLAIN` config literal.
 
-```ts
-  it('adds the requested revolutions in the clockwise direction', () => {
-    const { result } = renderSpin({ ...PLAIN, fullSpins: 6, direction: 'cw' })
-    act(() => {
-      result.current.spin()
-    })
-    const { keyframes } = harness.animateCalls[0]
-    const travelled = degreesOf(keyframes[1]) - degreesOf(keyframes[0])
-    expect(travelled).toBeGreaterThanOrEqual(6 * 360)
-    expect(travelled).toBeLessThan(7 * 360)
-  })
+Task 1 already added `it('turns the requested number of revolutions', …)`, which pins the clockwise magnitude — do not duplicate it. Add only `direction: 'cw'` to that test's config, plus the two below.
 
+Note the `fullSpins` values: **never use 6**, which is the production default (`src/preset/defaults.ts:38`). A test using the default cannot distinguish "reads `config.fullSpins`" from "hardcodes the current default," and a Task 1 review caught exactly that hole.
+
+```ts
   it('travels backwards for a counter-clockwise spin', () => {
-    const { result } = renderSpin({ ...PLAIN, fullSpins: 6, direction: 'ccw' })
+    const { result } = renderSpin({ ...PLAIN, fullSpins: 3, direction: 'ccw' })
     act(() => {
       result.current.spin()
     })
-    const { keyframes } = harness.animateCalls[0]
+    const { keyframes } = harness.animateCalls.at(-1)
     const travelled = degreesOf(keyframes[1]) - degreesOf(keyframes[0])
-    expect(travelled).toBeLessThanOrEqual(-6 * 360)
-    expect(travelled).toBeGreaterThan(-7 * 360)
+    expect(travelled).toBeLessThanOrEqual(-3 * 360)
+    expect(travelled).toBeGreaterThan(-4 * 360)
   })
 
   it('keeps the stored resting angle positive across alternating directions', async () => {
