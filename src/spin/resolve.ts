@@ -42,7 +42,7 @@ function strategyFor(target: Target): SelectionStrategy {
  * a deliberate tie-break rather than whichever loop happens to run last. Pinned
  * by test; the ordering is load-bearing, not incidental.
  */
-function applyTrickDeltas(enabled: Set<string>, modifier: SpinModifier): void {
+function mutateEnabledTricks(enabled: Set<string>, modifier: SpinModifier): void {
   for (const id of modifier.disableTricks ?? []) enabled.delete(id)
   for (const id of modifier.enableTricks ?? []) enabled.add(id)
 }
@@ -54,7 +54,19 @@ function applyModifier(spin: ScriptedSpin, modifier: SpinModifier): ScriptedSpin
   }
 }
 
-function evaluate(segments: Segment[], tricks: Trick[], enabled: Set<string>, spin: ScriptedSpin) {
+/** The wheel as it launches (`withWedges`) and as it comes to rest (`landing`). */
+type WheelState = {
+  withWedges: Segment[]
+  morphs: Morph[]
+  landing: Segment[]
+}
+
+function evaluateWheel(
+  segments: Segment[],
+  tricks: Trick[],
+  enabled: Set<string>,
+  spin: ScriptedSpin,
+): WheelState {
   // `resolveTricks` filters on each trick's own `enabled` flag, which is only the
   // baseline here. Stamping the resolved set onto the copies it receives is what
   // lets `enableTricks` switch on a trick the preset stored as off, without
@@ -62,9 +74,9 @@ function evaluate(segments: Segment[], tricks: Trick[], enabled: Set<string>, sp
   const active = tricks
     .filter((trick) => enabled.has(trick.id))
     .map((trick) => ({ ...trick, enabled: true }))
-  const { segments: all, morphs } = resolveTricks(segments, active, spin.motion.durationMs)
-  const landing = landingSegments(all, morphs, spin.motion.durationMs)
-  return { all, morphs, landing }
+  const { segments: withWedges, morphs } = resolveTricks(segments, active, spin.motion.durationMs)
+  const landing = landingSegments(withWedges, morphs, spin.motion.durationMs)
+  return { withWedges, morphs, landing }
 }
 
 /**
@@ -93,19 +105,20 @@ export function resolveScriptedSpin(
   let level = branches
 
   for (let depth = 0; depth < MAX_DEPTH; depth++) {
-    const { all, morphs, landing } = evaluate(segments, tricks, enabled, current)
+    const { withWedges, morphs, landing } = evaluateWheel(segments, tricks, enabled, current)
     const winnerId = strategyFor(current.target)(landing, frozen)
     if (!winnerId) return null
 
+    // First match wins, so sibling order is authored meaning, not an accident.
     const node = level.find((candidate) => candidate.when.segmentIds.includes(winnerId))
     if (!node) {
-      return { kind: 'settled', winnerId, segments: all, morphs, motion: current.motion }
+      return { kind: 'settled', winnerId, segments: withWedges, morphs, motion: current.motion }
     }
 
     if (node.do?.kind === 'replace') {
       current = node.do.spin
     } else if (node.do?.kind === 'modify') {
-      applyTrickDeltas(enabled, node.do.modifier)
+      mutateEnabledTricks(enabled, node.do.modifier)
       current = applyModifier(current, node.do.modifier)
     }
     level = node.then ?? []
@@ -113,14 +126,14 @@ export function resolveScriptedSpin(
 
   // The cap was reached with a node still matching. Recompute once so the caller
   // sees the wheel as the last applied modifier left it.
-  const { all, morphs, landing } = evaluate(segments, tricks, enabled, current)
+  const { withWedges, morphs, landing } = evaluateWheel(segments, tricks, enabled, current)
   const winnerId = strategyFor(current.target)(landing, frozen)
   if (!winnerId) return null
   return {
     kind: 'exhausted',
     winnerId,
     depth: MAX_DEPTH,
-    segments: all,
+    segments: withWedges,
     morphs,
     motion: current.motion,
   }

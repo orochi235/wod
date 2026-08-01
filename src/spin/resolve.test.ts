@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from 'vitest'
-import type { BranchNode, ScriptedSpin } from '../preset/types'
+import type { BranchAction, BranchNode, ScriptedSpin } from '../preset/types'
 import type { Trick } from '../tricks/types'
 import type { Rng } from '../wheel/selection'
 import type { Segment } from '../wheel/types'
@@ -21,6 +21,25 @@ const fixed =
   (value: number): Rng =>
   () =>
     value
+
+/**
+ * A chain of `length` nodes, each matching ana and routing to the next, with an
+ * optional action on the outermost one. Built inside-out, so `n1` is the root.
+ */
+function anaChain(length: number, rootAction?: BranchAction): BranchNode[] {
+  let level: BranchNode[] = []
+  for (let i = length; i > 0; i--) {
+    const node: BranchNode = {
+      id: `n${i}`,
+      when: { kind: 'landsOn', segmentIds: ['ana'] },
+      // biome-ignore lint/suspicious/noThenProperty: `then` is BranchNode's routing field, not a thenable.
+      then: level,
+    }
+    if (i === 1 && rootAction) node.do = rootAction
+    level = [node]
+  }
+  return level
+}
 
 describe('resolveScriptedSpin', () => {
   it('settles immediately when there are no branches', () => {
@@ -139,6 +158,25 @@ describe('resolveScriptedSpin', () => {
     expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
   })
 
+  it('takes the first matching sibling, not the last', () => {
+    // Both siblings match the same winner, so only ordering can decide. Sibling
+    // order is authored meaning; a walk that scanned from the end would silently
+    // run the wrong rule whenever two conditions overlap.
+    const branches: BranchNode[] = [
+      {
+        id: 'first',
+        when: { kind: 'landsOn', segmentIds: ['ana'] },
+        do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'ben' } } },
+      },
+      {
+        id: 'also',
+        when: { kind: 'landsOn', segmentIds: ['ana'] },
+        do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'cal' } } },
+      },
+    ]
+    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
+  })
+
   it('enables a trick through a modifier', () => {
     const tricks: Trick[] = [
       {
@@ -169,6 +207,10 @@ describe('resolveScriptedSpin', () => {
     // The takeover wedge swallows the wheel, so it must be the winner.
     expect(result?.winnerId).toBe('beer:wedge')
     expect(result?.morphs.length).toBeGreaterThan(0)
+    // The wedge must also be in the returned segments. `planSpin` receives this
+    // list and looks the winner up in it; a winner with no arc there degrades to
+    // a fair draw, and the announced winner stops matching where it lands.
+    expect(result?.segments.map((segment) => segment.id)).toContain('beer:wedge')
   })
 
   it('disables a baseline-enabled trick through a modifier', () => {
@@ -219,35 +261,47 @@ describe('resolveScriptedSpin', () => {
     expect(calls).toBe(1)
   })
 
-  it('resolves identically for the same roll', () => {
+  it('ignores every draw after the first', () => {
+    // A drifting rng must resolve exactly as a fixed one: the walk re-evaluates,
+    // and a second draw would move the winner for reasons no modifier authored.
+    //
+    // The fixture has to earn this. The node patches motion rather than target,
+    // so the second pass is still a fair draw that would consume another number
+    // — re-targeting would call `forced`, which short-circuits before the rng and
+    // would let the drift pass unnoticed. A roll of 0.42 lands on ben.
+    let n = 0
+    const drifting: Rng = () => [0.42, 0.99, 0.01][n++] ?? 0.5
     const branches: BranchNode[] = [
       {
-        id: 'escape',
-        when: { kind: 'landsOn', segmentIds: ['ana'] },
-        do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'cal' } } },
+        id: 'slow-down',
+        when: { kind: 'landsOn', segmentIds: ['ben'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 9 } } },
       },
     ]
-    const first = resolveScriptedSpin(people, [], spin, branches, fixed(0.42))
-    const second = resolveScriptedSpin(people, [], spin, branches, fixed(0.42))
-    expect(first).toEqual(second)
+    const drifted = resolveScriptedSpin(people, [], spin, branches, drifting)
+    expect(drifted).toEqual(resolveScriptedSpin(people, [], spin, branches, fixed(0.42)))
+    // Vacuous if the branch never fired, which would mean only one evaluation ran.
+    expect(drifted?.motion.turns).toBe(9)
+    expect(drifted?.winnerId).toBe('ben')
+  })
+
+  it('settles on the deepest chain that still fits under the cap', () => {
+    // The boundary, not just "deep exhausts". Each pass consumes one level and a
+    // final pass finds no node, so MAX_DEPTH - 1 nodes is the longest legal chain.
+    // An off-by-one here makes deep-but-valid trees stop descending and report
+    // exhausted, which is a wrong answer that looks like a working one.
+    const result = resolveScriptedSpin(people, [], spin, anaChain(MAX_DEPTH - 1), fixed(0.1))
+    expect(result?.kind).toBe('settled')
+    expect(result?.winnerId).toBe('ana')
   })
 
   it('reports exhausted past the depth cap, carrying the modified spin', () => {
-    // A chain longer than MAX_DEPTH, each node routing to the next. The outermost
-    // node patches the motion so the exhausted arm has something to be wrong
-    // about: a tail that re-read the original spin would still report cw/5.
-    let deepest: BranchNode[] = []
-    for (let i = MAX_DEPTH + 2; i > 0; i--) {
-      const node: BranchNode = {
-        id: `n${i}`,
-        when: { kind: 'landsOn', segmentIds: ['ana'] },
-        // biome-ignore lint/suspicious/noThenProperty: `then` is BranchNode's routing field, not a thenable.
-        then: deepest,
-      }
-      if (i === 1)
-        node.do = { kind: 'modify', modifier: { motion: { turns: 9, direction: 'ccw' } } }
-      deepest = [node]
-    }
+    // The outermost node patches the motion so the exhausted arm has something to
+    // be wrong about: a tail that re-read the original spin would still say cw/5.
+    const deepest = anaChain(MAX_DEPTH + 2, {
+      kind: 'modify',
+      modifier: { motion: { turns: 9, direction: 'ccw' } },
+    })
     const result = resolveScriptedSpin(people, [], spin, deepest, fixed(0.1))
     assert(result?.kind === 'exhausted')
     expect(result.winnerId).toBe('ana')
