@@ -85,14 +85,16 @@ export function useSpin(
       const durationMs = reduceMotion ? REDUCED_MOTION_MS : config.durationMs
 
       // Continue from the resting angle: add the requested revolutions plus
-      // however much more is needed to bring the winner under the pointer.
+      // however much more is needed to bring the winner under the pointer, in
+      // the requested direction.
       const from = rotationRef.current
       const forward = (((plan.restingRotationDeg - from) % 360) + 360) % 360
-      // The inner % 360 on the reverse case matters: without it a `forward` of
-      // exactly zero becomes a spurious extra revolution.
+      // The % 360 matters: without it a `forward` of exactly zero becomes a
+      // spurious extra revolution.
+      const backward = (360 - forward) % 360
       const delta =
         config.direction === 'ccw'
-          ? -(config.fullSpins * 360 + ((360 - forward) % 360))
+          ? -(config.fullSpins * 360 + backward)
           : config.fullSpins * 360 + forward
       const to = from + delta
 

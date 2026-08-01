@@ -263,6 +263,26 @@ describe('useSpin', () => {
     expect(travelled).toBeGreaterThan(-4 * 360)
   })
 
+  it('lands a counter-clockwise spin on the same angle as a clockwise one', () => {
+    // The pointer is fixed, so direction changes the journey, never the
+    // destination. Travelling the right distance backwards is not the same as
+    // stopping in the right place — reusing `forward` for the reverse distance
+    // satisfies the distance tests and still lands on the wrong segment.
+    const cw = renderSpin({ ...PLAIN, fullSpins: 3, direction: 'cw' })
+    act(() => {
+      cw.result.current.spin()
+    })
+    const cwEnd = wrap360(degreesOf(harness.animateCalls[0].keyframes[1]))
+
+    const ccw = renderSpin({ ...PLAIN, fullSpins: 3, direction: 'ccw' })
+    act(() => {
+      ccw.result.current.spin()
+    })
+    const ccwEnd = wrap360(degreesOf(harness.animateCalls[1].keyframes[1]))
+
+    expect(ccwEnd).toBeCloseTo(cwEnd, 9)
+  })
+
   it('keeps the stored resting angle positive across alternating directions', async () => {
     // Regression: `to % 360` keeps the sign of the dividend, so a ccw spin used
     // to store a negative resting angle and the NEXT spin started from a
