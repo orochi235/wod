@@ -317,7 +317,7 @@ describe('useSpin', () => {
     expect(result.current.isSpinning).toBe(true)
   })
 
-  it('applies a segment swap that arrived mid-spin once the wheel lands', async () => {
+  it('holds a segment swap that arrived mid-spin until the next spin', async () => {
     const swapped: Segment[] = [
       { id: 'zed', label: 'Zed', weight: 1 },
       { id: 'yan', label: 'Yan', weight: 3 },
@@ -337,8 +337,33 @@ describe('useSpin', () => {
       harness.animateCalls[0].finish()
     })
 
+    // Landed, and still holding: releasing here would overwrite plan.landing on
+    // the next render, which is the whole payoff when weights morph.
     expect(result.current.isSpinning).toBe(false)
+    expect(result.current.landed).toBe(true)
+    expect(result.current.displaySegments).toEqual(SEGMENTS)
+
+    act(() => {
+      result.current.spin()
+    })
     expect(result.current.displaySegments).toEqual(swapped)
+  })
+
+  it('keeps the morphed landing when a swap arrives mid-spin', async () => {
+    const { result, rerender } = renderSpin(MORPHING)
+
+    act(() => {
+      result.current.spin()
+    })
+    rerender({ segs: [...SEGMENTS] })
+
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+
+    // The sliver swallowed the wheel. A new-but-equal array must not undo that.
+    const beer = result.current.displaySegments.find((segment) => segment.id === 'beer')
+    expect(beer?.weight).toBe(1)
   })
 
   it('spins the override segments, config, and strategy instead of the props', async () => {

@@ -23,6 +23,8 @@ export type UseSpinResult = {
   /** Segments as they currently appear, with any in-flight morph applied. */
   displaySegments: Segment[]
   isSpinning: boolean
+  /** True from the moment a spin lands until the next one starts. */
+  landed: boolean
   winnerId: string | null
   spin: (override?: SpinOverride) => void
   rotorRef: RefObject<SVGGElement | null>
@@ -47,18 +49,20 @@ export function useSpin(
 
   const [displaySegments, setDisplaySegments] = useState(segments)
   const [isSpinning, setIsSpinning] = useState(false)
+  const [landed, setLanded] = useState(false)
   const [winnerId, setWinnerId] = useState<string | null>(null)
 
   useEffect(() => {
-    // Resync only when the caller actually swaps the array, and never mid-spin —
-    // that would wipe the landed state, which is the whole visual payoff when
-    // weights morph. The ref is deliberately NOT advanced while spinning, so this
-    // effect re-runs and applies the pending swap once isSpinning goes false.
+    // Resync only when the caller actually swaps the array, and never while a
+    // spin owns the geometry — that would wipe the landed state, which is the
+    // whole visual payoff when weights morph. The ref is deliberately NOT
+    // advanced while held, so this effect re-runs and applies the pending swap
+    // once the wheel is released.
     if (lastSegmentsRef.current === segments) return
-    if (isSpinning) return
+    if (isSpinning || landed) return
     lastSegmentsRef.current = segments
     setDisplaySegments(segments)
-  }, [segments, isSpinning])
+  }, [segments, isSpinning, landed])
 
   const stopTracks = useCallback(() => {
     if (frameRef.current !== null) {
@@ -93,6 +97,7 @@ export function useSpin(
       stopTracks()
       spinningRef.current = true
       setIsSpinning(true)
+      setLanded(false)
       setWinnerId(null)
       setDisplaySegments(spinSegments)
 
@@ -153,6 +158,7 @@ export function useSpin(
           setDisplaySegments(plan.landing)
           setIsSpinning(false)
           setWinnerId(plan.winnerId)
+          setLanded(true)
           onLanded?.(plan.winnerId)
         })
         .catch(() => {
@@ -165,5 +171,5 @@ export function useSpin(
     [segments, config, onLanded, stopTracks],
   )
 
-  return { displaySegments, isSpinning, winnerId, spin, rotorRef }
+  return { displaySegments, isSpinning, landed, winnerId, spin, rotorRef }
 }
