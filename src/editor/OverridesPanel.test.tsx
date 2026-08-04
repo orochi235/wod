@@ -47,6 +47,17 @@ describe('OverridesPanel', () => {
     expect(screen.getByRole('group', { name: 'Known' })).toHaveTextContent('cal')
   })
 
+  it('keeps someone both present and overridden out of the known list', () => {
+    render(
+      <OverridesPanel items={items} overrides={{ ana: { color: '#ff0000' } }} onChange={vi.fn()} />,
+    )
+
+    // The one rule of the split that the specified tests leave open: Known is
+    // "has an override and is absent", not "has an override".
+    expect(screen.getByRole('group', { name: 'Known' })).not.toHaveTextContent('ana')
+    expect(screen.getAllByLabelText(/Exclude Ana/)).toHaveLength(1)
+  })
+
   it('excludes someone', async () => {
     const onChange = vi.fn()
     render(<OverridesPanel items={items} overrides={{}} onChange={onChange} />)

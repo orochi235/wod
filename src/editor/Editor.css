@@ -253,8 +253,9 @@
 }
 
 .overrides__group {
-  /* A grid item with content wider than its track will not shrink without it,
-     and the rows here carry a color picker with an intrinsic width. */
+  /* A fieldset carries a UA min-inline-size of min-content, so it refuses to
+     shrink below its widest row — and these rows carry a color picker with an
+     intrinsic width. */
   min-width: 0;
   margin: 0;
   padding: 0.25rem 0.5rem 0.5rem;

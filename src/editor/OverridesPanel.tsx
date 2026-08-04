@@ -84,7 +84,14 @@ function Row({
       >
         ⌫
       </button>
-      <button type="button" aria-label={`Forget ${id}`} onClick={onForget}>
+      {/* Same convention as the clear-color control beside it: a button that
+          would do nothing says so rather than writing an equal record back. */}
+      <button
+        type="button"
+        aria-label={`Forget ${id}`}
+        disabled={Object.keys(override).length === 0}
+        onClick={onForget}
+      >
         ×
       </button>
     </li>
