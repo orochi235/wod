@@ -234,6 +234,26 @@ function readUnitValue(value: unknown, fallback: number): number {
 }
 
 /**
+ * A headcount: non-negative, finite, and whole. Rounded rather than merely
+ * clamped, because the simulator compares a roster length against this — a
+ * fractional target sits permanently between two lengths, so churn adds and
+ * removes on every tick and `volatility` stops governing anything.
+ */
+function readCount(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.round(Math.max(0, value))
+    : fallback
+}
+
+/**
+ * The simulator drives churn from setInterval, and browsers floor nested timers
+ * at 4ms: a stored interval below this republishes the roster hundreds of times
+ * a second, recomposing and re-rendering the wheel on each one. Same reasoning
+ * as readMotion clamping durationMs for Element.animate().
+ */
+const MIN_CHURN_INTERVAL_MS = 250
+
+/**
  * A feed id has to be unique: composeBase namespaces wedge ids by it, so two
  * feeds sharing one would collide item for item and silently lose a roster.
  *
@@ -245,6 +265,10 @@ function readFeeds(value: unknown): FeedConfig[] {
   const feeds: FeedConfig[] = []
   for (const entry of value) {
     if (!isRecord(entry)) continue
+    // Dropped, not disabled as readTricks would: FeedConfig is a union of one,
+    // so an unknown kind has nothing to fall back to. A build that ships the
+    // Meet adapter bumps the version, and the gate above rejects older data
+    // wholesale rather than leaving a kind this parser cannot construct.
     if (entry.kind !== 'simulated' || typeof entry.id !== 'string') continue
     // Live items are keyed by feed id, and that record cannot hold a `__proto__`
     // entry — the feed would publish into the prototype and never appear.
@@ -260,8 +284,8 @@ function readFeeds(value: unknown): FeedConfig[] {
         ? entry.pool.filter((name): name is string => typeof name === 'string')
         : [],
       autochurn: {
-        intervalMs: readPositive(autochurn.intervalMs, 2000),
-        targetSize: readTurns(autochurn.targetSize, 6),
+        intervalMs: Math.max(MIN_CHURN_INTERVAL_MS, readPositive(autochurn.intervalMs, 2000)),
+        targetSize: readCount(autochurn.targetSize, 6),
         volatility: readUnitValue(autochurn.volatility, 0.3),
       },
     }

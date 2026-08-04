@@ -328,6 +328,19 @@ describe('parsePreset guards values the wheel would choke on', () => {
 })
 
 describe('v3 feeds and overrides', () => {
+  /** Parses one feed, so a clamp test states only the field it is about. */
+  const feedFrom = (feed: Record<string, unknown>) =>
+    parsePreset(
+      JSON.stringify({
+        version: 3,
+        name: 'n',
+        segments: [],
+        tricks: [],
+        branches: [],
+        feeds: [{ kind: 'simulated', id: 'sim', ...feed }],
+      }),
+    ).feeds[0]
+
   it('migrates a v2 preset by adding empty feeds and overrides', () => {
     const preset = parsePreset(
       JSON.stringify({ version: 2, name: 'old', segments: [], tricks: [], branches: [] }),
@@ -388,7 +401,29 @@ describe('v3 feeds and overrides', () => {
     expect(preset.feeds).toHaveLength(1)
     expect(preset.feeds[0].defaults.weight).toBe(1)
     expect(preset.feeds[0].pool).toEqual([])
-    expect(preset.feeds[0].autochurn.intervalMs).toBeGreaterThan(0)
+    expect(preset.feeds[0].autochurn).toEqual({
+      intervalMs: 2000,
+      targetSize: 6,
+      volatility: 0.3,
+    })
+  })
+
+  it('floors a churn interval that would peg the tab', () => {
+    // The simulator hands this to setInterval, where 0.5ms becomes a 4ms timer
+    // republishing the roster ~250 times a second.
+    expect(feedFrom({ autochurn: { intervalMs: 0.5 } }).autochurn.intervalMs).toBe(250)
+  })
+
+  it('rounds a fractional target size', () => {
+    // A roster can never equal 2.5, so churn would add and remove forever.
+    expect(feedFrom({ autochurn: { targetSize: 2.5 } }).autochurn.targetSize).toBe(3)
+    expect(feedFrom({ autochurn: { targetSize: -4 } }).autochurn.targetSize).toBe(0)
+  })
+
+  it('clamps volatility into 0..1', () => {
+    expect(feedFrom({ autochurn: { volatility: 7 } }).autochurn.volatility).toBe(1)
+    expect(feedFrom({ autochurn: { volatility: -1 } }).autochurn.volatility).toBe(0)
+    expect(feedFrom({ autochurn: { volatility: 'churny' } }).autochurn.volatility).toBe(0.3)
   })
 
   it('keeps usable override fields and drops the rest', () => {

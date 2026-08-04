@@ -20,7 +20,10 @@ export const DEFAULT_PRESET: Preset = {
       kind: 'simulated',
       id: 'sim',
       defaults: { weight: 1 },
-      pool: ['Ana', 'Ben', 'Cal', 'Dee', 'Eli', 'Fay', 'Gus'],
+      // Deliberately disjoint from the static names above: the wedge ids never
+      // collide, so a shared name would render twice with nothing marking which
+      // wedge came from the feed.
+      pool: ['Fay', 'Gus', 'Hal', 'Ivy', 'Jo', 'Kit', 'Lou'],
       autochurn: { intervalMs: 2500, targetSize: 5, volatility: 0.25 },
     },
   ],
