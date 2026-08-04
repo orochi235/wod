@@ -60,9 +60,13 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
     latest.current = { config, present, onPresent }
   })
 
-  // Re-applied here and not merely trusted from the parser, which can only
-  // guarantee the value it handed over — `config` is live, and an edit can
-  // drive it below the floor between two parses.
+  // Floored where the clock is actually started, rather than trusted from
+  // whoever last wrote `config`. That value arrives by several routes — the
+  // default preset, the parser on load, and now the interval control below —
+  // and none of them runs on the path the others take, so a floor honored at
+  // only some of them guarantees nothing here. It is the rule
+  // MIN_CHURN_INTERVAL_MS states about itself: every caller that starts a clock
+  // has to apply it, and the parser is only one of them.
   const requested = config.autochurn.intervalMs
   const tickMs = Number.isFinite(requested)
     ? Math.max(MIN_CHURN_INTERVAL_MS, requested)
@@ -145,6 +149,53 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
               autochurn: {
                 ...config.autochurn,
                 targetSize: Number.isFinite(size) ? Math.max(0, size) : 0,
+              },
+            })
+          }}
+        />
+      </PropertyRow>
+
+      {/* Clamped on write, matching the three fields the parser clamps on load.
+          Leaving it to the parser would let the panel hold a value only a round
+          trip through storage could correct, and the effect below floors the
+          interval anyway — the operator would see a number the clock ignores. */}
+      <PropertyRow label="Interval (ms)">
+        <input
+          type="number"
+          min={MIN_CHURN_INTERVAL_MS}
+          step={50}
+          aria-label="Interval (ms)"
+          value={config.autochurn.intervalMs}
+          onChange={(event) => {
+            const ms = Number.parseInt(event.target.value, 10)
+            onChange({
+              ...config,
+              autochurn: {
+                ...config.autochurn,
+                intervalMs: Number.isFinite(ms)
+                  ? Math.max(MIN_CHURN_INTERVAL_MS, ms)
+                  : MIN_CHURN_INTERVAL_MS,
+              },
+            })
+          }}
+        />
+      </PropertyRow>
+
+      <PropertyRow label="Volatility">
+        <input
+          type="number"
+          min={0}
+          max={1}
+          step={0.05}
+          aria-label="Volatility"
+          value={config.autochurn.volatility}
+          onChange={(event) => {
+            const rate = Number.parseFloat(event.target.value)
+            onChange({
+              ...config,
+              autochurn: {
+                ...config.autochurn,
+                volatility: Number.isFinite(rate) ? Math.min(1, Math.max(0, rate)) : 0,
               },
             })
           }}

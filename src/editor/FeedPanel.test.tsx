@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -143,6 +143,74 @@ describe('FeedPanel', () => {
 
     expect(screen.queryByRole('button', { name: 'Remove Ben' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Remove Ana' })).toBeInTheDocument()
+  })
+
+  it('edits the churn rate', () => {
+    // fireEvent, not userEvent: both fields clamp on write, so a controlled
+    // input rewrites itself mid-word and typing would assert against whatever
+    // the clamp left behind rather than against the value entered.
+    const onChange = vi.fn()
+    render(<FeedPanel config={config} present={[]} onPresent={vi.fn()} onChange={onChange} />)
+
+    fireEvent.change(screen.getByLabelText('Interval (ms)'), { target: { value: '750' } })
+    // The whole block, not just the field touched: an edit that dropped its
+    // siblings would silently reset the target size the operator had set.
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ autochurn: { intervalMs: 750, targetSize: 2, volatility: 0.3 } }),
+    )
+
+    fireEvent.change(screen.getByLabelText('Volatility'), { target: { value: '0.8' } })
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ autochurn: { intervalMs: 1000, targetSize: 2, volatility: 0.8 } }),
+    )
+  })
+
+  it('clamps the rate fields on write, the way the parser does on load', () => {
+    // Without this the panel is the one place a config can acquire a value the
+    // parser would have refused — and the operator would watch a clock that
+    // disagrees with the number in front of them.
+    const onChange = vi.fn()
+    render(<FeedPanel config={config} present={[]} onPresent={vi.fn()} onChange={onChange} />)
+
+    const interval = screen.getByLabelText('Interval (ms)')
+    const volatility = screen.getByLabelText('Volatility')
+    const lastChurn = () => onChange.mock.lastCall?.[0].autochurn
+
+    fireEvent.change(interval, { target: { value: '10' } })
+    expect(lastChurn().intervalMs).toBe(MIN_CHURN_INTERVAL_MS)
+    // An emptied field parses to NaN, which every comparison passes through.
+    fireEvent.change(interval, { target: { value: '' } })
+    expect(lastChurn().intervalMs).toBe(MIN_CHURN_INTERVAL_MS)
+
+    fireEvent.change(volatility, { target: { value: '5' } })
+    expect(lastChurn().volatility).toBe(1)
+    fireEvent.change(volatility, { target: { value: '-1' } })
+    expect(lastChurn().volatility).toBe(0)
+    fireEvent.change(volatility, { target: { value: '' } })
+    expect(lastChurn().volatility).toBe(0)
+  })
+
+  it('follows an interval edit onto the running clock', async () => {
+    // What makes the panel's re-floor more than defensive: the interval is now
+    // editable while the clock runs, so `config` really can go under the floor
+    // between two parses.
+    vi.useFakeTimers()
+    try {
+      const onPresent = vi.fn()
+      render(<Harness onPresent={onPresent} />)
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Run' }))
+
+      fireEvent.change(screen.getByLabelText('Interval (ms)'), { target: { value: '400' } })
+      // Wrapped: the tick hands a roster back through the harness's state, and
+      // an unwrapped update would assert against a render that has not happened.
+      await act(() => vi.advanceTimersByTimeAsync(399))
+      expect(onPresent).not.toHaveBeenCalled()
+
+      await act(() => vi.advanceTimersByTimeAsync(1))
+      expect(onPresent).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('churns on a tick while running', async () => {
