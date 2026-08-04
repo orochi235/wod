@@ -1,6 +1,7 @@
 import { assert, describe, expect, it, vi } from 'vitest'
 import { composeBase } from '../compose/compose'
 import type { Composition } from '../compose/types'
+import type { SimulatedFeedConfig } from '../feed/types'
 import type { BranchAction, BranchNode, ScriptedSpin } from '../preset/types'
 import { RECIPES } from '../tricks/registry'
 import type { Trick } from '../tricks/types'
@@ -15,6 +16,24 @@ const people: Segment[] = [
 ]
 
 const base = composeBase({ statics: people, feeds: [], items: {}, overrides: {} })
+
+const feed: SimulatedFeedConfig = {
+  kind: 'simulated',
+  id: 'sim',
+  defaults: { weight: 1 },
+  pool: [],
+  autochurn: { intervalMs: 1000, targetSize: 3, volatility: 0 },
+}
+
+/** Statics plus a live roster, so a condition's token has both kinds to tell apart. */
+function withRoster(statics: Segment[], names: string[]): Composition {
+  return composeBase({
+    statics,
+    feeds: [feed],
+    items: { sim: names.map((name) => ({ id: name.toLowerCase(), label: name })) },
+    overrides: {},
+  })
+}
 
 const spin: ScriptedSpin = {
   target: { kind: 'fair' },
@@ -397,6 +416,93 @@ describe('resolveScriptedSpin', () => {
     expect(result.depth).toBe(MAX_DEPTH)
     expect(result.motion.turns).toBe(9)
     expect(result.motion.direction).toBe('ccw')
+  })
+
+  it('expands a selector token in a branch condition', () => {
+    // A feed-only wheel: the only wedge is an attendee, so '@external' is the
+    // only way to write a rule about whoever is in the room. Matching the raw
+    // id list never fired, which made every branch on a live roster dead.
+    const roster = withRoster([], ['Ana'])
+    const branches: BranchNode[] = [
+      {
+        id: 'attendee',
+        when: { kind: 'landsOn', segmentIds: ['@external'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 99 } } },
+      },
+    ]
+    const result = resolveScriptedSpin(roster, [], spin, branches, fixed(0.1))
+    expect(result?.winnerId).toBe('sim:ana')
+    expect(result?.motion.turns).toBe(99)
+  })
+
+  it('tells the two origins apart in a condition', () => {
+    // The same wheel and the same rigged winner, so only the token can decide.
+    const mixed = withRoster([{ id: 'again', label: 'Spin again', weight: 1 }], ['Ana'])
+    const rigged: ScriptedSpin = { ...spin, target: { kind: 'forced', segmentId: 'again' } }
+    const on = (token: string): BranchNode[] => [
+      {
+        id: 'rule',
+        when: { kind: 'landsOn', segmentIds: [token] },
+        do: { kind: 'modify', modifier: { motion: { turns: 99 } } },
+      },
+    ]
+
+    expect(resolveScriptedSpin(mixed, [], rigged, on('@external'), fixed(0.1))?.motion.turns).toBe(
+      spin.motion.turns,
+    )
+    expect(resolveScriptedSpin(mixed, [], rigged, on('@static'), fixed(0.1))?.motion.turns).toBe(99)
+  })
+
+  it('still matches a concrete id alongside a token', () => {
+    // Concrete ids are the only form that existed before selectors, so mixing
+    // one in has to keep resolving exactly as it did — the token must not
+    // become the whole condition.
+    const mixed = withRoster([{ id: 'again', label: 'Spin again', weight: 1 }], ['Ana'])
+    const branches: BranchNode[] = [
+      {
+        id: 'either',
+        when: { kind: 'landsOn', segmentIds: ['@computed', 'again'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 99 } } },
+      },
+    ]
+    const rigged = (segmentId: string): ScriptedSpin => ({
+      ...spin,
+      target: { kind: 'forced', segmentId },
+    })
+
+    expect(
+      resolveScriptedSpin(mixed, [], rigged('again'), branches, fixed(0.1))?.motion.turns,
+    ).toBe(99)
+    expect(
+      resolveScriptedSpin(mixed, [], rigged('sim:ana'), branches, fixed(0.1))?.motion.turns,
+    ).toBe(spin.motion.turns)
+  })
+
+  it('draws @randomExternal in a condition from the selector roll', () => {
+    // Same fixture, same winner, two different second draws. Matching on the
+    // winner's own roll would make the token name the winner every time on an
+    // equal-weight roster — the correlation the second draw exists to break.
+    const roster = withRoster([], ['Ana', 'Ben', 'Cal'])
+    const branches: BranchNode[] = [
+      {
+        id: 'chosen',
+        when: { kind: 'landsOn', segmentIds: ['@randomExternal'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 99 } } },
+      },
+    ]
+    const draws = (values: number[]): ReturnType<typeof resolveScriptedSpin> => {
+      let n = 0
+      return resolveScriptedSpin(roster, [], spin, branches, () => values[n++] ?? 0.5)
+    }
+
+    // 0.1 wins ana in both runs; the selector picks cal, then ana.
+    const missed = draws([0.1, 0.9])
+    expect(missed?.winnerId).toBe('sim:ana')
+    expect(missed?.motion.turns).toBe(spin.motion.turns)
+
+    const hit = draws([0.1, 0.1])
+    expect(hit?.winnerId).toBe('sim:ana')
+    expect(hit?.motion.turns).toBe(99)
   })
 
   it('lets enable win when one modifier names a trick in both lists', () => {

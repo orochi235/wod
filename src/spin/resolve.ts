@@ -1,6 +1,7 @@
-import type { Composition } from '../compose/types'
+import type { Composition, Origin } from '../compose/types'
 import type { BranchNode, Motion, ScriptedSpin, SpinModifier, Target } from '../preset/types'
 import { resolveTricks } from '../tricks/resolve'
+import { resolveTargets } from '../tricks/targets'
 import type { Trick } from '../tricks/types'
 import { landingSegments } from '../wheel/morph'
 import type { Rng, SelectionStrategy } from '../wheel/selection'
@@ -58,6 +59,7 @@ function applyModifier(spin: ScriptedSpin, modifier: SpinModifier): ScriptedSpin
 /** The wheel as it launches (`withWedges`) and as it comes to rest (`landing`). */
 type WheelState = {
   withWedges: Segment[]
+  origins: Map<string, Origin>
   morphs: Morph[]
   landing: Segment[]
 }
@@ -76,14 +78,43 @@ function evaluateWheel(
   const active = tricks
     .filter((trick) => enabled.has(trick.id))
     .map((trick) => ({ ...trick, enabled: true }))
-  const { segments: withWedges, morphs } = resolveTricks(
-    base,
-    active,
-    spin.motion.durationMs,
-    selectorRoll,
-  )
+  const {
+    segments: withWedges,
+    origins,
+    morphs,
+  } = resolveTricks(base, active, spin.motion.durationMs, selectorRoll)
   const landing = landingSegments(withWedges, morphs, spin.motion.durationMs)
-  return { withWedges, morphs, landing }
+  return { withWedges, origins, morphs, landing }
+}
+
+/**
+ * Whether the winner satisfies a node's condition, with selector tokens expanded
+ * the same way a recipe's `targets` are — the spec asks for late binding on both,
+ * and a condition naming '@external' is the only way to write a rule about a
+ * roster whose ids do not exist at authoring time.
+ *
+ * Expanded against `withWedges`, not `landing`. Both hold the same wedges today
+ * — `applyMorphs` rewrites a wedge's weight, never the membership of the list —
+ * so this is a choice rather than a difference in outcome, and it is the choice
+ * that keeps "did this land on an attendee" independent of whether that
+ * attendee's arc happened to collapse on the way down.
+ *
+ * `selectorRoll`, not `roll`, for the reason spelled out on resolveScriptedSpin:
+ * '@randomExternal' and the winner's draw both reduce to floor(roll * n) over
+ * the same list, so sharing one would make the token name the winner every time.
+ *
+ * An empty `segmentIds` cannot arrive here: `readCondition` drops the node, as
+ * `storage.test.ts` pins. That matters because `resolveTargets` reads empty as
+ * *every* wedge, which would turn such a condition into a match-anything rather
+ * than the never-matches it used to be — so a future relaxation there needs an
+ * explicit empty check added right here.
+ */
+function matches(node: BranchNode, winnerId: string, wheel: WheelState, roll: number): boolean {
+  return resolveTargets(node.when.segmentIds, {
+    segments: wheel.withWedges,
+    origins: wheel.origins,
+    roll,
+  }).some((segment) => segment.id === winnerId)
 }
 
 /**
@@ -119,18 +150,13 @@ export function resolveScriptedSpin(
   let level = branches
 
   for (let depth = 0; depth < MAX_DEPTH; depth++) {
-    const { withWedges, morphs, landing } = evaluateWheel(
-      base,
-      tricks,
-      enabled,
-      current,
-      selectorRoll,
-    )
+    const wheel = evaluateWheel(base, tricks, enabled, current, selectorRoll)
+    const { withWedges, morphs, landing } = wheel
     const winnerId = strategyFor(current.target)(landing, frozen)
     if (!winnerId) return null
 
     // First match wins, so sibling order is authored meaning, not an accident.
-    const node = level.find((candidate) => candidate.when.segmentIds.includes(winnerId))
+    const node = level.find((candidate) => matches(candidate, winnerId, wheel, selectorRoll))
     if (!node) {
       return { kind: 'settled', winnerId, segments: withWedges, morphs, motion: current.motion }
     }
