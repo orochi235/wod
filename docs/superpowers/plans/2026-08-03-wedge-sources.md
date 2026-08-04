@@ -1750,7 +1750,7 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
     const id = window.setInterval(() => {
       const { config: current, present: room, onPresent: publish } = latest.current
       publish(churn(current, room, cryptoRng))
-    }, config.autochurn.intervalMs)
+    }, Math.max(MIN_CHURN_INTERVAL_MS, config.autochurn.intervalMs))
     return () => window.clearInterval(id)
   }, [running, config.autochurn.intervalMs])
 
@@ -1832,6 +1832,12 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
 ```
 
 `PropertyPanel` and `PropertyRow` both come from `@weasel-js/labkit` directly, as in `RecipeForm.tsx`.
+
+`MIN_CHURN_INTERVAL_MS` is exported from `src/preset/storage.ts`, where the
+parser already floors the stored value. Re-applying it at the `setInterval` call
+is not belt-and-braces: the parser can only guarantee what it hands over, and
+this component takes a live `config` prop that a panel edit can drive below the
+floor between parses.
 
 - [ ] **Step 4: Add the styles**
 
