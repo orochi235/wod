@@ -325,6 +325,20 @@ describe('parsePreset guards values the wheel would choke on', () => {
     expect(parsed.segments.map((segment) => segment.id)).toEqual(['ana', 'ben'])
     expect(parsed.segments[0].label).toBe('Ana')
   })
+
+  it('drops a segment claiming a selector id', () => {
+    // Id generation never emits '@', but imported JSON is hand-editable. Such a
+    // wedge would be permanently unaddressable: a trick naming it would expand
+    // to the token's whole set instead of reaching it.
+    const raw = {
+      ...DEFAULT_PRESET,
+      segments: [
+        { id: '@all', label: 'Impostor', weight: 1 },
+        { id: 'ana', label: 'Ana', weight: 1 },
+      ],
+    }
+    expect(parsePreset(JSON.stringify(raw)).segments.map((segment) => segment.id)).toEqual(['ana'])
+  })
 })
 
 describe('v3 feeds and overrides', () => {

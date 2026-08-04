@@ -92,4 +92,20 @@ describe('RecipeForm', () => {
     )
     expect(screen.getByRole('option', { name: 'Ana' })).toBeInTheDocument()
   })
+
+  it('offers the selectors in their own group, above the wedges', () => {
+    // Grouped, not just listed: a wedge someone labeled "All roster wedges"
+    // would otherwise be indistinguishable from the selector of that name.
+    render(
+      <RecipeForm
+        recipe={takeover}
+        params={takeover.defaults}
+        segments={segments}
+        onChange={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('option', { name: 'All roster wedges' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Selectors' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Wedges' })).toBeInTheDocument()
+  })
 })

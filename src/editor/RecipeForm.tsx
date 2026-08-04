@@ -12,13 +12,20 @@ import { SELECTOR_TOKENS, type SelectorToken } from '../tricks/targets'
 import type { Recipe, RecipeField, TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 
-/** Operator-facing wording. The tokens themselves are internal. */
+/**
+ * Operator-facing wording. The tokens themselves are internal.
+ *
+ * The roster labels say "wedge", not "everyone in the meeting": `composeBase`
+ * skips excluded items and lets a static wedge claim a feed id first, so a
+ * selector reaches the wedges a feed produced, not every attendee. Promising
+ * the latter would surprise anyone who had just excluded someone.
+ */
 const SELECTOR_LABELS: Record<SelectorToken, string> = {
   '@all': 'Everything on the wheel',
   '@static': 'All authored wedges',
-  '@external': 'Everyone in the meeting',
+  '@external': 'All roster wedges',
   '@computed': 'All trick wedges',
-  '@randomExternal': 'One random attendee',
+  '@randomExternal': 'One random roster wedge',
 }
 
 export type RecipeFormProps = {
@@ -110,16 +117,22 @@ export function RecipeForm({ recipe, params, segments, onChange }: RecipeFormPro
                 )
               }
             >
-              {SELECTOR_TOKENS.map((token) => (
-                <option key={token} value={token}>
-                  {SELECTOR_LABELS[token]}
-                </option>
-              ))}
-              {segments.map((segment) => (
-                <option key={segment.id} value={segment.id}>
-                  {segment.label}
-                </option>
-              ))}
+              {/* Grouped so a wedge someone labeled "Everything" cannot be
+                  mistaken for the selector of nearly the same name. */}
+              <optgroup label="Selectors">
+                {SELECTOR_TOKENS.map((token) => (
+                  <option key={token} value={token}>
+                    {SELECTOR_LABELS[token]}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Wedges">
+                {segments.map((segment) => (
+                  <option key={segment.id} value={segment.id}>
+                    {segment.label}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </PropertyRow>
         )

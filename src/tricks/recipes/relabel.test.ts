@@ -40,6 +40,9 @@ describe('relabel', () => {
 
   it('never touches weight or color', () => {
     const morphs = relabel.resolve({ targets: [], toLabel: 'X' }, ctx)
+    // Empty targets means every wedge. Pinned so the loop below cannot pass
+    // vacuously on a resolver that returned nothing at all.
+    expect(morphs.map((morph) => morph.segmentId)).toEqual(['ana', 'ben'])
     for (const morph of morphs) {
       expect(morph.keyframes.every((k) => k.weight === undefined && k.color === undefined)).toBe(
         true,
@@ -55,5 +58,13 @@ describe('relabel', () => {
 
   it('rejects a missing target', () => {
     expect(relabel.validate({ targets: ['ghost'] }, segments)).toMatch(/ghost/)
+  })
+
+  it('accepts a selector token that matches nothing yet', () => {
+    expect(relabel.validate({ targets: ['@external'] }, segments)).toBeNull()
+  })
+
+  it('reports a misspelled token as an unknown wedge', () => {
+    expect(relabel.validate({ targets: ['@extrenal'] }, segments)).toMatch(/@extrenal/)
   })
 })

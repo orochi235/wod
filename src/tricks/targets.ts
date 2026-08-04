@@ -3,8 +3,9 @@ import type { Segment } from '../wheel/types'
 
 /**
  * Selectors ride as reserved ids inside the string arrays tricks and branches
- * already store, so nothing migrates. Id generation never emits '@', so a real
- * wedge cannot collide with one.
+ * already store, so nothing migrates. Id generation never emits '@', and
+ * `readSegments` drops an imported wedge that claims one, so a real wedge
+ * cannot collide with a token from either direction.
  */
 export const SELECTOR_TOKENS = [
   '@all',
@@ -28,10 +29,25 @@ export type TargetContext = {
 }
 
 function byOrigin(ctx: TargetContext, kind: Origin['kind']): Segment[] {
-  // A wedge with no recorded origin is treated as static: that is what an
-  // unrecorded wedge was before feeds existed, and guessing 'external' would
-  // put it in the path of tricks aimed at the roster.
+  // Defaulting an unrecorded wedge to static makes the three kinds a total
+  // partition of the wheel, which is what makes '@all' equal '@static' plus
+  // '@external' plus '@computed' unconditionally rather than by luck. Both
+  // composeBase and resolveTricks always record an origin, so the default is
+  // unreachable in production; it is what keeps a fixture built with an empty
+  // map coherent instead of invisible to every selector.
   return ctx.segments.filter((segment) => (ctx.origins.get(segment.id)?.kind ?? 'static') === kind)
+}
+
+/**
+ * Clamped at both ends. `Rng` promises [0, 1), but a roll can also arrive from
+ * a hand-built context or an imported preset, and an out-of-range index would
+ * read `undefined` off the candidate list and throw. NaN is caught separately
+ * because it fails every comparison, so Math.min and Math.max both pass it
+ * through untouched.
+ */
+function rollIndex(roll: number, count: number): number {
+  if (Number.isNaN(roll)) return 0
+  return Math.min(count - 1, Math.max(0, Math.floor(roll * count)))
 }
 
 /**
@@ -66,10 +82,7 @@ export function resolveTargets(ids: string[], ctx: TargetContext): Segment[] {
       case '@randomExternal': {
         const candidates = byOrigin(ctx, 'external')
         if (candidates.length === 0) break
-        // Math.min guards a roll of exactly 1, which Rng promises never to
-        // return but a hand-supplied one might.
-        const index = Math.min(candidates.length - 1, Math.floor(ctx.roll * candidates.length))
-        picked.add(candidates[index].id)
+        picked.add(candidates[rollIndex(ctx.roll, candidates.length)].id)
         break
       }
       default: {
@@ -78,7 +91,8 @@ export function resolveTargets(ids: string[], ctx: TargetContext): Segment[] {
     }
   }
 
-  // Wheel order, not selection order: morphs read better when they follow the
-  // order the wedges actually appear in.
+  // Wheel order, not selection order. The result must not depend on which order
+  // the operator happened to click the tokens and ids in, or the same target set
+  // would compile to a different morph array depending on how it was authored.
   return ctx.segments.filter((segment) => picked.has(segment.id))
 }

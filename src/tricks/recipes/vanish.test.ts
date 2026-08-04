@@ -63,4 +63,17 @@ describe('vanish', () => {
   it('accepts a valid target', () => {
     expect(vanish.validate({ targets: ['ana'] }, segments)).toBeNull()
   })
+
+  it('accepts a selector token that matches nothing yet', () => {
+    // Validate only sees segments, so it cannot tell whether a token resolves.
+    // It must not have to: an empty roster is the normal authoring state, and
+    // reporting it would badge every preset built before the meeting as broken.
+    expect(vanish.validate({ targets: ['@external'] }, segments)).toBeNull()
+  })
+
+  it('reports a misspelled token as an unknown wedge', () => {
+    // The one genuinely static error here: '@extrenal' is not a token, so it
+    // falls through to the concrete-id branch and gets named.
+    expect(vanish.validate({ targets: ['@extrenal'] }, segments)).toMatch(/@extrenal/)
+  })
 })

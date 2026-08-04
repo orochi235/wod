@@ -1,5 +1,6 @@
 import { assert, describe, expect, it, vi } from 'vitest'
 import { composeBase } from '../compose/compose'
+import type { Composition } from '../compose/types'
 import type { BranchAction, BranchNode, ScriptedSpin } from '../preset/types'
 import { RECIPES } from '../tricks/registry'
 import type { Trick } from '../tricks/types'
@@ -251,16 +252,23 @@ describe('resolveScriptedSpin', () => {
     expect(result?.winnerId).toBe('ana')
   })
 
-  it('uses one frozen roll for the whole walk', () => {
-    // A counting rng proves the resolver draws exactly once no matter how many
-    // times it re-evaluates. Re-rolling would move the winner for reasons the
-    // operator did not author.
-    let calls = 0
-    const counting: Rng = () => {
-      calls++
-      return 0.1
+  it('draws once for the winner and once for selectors, however deep the walk', () => {
+    // A counting rng proves the resolver draws a fixed number of times no matter
+    // how many times it re-evaluates: two up front, then nothing per depth.
+    // Re-rolling inside the loop would move the winner for reasons the operator
+    // did not author. The count is 2 rather than 1 because selectors must not
+    // share the winner's draw — see the comment on resolveScriptedSpin.
+    const drawsFor = (branches: BranchNode[]) => {
+      let calls = 0
+      const counting: Rng = () => {
+        calls++
+        return 0.1
+      }
+      resolveScriptedSpin(base, [], spin, branches, counting)
+      return calls
     }
-    const branches: BranchNode[] = [
+
+    const shallow: BranchNode[] = [
       {
         id: 'a',
         when: { kind: 'landsOn', segmentIds: ['ana'] },
@@ -269,8 +277,12 @@ describe('resolveScriptedSpin', () => {
         then: [{ id: 'b', when: { kind: 'landsOn', segmentIds: ['ana'] } }],
       },
     ]
-    resolveScriptedSpin(base, [], spin, branches, counting)
-    expect(calls).toBe(1)
+    // Holding the count flat from no branches to a full-depth chain is what pins
+    // the property. A bare number would also be satisfied by a resolver that drew
+    // once per pass over a fixture that happened to make two passes.
+    expect(drawsFor([])).toBe(2)
+    expect(drawsFor(shallow)).toBe(2)
+    expect(drawsFor(anaChain(MAX_DEPTH - 1))).toBe(2)
   })
 
   it('hands every recipe that same roll at every depth', () => {
@@ -326,6 +338,40 @@ describe('resolveScriptedSpin', () => {
     // Vacuous if the branch never fired, which would mean only one evaluation ran.
     expect(drifted?.motion.turns).toBe(9)
     expect(drifted?.winnerId).toBe('ben')
+  })
+
+  it('keeps the selector roll off the winner, so a random trick cannot spoil it', () => {
+    // A shared draw made '@randomExternal' pick exactly the wedge weightedRandom
+    // was about to: on an equal-weight roster both reduce to floor(roll * n) over
+    // the same list, so they agreed every time. Morphs animate during the spin,
+    // so the trick painted the winner gold before the wheel landed — the leak
+    // that choosing the winner up front exists to prevent.
+    const roster: Composition = {
+      segments: people,
+      origins: new Map(
+        people.map((segment) => [
+          segment.id,
+          { kind: 'external', feedId: 'sim', itemId: segment.id } as const,
+        ]),
+      ),
+    }
+    const tricks: Trick[] = [
+      {
+        id: 'gold',
+        name: 'gold',
+        recipe: 'recolor',
+        params: { targets: ['@randomExternal'], toColor: '#ffd700' },
+        enabled: true,
+      },
+    ]
+    // First draw picks the winner, second picks the target. 0.1 lands on ana,
+    // 0.9 selects cal — a fixed rng cannot show this, since it makes the two
+    // agree for the honest reason.
+    let n = 0
+    const twoDraws: Rng = () => [0.1, 0.9][n++] ?? 0.5
+    const result = resolveScriptedSpin(roster, tricks, spin, [], twoDraws)
+    expect(result?.winnerId).toBe('ana')
+    expect(result?.morphs.map((morph) => morph.segmentId)).toEqual(['cal'])
   })
 
   it('settles on the deepest chain that still fits under the cap', () => {

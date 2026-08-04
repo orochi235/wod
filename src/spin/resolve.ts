@@ -67,7 +67,7 @@ function evaluateWheel(
   tricks: Trick[],
   enabled: Set<string>,
   spin: ScriptedSpin,
-  roll: number,
+  selectorRoll: number,
 ): WheelState {
   // `resolveTricks` filters on each trick's own `enabled` flag, which is only the
   // baseline here. Stamping the resolved set onto the copies it receives is what
@@ -76,7 +76,12 @@ function evaluateWheel(
   const active = tricks
     .filter((trick) => enabled.has(trick.id))
     .map((trick) => ({ ...trick, enabled: true }))
-  const { segments: withWedges, morphs } = resolveTricks(base, active, spin.motion.durationMs, roll)
+  const { segments: withWedges, morphs } = resolveTricks(
+    base,
+    active,
+    spin.motion.durationMs,
+    selectorRoll,
+  )
   const landing = landingSegments(withWedges, morphs, spin.motion.durationMs)
   return { withWedges, morphs, landing }
 }
@@ -94,12 +99,19 @@ export function resolveScriptedSpin(
   branches: BranchNode[],
   rng: Rng,
 ): Resolution | null {
-  // One roll for the whole resolution. Re-rolling on each pass would move the
-  // winner for reasons unrelated to the operator's modifiers: a node could fire
-  // on a draw that no longer exists, and the same preset would resolve
-  // differently every run. Freezing it means every change in winner is caused
-  // by a modifier, which is the only way the tree is readable.
+  // Two draws, each frozen for the whole resolution. Re-rolling on each pass
+  // would move the winner for reasons unrelated to the operator's modifiers: a
+  // node could fire on a draw that no longer exists, and the same preset would
+  // resolve differently every run. Freezing means every change in winner is
+  // caused by a modifier, which is the only way the tree is readable.
+  //
+  // They have to be two. Selection and '@randomExternal' both reduce to
+  // floor(roll * n) over the same list, so one shared number makes the random
+  // attendee *be* the winner on an equal-weight roster. Morphs animate during
+  // the spin, so that trick would paint the outcome before the wheel lands —
+  // the exact leak that picking the winner up front is meant to prevent.
   const roll = rng()
+  const selectorRoll = rng()
   const frozen: Rng = () => roll
 
   let current = spin
@@ -107,7 +119,13 @@ export function resolveScriptedSpin(
   let level = branches
 
   for (let depth = 0; depth < MAX_DEPTH; depth++) {
-    const { withWedges, morphs, landing } = evaluateWheel(base, tricks, enabled, current, roll)
+    const { withWedges, morphs, landing } = evaluateWheel(
+      base,
+      tricks,
+      enabled,
+      current,
+      selectorRoll,
+    )
     const winnerId = strategyFor(current.target)(landing, frozen)
     if (!winnerId) return null
 
@@ -128,7 +146,13 @@ export function resolveScriptedSpin(
 
   // The cap was reached with a node still matching. Recompute once so the caller
   // sees the wheel as the last applied modifier left it.
-  const { withWedges, morphs, landing } = evaluateWheel(base, tricks, enabled, current, roll)
+  const { withWedges, morphs, landing } = evaluateWheel(
+    base,
+    tricks,
+    enabled,
+    current,
+    selectorRoll,
+  )
   const winnerId = strategyFor(current.target)(landing, frozen)
   if (!winnerId) return null
   return {

@@ -1,5 +1,6 @@
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { getRecipe } from '../tricks/registry'
+import { isSelectorToken } from '../tricks/targets'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 import { DEFAULT_PRESET } from './defaults'
@@ -26,6 +27,10 @@ function readSegments(value: unknown): Segment[] {
   for (const entry of value) {
     if (!isRecord(entry)) continue
     if (typeof entry.id !== 'string' || typeof entry.label !== 'string') continue
+    // Id generation never emits '@', but imported JSON is hand-editable. A wedge
+    // claiming a selector's id would be permanently unaddressable — every trick
+    // naming it would expand to the token's whole set instead.
+    if (isSelectorToken(entry.id)) continue
     const weight =
       typeof entry.weight === 'number' && Number.isFinite(entry.weight)
         ? Math.max(0, entry.weight)

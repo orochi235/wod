@@ -71,6 +71,17 @@ describe('resolveTargets', () => {
     ).toEqual([])
   })
 
+  it('clamps a roll from outside the unit interval at both ends', () => {
+    // Rng promises [0, 1), but an imported or hand-built roll need not honor it,
+    // and an out-of-range index would read undefined off the candidate list.
+    for (const roll of [-0.0001, -1, Number.NEGATIVE_INFINITY, Number.NaN]) {
+      expect(ids(resolveTargets(['@randomExternal'], { ...ctx, roll }))).toEqual(['sim:ana'])
+    }
+    for (const roll of [1, 1.5, Number.POSITIVE_INFINITY]) {
+      expect(ids(resolveTargets(['@randomExternal'], { ...ctx, roll }))).toEqual(['sim:ben'])
+    }
+  })
+
   it('recognizes exactly the five tokens', () => {
     expect(isSelectorToken('@external')).toBe(true)
     expect(isSelectorToken('@nonsense')).toBe(false)
