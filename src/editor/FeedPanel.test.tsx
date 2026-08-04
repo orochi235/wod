@@ -191,9 +191,9 @@ describe('FeedPanel', () => {
   })
 
   it('follows an interval edit onto the running clock', async () => {
-    // What makes the panel's re-floor more than defensive: the interval is now
-    // editable while the clock runs, so `config` really can go under the floor
-    // between two parses.
+    // The control has to reach the clock, not just the stored config: the
+    // effect is keyed on the floored interval, so a rate edit is the one kind
+    // that must restart it rather than wait for the next tick to read `latest`.
     vi.useFakeTimers()
     try {
       const onPresent = vi.fn()
