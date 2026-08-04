@@ -2382,6 +2382,15 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
+- **Takeover's "existing wedge" mode is unusable from the editor.** Found during
+  Task 5, pre-existing. `takeover.ts:62` declares `wedgeSegmentId` as
+  `kind: 'segments'`, which `RecipeForm` renders as a *multi*-select writing a
+  `string[]`, but `takeover.ts:17,172` read it with `readString`, which rejects
+  arrays and falls back to `''`. So `validate` returns "no wedge chosen"
+  whatever the operator picks. The fix is a distinct single-valued field kind
+  (`'segment'`), which is also the natural place to decide whether selector
+  tokens belong in a single-id field — `@randomExternal` would be coherent
+  there, the set-valued tokens would not.
 - **A huge weight overflows the normalizer to `NaN`.** Found reviewing Task 4.
   `readSegments` and `readFeedDefaults` both reject `Infinity` and `NaN` but
   accept `1e308`; three such weights sum to `Infinity`, and `arcs()` then emits
