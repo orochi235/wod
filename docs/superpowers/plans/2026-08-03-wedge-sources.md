@@ -1575,6 +1575,16 @@ function pick<T>(items: T[], rng: Rng): T {
   return items[Math.min(items.length - 1, Math.floor(rng() * items.length))]
 }
 
+> **Superseded by review.** This `churn` **fails its own test above**: with
+> `present = ['Ana','Zed']` and `targetSize: 2`, dropping the out-of-pool `Zed`
+> leaves `current` below target, so the same tick refills to `['Ana','Dee']`
+> while the test expects `['Ana']`. The shipped version guards it — if anything
+> was dropped, the tick returns immediately, because reconciling an edited pool
+> is not an autochurn move. `slugify` also had to change: `[^a-z0-9]+` collapsed
+> every non-Latin name to the `item` fallback, making ids positional and
+> breaking the promise that an override survives a rejoin. Read the committed
+> `src/feed/simulated.ts`, not this block.
+
 /**
  * One tick of the simulated meeting. At most one person moves per tick, so the
  * roster reads as people arriving and leaving rather than as a list being
