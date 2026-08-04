@@ -2371,6 +2371,14 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
+- **`wedgeOwners` does not apply the dedupe rule.** Found reviewing Task 2. When
+  a static wedge and a trick wedge collide on an id, `resolveTricks` correctly
+  drops the computed one, but `wedgeOwners` still reports the trick as owner, so
+  `SegmentList` renders a ghost row for a wedge that is not on the wheel. Not
+  reachable through the UI today — static ids are `seg{n}` and trick ids contain
+  no colon — so it needs an imported preset. Worth revisiting once operators can
+  choose a `feedId`, because composed `${feedId}:${itemId}` ids widen the
+  namespace that `${trickId}:wedge` can collide with.
 - **The feed-unavailable banner.** The spec's error handling calls for one when
   a feed never publishes. With a simulated feed the editor *is* the publisher,
   so there is nothing to warn about yet; the banner arrives with the adapter
