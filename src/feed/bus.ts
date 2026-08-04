@@ -27,6 +27,12 @@ function readMessage(value: unknown): FeedMessage | null {
   if (typeof value !== 'object' || value === null) return null
   const raw = value as Record<string, unknown>
   if (typeof raw.feedId !== 'string' || !Array.isArray(raw.items)) return null
+  // Same guard as readFeeds (storage.ts): Task 9 keys a live-items record by
+  // feedId, and a plain assignment to '__proto__' replaces the record's
+  // prototype instead of storing an entry. No configured feed can hit this
+  // today, but that safety belongs to composeBase, not to this channel — the
+  // Meet adapter is a second path in and this boundary has to hold on its own.
+  if (raw.feedId === '__proto__') return null
 
   const items: FeedItem[] = []
   for (const entry of raw.items) {
@@ -44,6 +50,8 @@ export function publishFeed(message: FeedMessage): void {
 
 export function subscribeFeed(onMessage: (message: FeedMessage) => void): () => void {
   let listener: BroadcastChannel
+  // Its own channel, never the publisher's: BroadcastChannel excludes the
+  // sending object, so a window that shared one would never hear itself.
   try {
     listener = new BroadcastChannel(FEED_CHANNEL)
   } catch {
