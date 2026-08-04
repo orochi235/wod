@@ -69,8 +69,11 @@ export function App() {
 
   const winner = displaySegments.find((segment) => segment.id === winnerId)
   // Nothing to land on. planSpin would return null and the click would quietly
-  // do nothing, which reads as a broken button rather than an empty wheel.
-  const isEmpty = displaySegments.length === 0
+  // do nothing, which reads as a broken button rather than an empty wheel. Read
+  // the resolved roster, not displaySegments: the wheel holds a landed frame
+  // until the next spin, so it can still be showing wedges that onSpin no longer
+  // has anything to spin.
+  const isEmpty = resolved.segments.length === 0
 
   return (
     <main className="app">

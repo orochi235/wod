@@ -23,8 +23,6 @@ export type UseSpinResult = {
   /** Segments as they currently appear, with any in-flight morph applied. */
   displaySegments: Segment[]
   isSpinning: boolean
-  /** True from the moment a spin lands until the next one starts. */
-  landed: boolean
   winnerId: string | null
   spin: (override?: SpinOverride) => void
   rotorRef: RefObject<SVGGElement | null>
@@ -54,10 +52,10 @@ export function useSpin(
 
   useEffect(() => {
     // Resync only when the caller actually swaps the array, and never while a
-    // spin owns the geometry — that would wipe the landed state, which is the
-    // whole visual payoff when weights morph. The ref is deliberately NOT
-    // advanced while held, so this effect re-runs and applies the pending swap
-    // once the wheel is released.
+    // spin owns the geometry — running or landed. A live roster republishes
+    // mid-spin, and applying that would wipe the landed frame, which is the
+    // whole visual payoff when weights morph. Nothing is lost by dropping the
+    // swap: the next spin takes ownership and draws from the live prop itself.
     if (lastSegmentsRef.current === segments) return
     if (isSpinning || landed) return
     lastSegmentsRef.current = segments
@@ -100,6 +98,12 @@ export function useSpin(
       setLanded(false)
       setWinnerId(null)
       setDisplaySegments(spinSegments)
+      // The spin, not the effect, is what resolves a swap that arrived while the
+      // wheel was held. Mark the props synced here so a later idle render does
+      // not replay them as still pending. Deliberately the prop array rather
+      // than spinSegments: an override is a one-spin substitution the caller
+      // never published, so it must not count as having synced to it.
+      lastSegmentsRef.current = segments
 
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
       const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
@@ -171,5 +175,5 @@ export function useSpin(
     [segments, config, onLanded, stopTracks],
   )
 
-  return { displaySegments, isSpinning, landed, winnerId, spin, rotorRef }
+  return { displaySegments, isSpinning, winnerId, spin, rotorRef }
 }

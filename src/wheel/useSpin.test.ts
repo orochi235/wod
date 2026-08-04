@@ -340,9 +340,10 @@ describe('useSpin', () => {
     // Landed, and still holding: releasing here would overwrite plan.landing on
     // the next render, which is the whole payoff when weights morph.
     expect(result.current.isSpinning).toBe(false)
-    expect(result.current.landed).toBe(true)
     expect(result.current.displaySegments).toEqual(SEGMENTS)
 
+    // The hold lifts because the next spin takes the geometry, and it takes it
+    // from the roster that arrived while the wheel was held.
     act(() => {
       result.current.spin()
     })
@@ -362,8 +363,7 @@ describe('useSpin', () => {
     })
 
     // The sliver swallowed the wheel. A new-but-equal array must not undo that.
-    const beer = result.current.displaySegments.find((segment) => segment.id === 'beer')
-    expect(beer?.weight).toBe(1)
+    expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
   })
 
   it('spins the override segments, config, and strategy instead of the props', async () => {

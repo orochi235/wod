@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import { DEFAULT_PRESET } from './preset/defaults'
 import { PRESET_KEY } from './preset/storage'
@@ -108,5 +109,78 @@ describe('App', () => {
 
     expect(screen.getByText('Wilhelmina')).toBeInTheDocument()
     expect(screen.queryByText('Ana')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * Only what a landing needs: a controllable `finished` promise, and a frame loop
+ * stubbed to a no-op so the morph tick never runs. Mirrors the harness in
+ * Editor.test.tsx, which exists for the same reason — jsdom implements no Web
+ * Animations API, so without this a spin throws instead of landing.
+ */
+function installSpinHarness() {
+  const finishers: (() => void)[] = []
+  const realAnimate = Element.prototype.animate
+  Element.prototype.animate = function animate() {
+    let settle: (animation: Animation) => void = () => undefined
+    const finished = new Promise<Animation>((resolve) => {
+      settle = resolve
+    })
+    const animation = { finished, cancel: () => undefined } as unknown as Animation
+    finishers.push(() => settle(animation))
+    return animation
+  } as unknown as Element['animate']
+
+  vi.stubGlobal('requestAnimationFrame', () => 1)
+  vi.stubGlobal('cancelAnimationFrame', () => undefined)
+
+  return {
+    async land() {
+      for (const finish of finishers) finish()
+      // Two ticks: one for `finished.then`, one for the state it sets.
+      await act(async () => undefined)
+    },
+    restore() {
+      Element.prototype.animate = realAnimate
+      vi.unstubAllGlobals()
+    },
+  }
+}
+
+describe('App empty guard', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('disables spinning when the roster empties under a landed wheel', async () => {
+    // The wheel holds its landed frame until the next spin, so displaySegments
+    // outlives an emptied roster. Deriving the guard from it left the button
+    // live over a roster onSpin can no longer resolve, and the click silently
+    // did nothing — the exact failure the guard exists to prevent.
+    const harness = installSpinHarness()
+    try {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: PRESET_KEY,
+            newValue: JSON.stringify({ ...DEFAULT_PRESET, segments: [], tricks: [] }),
+          }),
+        )
+      })
+
+      // The landed wheel is still on screen — otherwise this passes for the
+      // trivial reason that the hold was never in play.
+      const wheel = screen.getByRole('img', { name: 'wheel' })
+      expect(wheel.querySelectorAll('.wheel__segment').length).toBeGreaterThan(0)
+
+      expect(screen.getByRole('button', { name: /spin/i })).toBeDisabled()
+      expect(screen.getByText(/nothing on the wheel yet/i)).toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
   })
 })
