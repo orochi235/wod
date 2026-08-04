@@ -1,5 +1,5 @@
 import { PropertyPanel, PropertyRow } from '@weasel-js/labkit'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { MIN_CHURN_INTERVAL_MS, churn } from '../feed/simulated'
 import type { SimulatedFeedConfig } from '../feed/types'
 import { cryptoRng } from '../wheel/selection'
@@ -46,12 +46,19 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
   }
 
   // The tick reads the latest props without restarting the interval, which
-  // would otherwise reset the clock on every roster change it causes. Written
-  // during render rather than from an effect on purpose: a timer can fire
-  // between a commit and its passive effects, and a tick that read the roster
-  // from before the operator's last edit would publish that edit away.
+  // would otherwise reset the clock on every roster change it causes.
+  //
+  // A layout effect, not a passive one: passive effects are flushed after the
+  // browser is free to service timer tasks, so a tick landing in that gap would
+  // churn from the roster as it stood before the operator's last edit and hand
+  // it back through onPresent — overwriting the edit, not merely lagging it.
+  // Layout effects run inside commit, which closes the same gap without writing
+  // to the ref during render, where a render that is discarded rather than
+  // committed would leave props behind that the panel never actually had.
   const latest = useRef({ config, present, onPresent })
-  latest.current = { config, present, onPresent }
+  useLayoutEffect(() => {
+    latest.current = { config, present, onPresent }
+  })
 
   // Re-applied here and not merely trusted from the parser, which can only
   // guarantee the value it handed over — `config` is live, and an edit can
@@ -84,6 +91,12 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
     // Reconciled now rather than left to churn's next tick. The wheel follows
     // this roster immediately, and with the clock stopped there is no next tick
     // at all — a name the pool no longer offers would stay spinnable forever.
+    //
+    // The accepted cost is that renaming in place empties the room of whoever
+    // was being renamed at the first keystroke, and typing the original text
+    // back does not return them — the operator clicks Join again. Waiting for
+    // blur or a debounce would spare that, at the price of a real interval in
+    // which a deleted name can still win the wheel.
     const kept = present.filter((name) => pool.includes(name))
     if (kept.length !== present.length) onPresent(kept)
   }

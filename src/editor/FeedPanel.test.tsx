@@ -22,9 +22,10 @@ type HarnessProps = {
 }
 
 /**
- * The panel is fully controlled, so a test that types into the pool has to feed
- * the edit back: with a constant `config` prop React restores the old textarea
- * value after every keystroke and the typing lands on the wrong string.
+ * Feeds each edit back, so `config.pool` changes identity per keystroke exactly
+ * as it does under the real editor. That is what puts the re-seed guard under
+ * test: a static `config` never changes identity, the guard never runs, and the
+ * textarea would type just as happily with the guard deleted.
  */
 function Harness({
   initialConfig = config,
@@ -186,6 +187,34 @@ describe('FeedPanel', () => {
       expect(onPresent).not.toHaveBeenCalled()
 
       await vi.advanceTimersByTimeAsync(1)
+
+      expect(onPresent).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not restart the clock for an interval edit the floor swallows', async () => {
+    vi.useFakeTimers()
+    try {
+      const onPresent = vi.fn()
+      const hurried = (intervalMs: number): SimulatedFeedConfig => ({
+        ...config,
+        autochurn: { ...config.autochurn, intervalMs },
+      })
+      const { rerender } = render(
+        <FeedPanel config={hurried(10)} present={[]} onPresent={onPresent} onChange={vi.fn()} />,
+      )
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Run' }))
+
+      // 10ms and 20ms are the same clock once floored, so this edit must not
+      // reach the effect. Keyed on the raw interval it would restart here and
+      // push the first tick out to 850ms.
+      await vi.advanceTimersByTimeAsync(200)
+      rerender(
+        <FeedPanel config={hurried(20)} present={[]} onPresent={onPresent} onChange={vi.fn()} />,
+      )
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(onPresent).toHaveBeenCalledTimes(1)
     } finally {

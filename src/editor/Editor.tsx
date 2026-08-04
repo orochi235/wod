@@ -43,18 +43,23 @@ export function Editor() {
   }, [])
 
   const feed = preset.feeds[0]
+  // Keyed on the id, never the feed object: every edit to the feed's config
+  // hands back a new object, and memoizing on that would rebuild identical
+  // items and republish them on each keystroke — a full recompose and wheel
+  // re-render for a roster that did not change.
+  const feedId = feed?.id
 
   // Items are derived, never stored: the preset keeps how to get a roster, not
   // who is in it.
-  const items = useMemo(() => (feed ? { [feed.id]: itemsFor(present) } : {}), [feed, present])
+  const items = useMemo(() => (feedId ? { [feedId]: itemsFor(present) } : {}), [feedId, present])
 
   // The editor window owns the clock, so it is the window that publishes. With
   // no editor open the show window's roster freezes at whatever last arrived,
   // which is a comprehensible failure rather than two windows both churning.
   useEffect(() => {
-    if (!feed) return
-    publishFeed({ feedId: feed.id, items: itemsOf(items, feed.id) })
-  }, [feed, items])
+    if (!feedId) return
+    publishFeed({ feedId, items: itemsOf(items, feedId) })
+  }, [feedId, items])
 
   const base = useMemo(
     () =>
