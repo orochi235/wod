@@ -57,6 +57,14 @@ describe('churn', () => {
   it('drops anyone no longer in the pool', () => {
     expect(churn(config, ['Ana', 'Zed'], rolls(0.99))).toEqual(['Ana'])
   })
+
+  it('draws exactly three rolls for a swap, in order: volatility gate, who leaves, who joins', () => {
+    let calls = 0
+    const values = [0.1, 0, 0]
+    const counting: Rng = () => values[Math.min(calls++, values.length - 1)]
+    expect(churn(config, ['Ana', 'Ben'], counting)).toEqual(['Ben', 'Cal'])
+    expect(calls).toBe(3)
+  })
 })
 
 describe('itemsFor', () => {
