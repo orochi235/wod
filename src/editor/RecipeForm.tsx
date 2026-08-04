@@ -8,8 +8,18 @@ import {
   SliderRow,
   TextRow,
 } from '@weasel-js/labkit'
+import { SELECTOR_TOKENS, type SelectorToken } from '../tricks/targets'
 import type { Recipe, RecipeField, TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
+
+/** Operator-facing wording. The tokens themselves are internal. */
+const SELECTOR_LABELS: Record<SelectorToken, string> = {
+  '@all': 'Everything on the wheel',
+  '@static': 'All authored wedges',
+  '@external': 'Everyone in the meeting',
+  '@computed': 'All trick wedges',
+  '@randomExternal': 'One random attendee',
+}
 
 export type RecipeFormProps = {
   recipe: Recipe
@@ -100,6 +110,11 @@ export function RecipeForm({ recipe, params, segments, onChange }: RecipeFormPro
                 )
               }
             >
+              {SELECTOR_TOKENS.map((token) => (
+                <option key={token} value={token}>
+                  {SELECTOR_LABELS[token]}
+                </option>
+              ))}
               {segments.map((segment) => (
                 <option key={segment.id} value={segment.id}>
                   {segment.label}

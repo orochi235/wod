@@ -1,12 +1,7 @@
 import type { Morph, Segment } from '../../wheel/types'
 import { readString, readStringArray, readUnit } from '../params'
+import { isSelectorToken, resolveTargets } from '../targets'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
-
-function resolveTargets(params: TrickParams, segments: Segment[]): Segment[] {
-  const names = readStringArray(params, 'targets')
-  if (names.length === 0) return segments
-  return segments.filter((segment) => names.includes(segment.id))
-}
 
 export const relabel: Recipe = {
   id: 'relabel',
@@ -28,7 +23,7 @@ export const relabel: Recipe = {
 
     // Labels are step-sampled, so two keyframes are enough: the base holds
     // until `at`, then the new text takes over for the rest of the spin.
-    return resolveTargets(params, ctx.segments).map((segment) => ({
+    return resolveTargets(readStringArray(params, 'targets'), ctx).map((segment) => ({
       segmentId: segment.id,
       durationMs: ctx.durationMs,
       keyframes: [
@@ -39,7 +34,7 @@ export const relabel: Recipe = {
   },
 
   writes(params: TrickParams, ctx: RecipeContext): Write[] {
-    return resolveTargets(params, ctx.segments).map((segment) => ({
+    return resolveTargets(readStringArray(params, 'targets'), ctx).map((segment) => ({
       segmentId: segment.id,
       property: 'label' as const,
     }))
@@ -47,7 +42,7 @@ export const relabel: Recipe = {
 
   validate(params: TrickParams, segments: Segment[]): string | null {
     const missing = readStringArray(params, 'targets').filter(
-      (id) => !segments.some((segment) => segment.id === id),
+      (id) => !isSelectorToken(id) && !segments.some((segment) => segment.id === id),
     )
     return missing.length === 0 ? null : `unknown wedge: ${missing.join(', ')}`
   },

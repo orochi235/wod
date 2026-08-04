@@ -2,6 +2,7 @@ import { parseHex } from '../../wheel/morph'
 import { effectiveColor } from '../../wheel/palette'
 import type { Morph, Segment } from '../../wheel/types'
 import { readEasing, readString, readStringArray, readUnit } from '../params'
+import { isSelectorToken, resolveTargets } from '../targets'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
 
 const EASING_OPTIONS = [
@@ -10,12 +11,6 @@ const EASING_OPTIONS = [
   { value: 'easeOut', label: 'Ease out' },
   { value: 'easeInOut', label: 'Ease in-out' },
 ]
-
-function resolveTargets(params: TrickParams, segments: Segment[]): Segment[] {
-  const names = readStringArray(params, 'targets')
-  if (names.length === 0) return segments
-  return segments.filter((segment) => names.includes(segment.id))
-}
 
 export const recolor: Recipe = {
   id: 'recolor',
@@ -36,7 +31,7 @@ export const recolor: Recipe = {
     const startAt = readUnit(params, 'startAt', 0.5)
     const easing = readEasing(params, 'easing', 'easeInOut')
 
-    return resolveTargets(params, ctx.segments).map((segment) => {
+    return resolveTargets(readStringArray(params, 'targets'), ctx).map((segment) => {
       // An explicit at:0 keyframe is required. `morph.ts` only synthesizes an
       // implicit base when the segment already carries the property, and a lone
       // late keyframe would otherwise apply from the first frame.
@@ -55,15 +50,17 @@ export const recolor: Recipe = {
   },
 
   writes(params: TrickParams, ctx: RecipeContext): Write[] {
-    return resolveTargets(params, ctx.segments).map((segment) => ({
+    return resolveTargets(readStringArray(params, 'targets'), ctx).map((segment) => ({
       segmentId: segment.id,
       property: 'color' as const,
     }))
   },
 
   validate(params: TrickParams, segments: Segment[]): string | null {
+    // A token resolving to nothing is the normal state while authoring with no
+    // meeting running. Reporting it would badge every preset as broken.
     const missing = readStringArray(params, 'targets').filter(
-      (id) => !segments.some((segment) => segment.id === id),
+      (id) => !isSelectorToken(id) && !segments.some((segment) => segment.id === id),
     )
     if (missing.length > 0) return `unknown wedge: ${missing.join(', ')}`
 
