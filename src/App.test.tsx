@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
@@ -121,13 +121,22 @@ describe('App', () => {
  */
 function installSpinHarness() {
   const finishers: (() => void)[] = []
+  // Live counters, so a test can pin that an in-flight animation was neither
+  // restarted nor cancelled out from under itself.
+  const calls = { animate: 0, cancel: 0 }
   const realAnimate = Element.prototype.animate
   Element.prototype.animate = function animate() {
     let settle: (animation: Animation) => void = () => undefined
     const finished = new Promise<Animation>((resolve) => {
       settle = resolve
     })
-    const animation = { finished, cancel: () => undefined } as unknown as Animation
+    const animation = {
+      finished,
+      cancel: () => {
+        calls.cancel += 1
+      },
+    } as unknown as Animation
+    calls.animate += 1
     finishers.push(() => settle(animation))
     return animation
   } as unknown as Element['animate']
@@ -136,6 +145,7 @@ function installSpinHarness() {
   vi.stubGlobal('cancelAnimationFrame', () => undefined)
 
   return {
+    calls,
     async land() {
       for (const finish of finishers) finish()
       // Two ticks: one for `finished.then`, one for the state it sets.
@@ -186,18 +196,18 @@ describe('App empty guard', () => {
   })
 })
 
-describe('feed', () => {
-  /**
-   * A published roster lands a React state update from outside React, so the
-   * act() wrapper is what keeps the suite's only console warnings out of it —
-   * BroadcastChannel delivers on a later turn, hence the inner await.
-   */
-  const publish = (items: { id: string; label: string }[]) =>
-    act(async () => {
-      publishFeed({ feedId: 'sim', items })
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    })
+/**
+ * A published roster lands a React state update from outside React, so the
+ * act() wrapper is what keeps the suite's only console warnings out of it —
+ * BroadcastChannel delivers on a later turn, hence the inner await.
+ */
+const publish = (items: { id: string; label: string }[]) =>
+  act(async () => {
+    publishFeed({ feedId: 'sim', items })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
 
+describe('feed', () => {
   beforeEach(() => {
     window.localStorage.clear()
   })
@@ -218,5 +228,80 @@ describe('feed', () => {
 
     await publish([])
     await waitFor(() => expect(screen.queryByText('Zoe')).not.toBeInTheDocument())
+  })
+})
+
+describe('churn during a spin', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  /** Labels the wheel is actually drawing, ignoring the announced-winner line. */
+  const onWheel = (label: string) =>
+    within(screen.getByRole('img', { name: 'wheel' })).queryByText(label)
+
+  it('holds a roster change that arrives mid-spin until the next spin releases it', async () => {
+    // A feed-only preset, deliberately: the empty state is the one thing derived
+    // from the live roster that stays visible while the wheel holds its
+    // geometry, so emptying the roster is what proves the mid-spin publish was
+    // delivered rather than never arriving. With statics on the wheel the
+    // "Zoe is still there" assertion would pass just as well for a message that
+    // was silently dropped.
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({
+        ...DEFAULT_PRESET,
+        segments: [],
+        tricks: [],
+        spin: { ...DEFAULT_PRESET.spin, motion: { ...DEFAULT_PRESET.spin.motion, durationMs: 20 } },
+      }),
+    )
+    const harness = installSpinHarness()
+    try {
+      render(<App />)
+
+      await publish([{ id: 'zoe', label: 'Zoe' }])
+      await waitFor(() => expect(onWheel('Zoe')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      expect(harness.calls.animate).toBe(1)
+
+      // Zoe leaves while the wheel is turning.
+      await publish([])
+
+      // Delivered: the app has already recomposed and knows the room is empty…
+      expect(screen.getByText(/nothing on the wheel yet/i)).toBeInTheDocument()
+      // …while the wheel keeps the geometry it launched with, on the same
+      // animation — no reindex under the pointer, no restart.
+      expect(onWheel('Zoe')).toBeInTheDocument()
+      expect(harness.calls.animate).toBe(1)
+      expect(harness.calls.cancel).toBe(0)
+
+      await harness.land()
+
+      // Still held at rest. The hold lifts on the next spin, not on landing:
+      // releasing here would wipe the landed frame the spin just drew.
+      expect(onWheel('Zoe')).toBeInTheDocument()
+      expect(harness.calls.animate).toBe(1)
+      expect(harness.calls.cancel).toBe(0)
+      // Nothing left to spin, so the button that would release it is off — the
+      // empty guard reads the live roster, not the frame still on screen.
+      expect(screen.getByRole('button', { name: /spin/i })).toBeDisabled()
+
+      // Someone new joins, which re-arms the button. The wheel is still held.
+      await publish([{ id: 'yan', label: 'Yan' }])
+      expect(onWheel('Zoe')).toBeInTheDocument()
+      expect(onWheel('Yan')).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+
+      // The next spin draws from the live roster, so every change that landed
+      // while the wheel was held was queued rather than dropped.
+      expect(onWheel('Yan')).toBeInTheDocument()
+      expect(onWheel('Zoe')).not.toBeInTheDocument()
+      expect(harness.calls.animate).toBe(2)
+    } finally {
+      harness.restore()
+    }
   })
 })
