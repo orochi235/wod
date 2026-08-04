@@ -1,7 +1,8 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
+import { publishFeed } from './feed/bus'
 import { DEFAULT_PRESET } from './preset/defaults'
 import { PRESET_KEY } from './preset/storage'
 
@@ -182,5 +183,34 @@ describe('App empty guard', () => {
     } finally {
       harness.restore()
     }
+  })
+})
+
+describe('feed', () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('puts published attendees on the wheel', async () => {
+    render(<App />)
+
+    publishFeed({ feedId: 'sim', items: [{ id: 'zoe', label: 'Zoe' }] })
+    await flush()
+
+    await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
+  })
+
+  it('drops someone who leaves', async () => {
+    render(<App />)
+
+    publishFeed({ feedId: 'sim', items: [{ id: 'zoe', label: 'Zoe' }] })
+    await flush()
+    await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
+
+    publishFeed({ feedId: 'sim', items: [] })
+    await flush()
+    await waitFor(() => expect(screen.queryByText('Zoe')).not.toBeInTheDocument())
   })
 })

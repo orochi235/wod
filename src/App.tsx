@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { composeBase } from './compose/compose'
+import { subscribeFeed } from './feed/bus'
+import type { FeedItem } from './feed/types'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
 import { resolveScriptedSpin } from './spin/resolve'
@@ -16,9 +18,27 @@ export function App() {
   // An edit in the /edit window lands here without a reload.
   useEffect(() => subscribePreset(setPreset), [])
 
+  const [items, setItems] = useState<Record<string, FeedItem[]>>({})
+
+  // The editor window owns the clock; this one only renders what arrives. With
+  // no editor open the roster freezes, which is a comprehensible failure.
+  useEffect(
+    () =>
+      subscribeFeed(({ feedId, items: published }) =>
+        setItems((current) => ({ ...current, [feedId]: published })),
+      ),
+    [],
+  )
+
   const base = useMemo(
-    () => composeBase({ statics: preset.segments, feeds: [], items: {}, overrides: {} }),
-    [preset.segments],
+    () =>
+      composeBase({
+        statics: preset.segments,
+        feeds: preset.feeds,
+        items,
+        overrides: preset.overrides,
+      }),
+    [preset.segments, preset.feeds, preset.overrides, items],
   )
 
   const resolved = useMemo(
