@@ -58,7 +58,7 @@ export function composeBase(input: ComposeInput): Composition {
     const published = input.items[feed.id]
     // Same hazard getRecipe guards: a feed id of 'constructor' or '__proto__'
     // resolves through the prototype chain, so ?? never fires and the loop
-    // throws. Array.isArray also absorbs a malformed value off the bus.
+    // throws. Array.isArray also absorbs a malformed value off the wire.
     for (const item of Array.isArray(published) ? published : []) {
       const override = Object.hasOwn(input.overrides, item.id)
         ? input.overrides[item.id]

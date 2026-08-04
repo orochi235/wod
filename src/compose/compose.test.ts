@@ -108,16 +108,20 @@ describe('composeBase', () => {
     expect(composed.segments.map((s) => s.id)).toEqual(['seg1', 'a:x', 'b:y', 'seg2'])
   })
 
-  it('does not throw when a feed id names a prototype member and has no entry in items', () => {
-    const feed: FeedConfig = { ...roster, id: 'constructor' }
-    const composed = composeBase({
-      statics,
-      feeds: [feed],
-      items: {},
-      overrides: {},
-    })
-    expect(composed.segments.map((s) => s.id)).toEqual(['seg1', 'seg2'])
-  })
+  // Each of these resolves to a different kind of inherited value — a function,
+  // an object, a method — so one representative would not cover the others.
+  it.each(['constructor', '__proto__', 'toString', 'valueOf', 'hasOwnProperty'])(
+    'does not throw when a feed id names the prototype member %s and has no entry in items',
+    (id) => {
+      const composed = composeBase({
+        statics,
+        feeds: [{ ...roster, id }],
+        items: {},
+        overrides: {},
+      })
+      expect(composed.segments.map((s) => s.id)).toEqual(['seg1', 'seg2'])
+    },
+  )
 
   it('keeps the first of two items sharing an id within one feed', () => {
     const composed = composeBase({
