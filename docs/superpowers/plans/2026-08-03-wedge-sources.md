@@ -2427,6 +2427,23 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
+- **The editor offers roster ids that disable the trick on parse.** Found in the
+  final review. `Editor.tsx` passes `resolved.segments` to `TrickLibrary`, so the
+  Wedges multi-select now lists `sim:ana` alongside the statics — but
+  `readTricks` validates against `readSegments(data.segments)`, statics only, so
+  a trick targeting a roster id comes back `enabled: false`. The editor's own
+  state is never re-parsed, so the operator watches the trick work while the
+  *show window*, which reaches the preset through `parsePreset`, silently drops
+  it. Pre-existing for computed wedges (`beer:wedge` was already offered and
+  already unvalidatable); this branch widens it to the roster, which is the case
+  operators will actually click.
+
+  Deliberately not fixed. The obvious fix — exempt any id not on the static list,
+  since `resolveTargets` already drops unknown ids so an unresolvable target is a
+  no-op — also throws away the genuine "you deleted seg2" warning. That trade is
+  worth making consciously rather than as a side effect of this branch. The
+  narrower alternative is to validate against the composed wedge list, which
+  means teaching `readTricks` about feeds.
 - **An emptied roster strands the held frame.** Found writing Task 11. The hold
   releases on the *next spin*, and the Spin button is disabled while the roster
   is empty — so emptying a feed-only wheel mid-spin leaves the landed wedge on
@@ -2471,6 +2488,11 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
   no colon — so it needs an imported preset. Worth revisiting once operators can
   choose a `feedId`, because composed `${feedId}:${itemId}` ids widen the
   namespace that `${trickId}:wedge` can collide with.
+- **No soft hint for an empty selector resolution.** The spec says a selector
+  resolving to nothing should no-op "with a soft hint". The no-op ships; the hint
+  does not. There is no surface for it today — `TrickLibrary` renders `Conflict[]`
+  and never shows `validate` output — so it needs a place to live before it needs
+  writing.
 - **The feed-unavailable banner.** The spec's error handling calls for one when
   a feed never publishes. With a simulated feed the editor *is* the publisher,
   so there is nothing to warn about yet; the banner arrives with the adapter
