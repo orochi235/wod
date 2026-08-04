@@ -1,3 +1,4 @@
+import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { getRecipe } from '../tricks/registry'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
@@ -207,6 +208,94 @@ function readBranches(value: unknown, depth = 0): BranchNode[] {
   return nodes
 }
 
+/**
+ * `__proto__` cannot be a key of a plain-object record: assigning it invokes the
+ * prototype setter, so the entry is never stored and the record's prototype is
+ * replaced instead. JSON.parse does hand back an own `__proto__` key, so a
+ * hand-edited preset reaches here with one. Readers already guard their lookups
+ * (getRecipe, composeBase); this guards the write, which no lookup can undo.
+ */
+const PROTO_KEY = '__proto__'
+
+function readFeedDefaults(value: unknown): FeedDefaults {
+  const raw = isRecord(value) ? value : {}
+  const defaults: FeedDefaults = {
+    weight:
+      typeof raw.weight === 'number' && Number.isFinite(raw.weight) ? Math.max(0, raw.weight) : 1,
+  }
+  if (typeof raw.color === 'string') defaults.color = raw.color
+  return defaults
+}
+
+/** Clamped to 0..1. A volatility outside that range is not a slower simulation, it is a broken one. */
+function readUnitValue(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
+  return Math.min(1, Math.max(0, value))
+}
+
+/**
+ * A feed id has to be unique: composeBase namespaces wedge ids by it, so two
+ * feeds sharing one would collide item for item and silently lose a roster.
+ *
+ * An `insertAfter` naming no known segment is kept, not dropped: composeBase
+ * degrades to appending, and the segment it anchors to may be authored later.
+ */
+function readFeeds(value: unknown): FeedConfig[] {
+  if (!Array.isArray(value)) return []
+  const feeds: FeedConfig[] = []
+  for (const entry of value) {
+    if (!isRecord(entry)) continue
+    if (entry.kind !== 'simulated' || typeof entry.id !== 'string') continue
+    // Live items are keyed by feed id, and that record cannot hold a `__proto__`
+    // entry — the feed would publish into the prototype and never appear.
+    if (entry.id === PROTO_KEY) continue
+    if (feeds.some((feed) => feed.id === entry.id)) continue
+
+    const autochurn = isRecord(entry.autochurn) ? entry.autochurn : {}
+    const feed: FeedConfig = {
+      kind: 'simulated',
+      id: entry.id,
+      defaults: readFeedDefaults(entry.defaults),
+      pool: Array.isArray(entry.pool)
+        ? entry.pool.filter((name): name is string => typeof name === 'string')
+        : [],
+      autochurn: {
+        intervalMs: readPositive(autochurn.intervalMs, 2000),
+        targetSize: readTurns(autochurn.targetSize, 6),
+        volatility: readUnitValue(autochurn.volatility, 0.3),
+      },
+    }
+    if (typeof entry.insertAfter === 'string') feed.insertAfter = entry.insertAfter
+    feeds.push(feed)
+  }
+  return feeds
+}
+
+/**
+ * `media` and `reveal` are deliberately not read, matching readSegments: the
+ * wheel renders neither yet, so parsing them would be dead code that has to be
+ * kept correct. They stay on ItemOverride so the shape is ready when it ships.
+ */
+function readOverrides(value: unknown): Record<string, ItemOverride> {
+  if (!isRecord(value)) return {}
+  const overrides: Record<string, ItemOverride> = {}
+  for (const [id, raw] of Object.entries(value)) {
+    if (id === PROTO_KEY) continue
+    if (!isRecord(raw)) continue
+    const override: ItemOverride = {}
+    if (raw.excluded === true) override.excluded = true
+    if (typeof raw.label === 'string') override.label = raw.label
+    if (typeof raw.weight === 'number' && Number.isFinite(raw.weight)) {
+      override.weight = Math.max(0, raw.weight)
+    }
+    if (typeof raw.color === 'string') override.color = raw.color
+    // An override with nothing usable left is indistinguishable from no
+    // override, and keeping it would show an empty row in the editor forever.
+    if (Object.keys(override).length > 0) overrides[id] = override
+  }
+  return overrides
+}
+
 export function parsePreset(raw: string | null): Preset {
   if (raw === null) return DEFAULT_PRESET
 
@@ -218,7 +307,7 @@ export function parsePreset(raw: string | null): Preset {
   }
 
   if (!isRecord(data)) return DEFAULT_PRESET
-  if (data.version !== 1 && data.version !== 2) return DEFAULT_PRESET
+  if (data.version !== 1 && data.version !== 2 && data.version !== 3) return DEFAULT_PRESET
 
   const segments = readSegments(data.segments)
   const spin =
@@ -230,9 +319,11 @@ export function parsePreset(raw: string | null): Preset {
         }
 
   return {
-    version: 2,
+    version: 3,
     name: typeof data.name === 'string' ? data.name : DEFAULT_PRESET.name,
     segments,
+    feeds: readFeeds(data.feeds),
+    overrides: readOverrides(data.overrides),
     tricks: readTricks(data.tricks, segments),
     spin,
     branches: readBranches(data.branches),

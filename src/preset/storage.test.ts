@@ -53,7 +53,7 @@ describe('parsePreset', () => {
     expect(parsed.segments[0].weight).toBe(0)
   })
 
-  it('migrates a v1 preset to v2', () => {
+  it('migrates a v1 preset to v3', () => {
     const v1 = {
       version: 1,
       name: 'standup',
@@ -70,7 +70,7 @@ describe('parsePreset', () => {
       spin: { durationMs: 4500, fullSpins: 6, easing: 'linear' },
     }
     const parsed = parsePreset(JSON.stringify(v1))
-    expect(parsed.version).toBe(2)
+    expect(parsed.version).toBe(3)
     // The migration's most user-visible failure mode is a silently emptied
     // wheel, since readTricks depends on segments — pin both surviving intact.
     expect(parsed.segments).toEqual([{ id: 'ana', label: 'Ana', weight: 1 }])
@@ -324,5 +324,132 @@ describe('parsePreset guards values the wheel would choke on', () => {
     const parsed = parsePreset(JSON.stringify(raw))
     expect(parsed.segments.map((segment) => segment.id)).toEqual(['ana', 'ben'])
     expect(parsed.segments[0].label).toBe('Ana')
+  })
+})
+
+describe('v3 feeds and overrides', () => {
+  it('migrates a v2 preset by adding empty feeds and overrides', () => {
+    const preset = parsePreset(
+      JSON.stringify({ version: 2, name: 'old', segments: [], tricks: [], branches: [] }),
+    )
+    expect(preset.version).toBe(3)
+    expect(preset.feeds).toEqual([])
+    expect(preset.overrides).toEqual({})
+  })
+
+  it('reads a simulated feed', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 3,
+        name: 'standup',
+        segments: [],
+        tricks: [],
+        branches: [],
+        feeds: [
+          {
+            kind: 'simulated',
+            id: 'sim',
+            defaults: { weight: 2, color: '#123456' },
+            insertAfter: 'seg1',
+            pool: ['Ana', 'Ben', 7],
+            autochurn: { intervalMs: 500, targetSize: 3, volatility: 0.8 },
+          },
+        ],
+      }),
+    )
+    expect(preset.feeds).toEqual([
+      {
+        kind: 'simulated',
+        id: 'sim',
+        defaults: { weight: 2, color: '#123456' },
+        insertAfter: 'seg1',
+        pool: ['Ana', 'Ben'],
+        autochurn: { intervalMs: 500, targetSize: 3, volatility: 0.8 },
+      },
+    ])
+  })
+
+  it('defaults a malformed feed rather than dropping the preset', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 3,
+        name: 'n',
+        segments: [],
+        tricks: [],
+        branches: [],
+        feeds: [
+          { kind: 'simulated', id: 'sim' },
+          { kind: 'simulated', id: 'sim' },
+          { kind: 'nonsense', id: 'x' },
+          'garbage',
+        ],
+      }),
+    )
+    expect(preset.feeds).toHaveLength(1)
+    expect(preset.feeds[0].defaults.weight).toBe(1)
+    expect(preset.feeds[0].pool).toEqual([])
+    expect(preset.feeds[0].autochurn.intervalMs).toBeGreaterThan(0)
+  })
+
+  it('keeps usable override fields and drops the rest', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 3,
+        name: 'n',
+        segments: [],
+        tricks: [],
+        branches: [],
+        overrides: {
+          ana: { excluded: true, label: 'ANA', weight: -3, color: '#ff0000' },
+          ben: { weight: 'lots' },
+          cal: 'garbage',
+        },
+      }),
+    )
+    expect(preset.overrides.ana).toEqual({
+      excluded: true,
+      label: 'ANA',
+      weight: 0,
+      color: '#ff0000',
+    })
+    expect(preset.overrides).not.toHaveProperty('ben')
+    expect(preset.overrides).not.toHaveProperty('cal')
+  })
+
+  it('round-trips an override for an item that is not present', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 3,
+        name: 'n',
+        segments: [],
+        tricks: [],
+        branches: [],
+        overrides: { absent: { color: '#00ff00' } },
+      }),
+    )
+    expect(parsePreset(JSON.stringify(preset)).overrides.absent).toEqual({ color: '#00ff00' })
+  })
+})
+
+describe('v3 prototype-shaped keys', () => {
+  // Written as raw JSON: an object literal with a `__proto__` key would set the
+  // prototype here instead of producing the key a hand-edited file contains.
+  const withProtoKeys = `{
+    "version": 3, "name": "n", "segments": [], "tricks": [], "branches": [],
+    "feeds": [{ "kind": "simulated", "id": "__proto__" }],
+    "overrides": { "__proto__": { "excluded": true }, "constructor": { "label": "C" } }
+  }`
+
+  it('drops a feed whose id could never key its published items', () => {
+    expect(parsePreset(withProtoKeys).feeds).toEqual([])
+  })
+
+  it('drops a `__proto__` override instead of replacing the record prototype', () => {
+    const { overrides } = parsePreset(withProtoKeys)
+    expect(Object.getPrototypeOf(overrides)).toBe(Object.prototype)
+    expect(Object.hasOwn(overrides, '__proto__')).toBe(false)
+    // Every other prototype-shaped key stores and reads back fine, because the
+    // one lookup that matters (composeBase) already uses Object.hasOwn.
+    expect(overrides.constructor).toEqual({ label: 'C' })
   })
 })
