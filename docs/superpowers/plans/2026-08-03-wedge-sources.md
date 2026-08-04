@@ -1781,6 +1781,15 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
 
   const absent = config.pool.filter((name) => !present.includes(name))
 
+> **Superseded by review.** The pool textarea below is a controlled input whose
+> value round-trips through `config.pool.join('\n')`. A blank line has no
+> representation in a parsed pool, so pressing Enter is swallowed and the next
+> name concatenates onto the previous one — the `edits the pool` test above,
+> typing `Cal{enter}Dee`, actually yields `['CalDee']`. The shipped panel keeps
+> the operator's raw text in local draft state and re-seeds from `config.pool`
+> only when a pool arrives from outside. Read the committed
+> `src/editor/FeedPanel.tsx`, not this block.
+
   return (
     <PropertyPanel title="Simulated meeting">
       <PropertyRow label="Name pool">
