@@ -2416,6 +2416,11 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
+- **`ItemOverride.label` has no editor UI.** Found during Task 10. Storage parses
+  it and `composeBase` applies it, so renaming an attendee works — but only by
+  hand-editing an imported preset. The overrides panel row has no field for it.
+  A deliberate scope call, not an oversight; worth adding when someone actually
+  wants to rename a person on the wheel.
 - **A show window opened late sees no roster until the next churn tick.** Found
   reviewing Task 9. The editor publishes on change, not on demand, so a show
   window opened after the last publish shows only statics — and indefinitely if
