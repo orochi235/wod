@@ -19,7 +19,13 @@ const segments: Segment[] = [
 
 function ctxFor(recipe: Recipe, params: TrickParams): RecipeContext {
   const trickId = 't1'
-  return { trickId, segments: [...segments, ...recipe.provides(params, trickId)], durationMs: 1000 }
+  return {
+    trickId,
+    segments: [...segments, ...recipe.provides(params, trickId)],
+    origins: new Map(),
+    durationMs: 1000,
+    roll: 0,
+  }
 }
 
 describe('a recipe honors its own declared easing default', () => {

@@ -1,5 +1,6 @@
 import { LabShell } from '@weasel-js/labkit'
 import { useCallback, useMemo, useState } from 'react'
+import { composeBase } from '../compose/compose'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
 import { findConflicts } from '../tricks/conflicts'
@@ -24,14 +25,19 @@ export function Editor() {
     savePreset(next)
   }, [])
 
+  const base = useMemo(
+    () => composeBase({ statics: preset.segments, feeds: [], items: {}, overrides: {} }),
+    [preset.segments],
+  )
+
   const resolved = useMemo(
-    () => resolveTricks(preset.segments, preset.tricks, preset.spin.motion.durationMs),
-    [preset],
+    () => resolveTricks(base, preset.tricks, preset.spin.motion.durationMs),
+    [base, preset.tricks, preset.spin.motion.durationMs],
   )
 
   const conflicts = useMemo(
-    () => findConflicts(preset.segments, preset.tricks, preset.spin.motion.durationMs),
-    [preset],
+    () => findConflicts(base, preset.tricks, preset.spin.motion.durationMs),
+    [base, preset.tricks, preset.spin.motion.durationMs],
   )
 
   const spinConfig = useMemo<SpinConfig>(

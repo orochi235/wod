@@ -8,7 +8,13 @@ const segments: Segment[] = [
   { id: 'ben', label: 'Ben', weight: 3 },
 ]
 
-const ctx: RecipeContext = { trickId: 't1', segments, durationMs: 1000 }
+const ctx: RecipeContext = {
+  trickId: 't1',
+  segments,
+  origins: new Map(),
+  durationMs: 1000,
+  roll: 0,
+}
 
 describe('vanish', () => {
   it('provides no segments', () => {

@@ -1,3 +1,4 @@
+import type { Origin } from '../compose/types'
 import type { EasingName, Morph, Segment } from '../wheel/types'
 
 export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel'
@@ -24,7 +25,14 @@ export type RecipeField =
 export type RecipeContext = {
   trickId: string
   segments: Segment[]
+  origins: Map<string, Origin>
   durationMs: number
+  /**
+   * The resolution's frozen roll. Selectors draw from it rather than from a
+   * fresh random, so re-evaluating at a deeper branch level cannot silently
+   * reshuffle what an unrelated trick picked.
+   */
+  roll: number
 }
 
 export type Recipe = {

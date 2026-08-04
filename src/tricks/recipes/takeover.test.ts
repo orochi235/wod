@@ -37,7 +37,13 @@ describe('takeover.provides', () => {
 
 describe('takeover.resolve at full share', () => {
   const segments = [...people, ...takeover.provides(newWedgeParams, 't1')]
-  const ctx: RecipeContext = { trickId: 't1', segments, durationMs: 1000 }
+  const ctx: RecipeContext = {
+    trickId: 't1',
+    segments,
+    origins: new Map(),
+    durationMs: 1000,
+    roll: 0,
+  }
   const morphs = takeover.resolve(newWedgeParams, ctx)
 
   it('grows the wedge from zero after the hold', () => {
@@ -67,7 +73,13 @@ describe('takeover.resolve at full share', () => {
 describe('takeover.resolve at partial share', () => {
   const params = { ...newWedgeParams, endShare: 0.5 }
   const segments = [...people, ...takeover.provides(params, 't1')]
-  const ctx: RecipeContext = { trickId: 't1', segments, durationMs: 1000 }
+  const ctx: RecipeContext = {
+    trickId: 't1',
+    segments,
+    origins: new Map(),
+    durationMs: 1000,
+    roll: 0,
+  }
   const morphs = takeover.resolve(params, ctx)
 
   it('leaves the other segments alone', () => {
@@ -89,7 +101,13 @@ describe('takeover.resolve at partial share', () => {
 
 describe('takeover in existing mode', () => {
   const params = { wedgeMode: 'existing', wedgeSegmentId: 'ana', holdUntil: 0, endShare: 1 }
-  const ctx: RecipeContext = { trickId: 't1', segments: people, durationMs: 1000 }
+  const ctx: RecipeContext = {
+    trickId: 't1',
+    segments: people,
+    origins: new Map(),
+    durationMs: 1000,
+    roll: 0,
+  }
 
   it('grows the named segment from its own base weight', () => {
     const morphs = takeover.resolve(params, ctx)
@@ -100,7 +118,13 @@ describe('takeover in existing mode', () => {
 
 describe('takeover.writes', () => {
   const segments = [...people, ...takeover.provides(newWedgeParams, 't1')]
-  const ctx: RecipeContext = { trickId: 't1', segments, durationMs: 1000 }
+  const ctx: RecipeContext = {
+    trickId: 't1',
+    segments,
+    origins: new Map(),
+    durationMs: 1000,
+    roll: 0,
+  }
 
   it('matches the segments and properties resolve actually emits', () => {
     const declared = takeover.writes(newWedgeParams, ctx)
@@ -133,7 +157,13 @@ describe('takeover when nobody else has weight', () => {
     { id: 'ben', label: 'Ben', weight: 0 },
   ]
   const params = { wedgeMode: 'existing', wedgeSegmentId: 'ana', holdUntil: 0, endShare: 0.5 }
-  const ctx: RecipeContext = { trickId: 't1', segments: idle, durationMs: 1000 }
+  const ctx: RecipeContext = {
+    trickId: 't1',
+    segments: idle,
+    origins: new Map(),
+    durationMs: 1000,
+    roll: 0,
+  }
 
   it('gives the wedge the whole circle rather than an even split', () => {
     const landed = landingSegments(idle, takeover.resolve(params, ctx), 1000)
@@ -160,7 +190,13 @@ describe('takeover color on a wedge left to the palette', () => {
     endShare: 1,
     endColor: '#ff8811',
   }
-  const ctx: RecipeContext = { trickId: 't1', segments: plain, durationMs: 1000 }
+  const ctx: RecipeContext = {
+    trickId: 't1',
+    segments: plain,
+    origins: new Map(),
+    durationMs: 1000,
+    roll: 0,
+  }
 
   it('animates from the painted palette color', () => {
     const [morph] = takeover.resolve(params, ctx)

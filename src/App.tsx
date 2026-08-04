@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { composeBase } from './compose/compose'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
 import { resolveScriptedSpin } from './spin/resolve'
@@ -15,9 +16,14 @@ export function App() {
   // An edit in the /edit window lands here without a reload.
   useEffect(() => subscribePreset(setPreset), [])
 
+  const base = useMemo(
+    () => composeBase({ statics: preset.segments, feeds: [], items: {}, overrides: {} }),
+    [preset.segments],
+  )
+
   const resolved = useMemo(
-    () => resolveTricks(preset.segments, preset.tricks, preset.spin.motion.durationMs),
-    [preset],
+    () => resolveTricks(base, preset.tricks, preset.spin.motion.durationMs),
+    [base, preset.tricks, preset.spin.motion.durationMs],
   )
 
   const config = useMemo<SpinConfig>(
@@ -38,7 +44,7 @@ export function App() {
 
   const onSpin = useCallback(() => {
     const resolution = resolveScriptedSpin(
-      preset.segments,
+      base,
       preset.tricks,
       preset.spin,
       preset.branches,
@@ -59,7 +65,7 @@ export function App() {
       // collapsed, which is the safety net for a branch that zeroes its winner.
       strategy: forced(resolution.winnerId),
     })
-  }, [preset, spin])
+  }, [base, preset, spin])
 
   const winner = displaySegments.find((segment) => segment.id === winnerId)
   // Nothing to land on. planSpin would return null and the click would quietly

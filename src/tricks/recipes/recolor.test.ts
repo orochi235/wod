@@ -9,7 +9,13 @@ const segments: Segment[] = [
   { id: 'beer', label: 'free beer', weight: 1, color: '#ffd166' },
 ]
 
-const ctx: RecipeContext = { trickId: 't1', segments, durationMs: 1000 }
+const ctx: RecipeContext = {
+  trickId: 't1',
+  segments,
+  origins: new Map(),
+  durationMs: 1000,
+  roll: 0,
+}
 
 describe('recolor', () => {
   it('provides no segments', () => {

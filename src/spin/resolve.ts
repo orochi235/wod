@@ -1,3 +1,4 @@
+import type { Composition } from '../compose/types'
 import type { BranchNode, Motion, ScriptedSpin, SpinModifier, Target } from '../preset/types'
 import { resolveTricks } from '../tricks/resolve'
 import type { Trick } from '../tricks/types'
@@ -62,10 +63,11 @@ type WheelState = {
 }
 
 function evaluateWheel(
-  segments: Segment[],
+  base: Composition,
   tricks: Trick[],
   enabled: Set<string>,
   spin: ScriptedSpin,
+  roll: number,
 ): WheelState {
   // `resolveTricks` filters on each trick's own `enabled` flag, which is only the
   // baseline here. Stamping the resolved set onto the copies it receives is what
@@ -74,7 +76,7 @@ function evaluateWheel(
   const active = tricks
     .filter((trick) => enabled.has(trick.id))
     .map((trick) => ({ ...trick, enabled: true }))
-  const { segments: withWedges, morphs } = resolveTricks(segments, active, spin.motion.durationMs)
+  const { segments: withWedges, morphs } = resolveTricks(base, active, spin.motion.durationMs, roll)
   const landing = landingSegments(withWedges, morphs, spin.motion.durationMs)
   return { withWedges, morphs, landing }
 }
@@ -86,7 +88,7 @@ function evaluateWheel(
  * already returns null for.
  */
 export function resolveScriptedSpin(
-  segments: Segment[],
+  base: Composition,
   tricks: Trick[],
   spin: ScriptedSpin,
   branches: BranchNode[],
@@ -105,7 +107,7 @@ export function resolveScriptedSpin(
   let level = branches
 
   for (let depth = 0; depth < MAX_DEPTH; depth++) {
-    const { withWedges, morphs, landing } = evaluateWheel(segments, tricks, enabled, current)
+    const { withWedges, morphs, landing } = evaluateWheel(base, tricks, enabled, current, roll)
     const winnerId = strategyFor(current.target)(landing, frozen)
     if (!winnerId) return null
 
@@ -126,7 +128,7 @@ export function resolveScriptedSpin(
 
   // The cap was reached with a node still matching. Recompute once so the caller
   // sees the wheel as the last applied modifier left it.
-  const { withWedges, morphs, landing } = evaluateWheel(segments, tricks, enabled, current)
+  const { withWedges, morphs, landing } = evaluateWheel(base, tricks, enabled, current, roll)
   const winnerId = strategyFor(current.target)(landing, frozen)
   if (!winnerId) return null
   return {

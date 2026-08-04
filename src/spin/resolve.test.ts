@@ -1,4 +1,5 @@
 import { assert, describe, expect, it } from 'vitest'
+import { composeBase } from '../compose/compose'
 import type { BranchAction, BranchNode, ScriptedSpin } from '../preset/types'
 import type { Trick } from '../tricks/types'
 import type { Rng } from '../wheel/selection'
@@ -10,6 +11,8 @@ const people: Segment[] = [
   { id: 'ben', label: 'Ben', weight: 1 },
   { id: 'cal', label: 'Cal', weight: 1 },
 ]
+
+const base = composeBase({ statics: people, feeds: [], items: {}, overrides: {} })
 
 const spin: ScriptedSpin = {
   target: { kind: 'fair' },
@@ -43,18 +46,26 @@ function anaChain(length: number, rootAction?: BranchAction): BranchNode[] {
 
 describe('resolveScriptedSpin', () => {
   it('settles immediately when there are no branches', () => {
-    const result = resolveScriptedSpin(people, [], spin, [], fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, [], fixed(0.1))
     expect(result?.kind).toBe('settled')
     expect(result?.winnerId).toBe('ana')
   })
 
   it('returns null when there is nothing to spin', () => {
-    expect(resolveScriptedSpin([], [], spin, [], fixed(0.1))).toBeNull()
+    expect(
+      resolveScriptedSpin(
+        composeBase({ statics: [], feeds: [], items: {}, overrides: {} }),
+        [],
+        spin,
+        [],
+        fixed(0.1),
+      ),
+    ).toBeNull()
   })
 
   it('honors a forced target', () => {
     const rigged: ScriptedSpin = { ...spin, target: { kind: 'forced', segmentId: 'cal' } }
-    expect(resolveScriptedSpin(people, [], rigged, [], fixed(0.1))?.winnerId).toBe('cal')
+    expect(resolveScriptedSpin(base, [], rigged, [], fixed(0.1))?.winnerId).toBe('cal')
   })
 
   it('re-targets when a branch matches', () => {
@@ -65,7 +76,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'cal' } } },
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
   })
 
   it('leaves the spin alone when no branch matches', () => {
@@ -76,7 +87,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'cal' } } },
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('ana')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('ana')
   })
 
   it('replaces motion wholesale', () => {
@@ -93,7 +104,7 @@ describe('resolveScriptedSpin', () => {
         },
       },
     ]
-    const result = resolveScriptedSpin(people, [], spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, branches, fixed(0.1))
     expect(result?.motion.direction).toBe('ccw')
     expect(result?.motion.turns).toBe(2)
     expect(result?.winnerId).toBe('ben')
@@ -107,7 +118,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { motion: { direction: 'ccw' } } },
       },
     ]
-    const result = resolveScriptedSpin(people, [], spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, branches, fixed(0.1))
     expect(result?.motion.direction).toBe('ccw')
     expect(result?.motion.turns).toBe(5)
     expect(result?.motion.easing).toBe('linear')
@@ -136,7 +147,7 @@ describe('resolveScriptedSpin', () => {
         ],
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
   })
 
   it('does not re-scan siblings after descending', () => {
@@ -155,7 +166,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'ben' } } },
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
   })
 
   it('takes the first matching sibling, not the last', () => {
@@ -174,7 +185,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'cal' } } },
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
   })
 
   it('enables a trick through a modifier', () => {
@@ -203,7 +214,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { enableTricks: ['beer'] } },
       },
     ]
-    const result = resolveScriptedSpin(people, tricks, spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
     // The takeover wedge swallows the wheel, so it must be the winner.
     expect(result?.winnerId).toBe('beer:wedge')
     expect(result?.morphs.length).toBeGreaterThan(0)
@@ -224,7 +235,7 @@ describe('resolveScriptedSpin', () => {
       },
     ]
     // With the trick on, ana vanishes and cannot win. Turning it off restores her.
-    const withTrick = resolveScriptedSpin(people, tricks, spin, [], fixed(0.1))
+    const withTrick = resolveScriptedSpin(base, tricks, spin, [], fixed(0.1))
     expect(withTrick?.winnerId).not.toBe('ana')
 
     const branches: BranchNode[] = [
@@ -234,7 +245,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { disableTricks: ['gone'] } },
       },
     ]
-    const result = resolveScriptedSpin(people, tricks, spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
     expect(result?.morphs).toEqual([])
     expect(result?.winnerId).toBe('ana')
   })
@@ -257,7 +268,7 @@ describe('resolveScriptedSpin', () => {
         then: [{ id: 'b', when: { kind: 'landsOn', segmentIds: ['ana'] } }],
       },
     ]
-    resolveScriptedSpin(people, [], spin, branches, counting)
+    resolveScriptedSpin(base, [], spin, branches, counting)
     expect(calls).toBe(1)
   })
 
@@ -278,8 +289,8 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { motion: { turns: 9 } } },
       },
     ]
-    const drifted = resolveScriptedSpin(people, [], spin, branches, drifting)
-    expect(drifted).toEqual(resolveScriptedSpin(people, [], spin, branches, fixed(0.42)))
+    const drifted = resolveScriptedSpin(base, [], spin, branches, drifting)
+    expect(drifted).toEqual(resolveScriptedSpin(base, [], spin, branches, fixed(0.42)))
     // Vacuous if the branch never fired, which would mean only one evaluation ran.
     expect(drifted?.motion.turns).toBe(9)
     expect(drifted?.winnerId).toBe('ben')
@@ -290,7 +301,7 @@ describe('resolveScriptedSpin', () => {
     // final pass finds no node, so MAX_DEPTH - 1 nodes is the longest legal chain.
     // An off-by-one here makes deep-but-valid trees stop descending and report
     // exhausted, which is a wrong answer that looks like a working one.
-    const result = resolveScriptedSpin(people, [], spin, anaChain(MAX_DEPTH - 1), fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, anaChain(MAX_DEPTH - 1), fixed(0.1))
     expect(result?.kind).toBe('settled')
     expect(result?.winnerId).toBe('ana')
   })
@@ -302,7 +313,7 @@ describe('resolveScriptedSpin', () => {
       kind: 'modify',
       modifier: { motion: { turns: 9, direction: 'ccw' } },
     })
-    const result = resolveScriptedSpin(people, [], spin, deepest, fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, deepest, fixed(0.1))
     assert(result?.kind === 'exhausted')
     expect(result.winnerId).toBe('ana')
     expect(result.depth).toBe(MAX_DEPTH)
@@ -330,7 +341,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { enableTricks: ['gone'], disableTricks: ['gone'] } },
       },
     ]
-    const result = resolveScriptedSpin(people, tricks, spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
     // The trick ran, so ana vanished and someone else took the landing.
     expect(result?.morphs.length).toBeGreaterThan(0)
     expect(result?.winnerId).toBe('ben')
