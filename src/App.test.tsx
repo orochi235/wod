@@ -187,7 +187,16 @@ describe('App empty guard', () => {
 })
 
 describe('feed', () => {
-  const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+  /**
+   * A published roster lands a React state update from outside React, so the
+   * act() wrapper is what keeps the suite's only console warnings out of it —
+   * BroadcastChannel delivers on a later turn, hence the inner await.
+   */
+  const publish = (items: { id: string; label: string }[]) =>
+    act(async () => {
+      publishFeed({ feedId: 'sim', items })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
 
   beforeEach(() => {
     window.localStorage.clear()
@@ -196,8 +205,7 @@ describe('feed', () => {
   it('puts published attendees on the wheel', async () => {
     render(<App />)
 
-    publishFeed({ feedId: 'sim', items: [{ id: 'zoe', label: 'Zoe' }] })
-    await flush()
+    await publish([{ id: 'zoe', label: 'Zoe' }])
 
     await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
   })
@@ -205,12 +213,10 @@ describe('feed', () => {
   it('drops someone who leaves', async () => {
     render(<App />)
 
-    publishFeed({ feedId: 'sim', items: [{ id: 'zoe', label: 'Zoe' }] })
-    await flush()
+    await publish([{ id: 'zoe', label: 'Zoe' }])
     await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
 
-    publishFeed({ feedId: 'sim', items: [] })
-    await flush()
+    await publish([])
     await waitFor(() => expect(screen.queryByText('Zoe')).not.toBeInTheDocument())
   })
 })

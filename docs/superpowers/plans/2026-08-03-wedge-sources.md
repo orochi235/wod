@@ -2416,6 +2416,15 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
+- **A show window opened late sees no roster until the next churn tick.** Found
+  reviewing Task 9. The editor publishes on change, not on demand, so a show
+  window opened after the last publish shows only statics — and indefinitely if
+  autochurn is off. The spec covers the editor being *closed*; it does not cover
+  the show window arriving late. The fix belongs in `Editor.tsx` — either
+  republish whenever a subscriber appears, or have the show window announce
+  itself on the bus and the editor answer. Not reachable during a normal session
+  (the operator opens the editor first), but it will bite the first time someone
+  reloads the shared tab mid-meeting.
 - **Takeover's "existing wedge" mode is unusable from the editor.** Found during
   Task 5, pre-existing. `takeover.ts:62` declares `wedgeSegmentId` as
   `kind: 'segments'`, which `RecipeForm` renders as a *multi*-select writing a
