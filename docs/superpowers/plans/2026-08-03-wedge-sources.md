@@ -1436,6 +1436,21 @@ export function subscribeFeed(onMessage: (message: FeedMessage) => void): () => 
 
 A malformed `items` entry rejects the whole message rather than being skipped: a partial roster silently missing a person is worse on screen than no update at all.
 
+**Amended after review:** `readMessage` also rejects a `feedId` of `__proto__`,
+matching the guard `readFeeds` applies at the config boundary. Today nothing
+reaches it — no configured feed can carry that id, so `composeBase` never looks
+the key up — but that safety comes from a *different* module, and it stops
+holding as soon as the Meet adapter opens a second path onto this channel. Each
+boundary guards itself.
+
+Note also what `readMessage` does *not* reject: it rebuilds the message from
+only the fields it knows, so a message from a newer build carrying extra
+properties is tolerated rather than refused. That is deliberately the opposite
+of `parsePreset`'s wholesale version gate — an operator with a stale tab open
+should keep seeing the roster, and a version gate here would blank a live wheel
+over an additive field. It is also the one property a well-meaning "harden this"
+edit would destroy silently, so it carries its own test.
+
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/feed/bus.test.ts`
