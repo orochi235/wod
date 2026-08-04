@@ -217,6 +217,14 @@ Expected: FAIL — `Failed to resolve import "./compose"`.
 
 - [ ] **Step 4: Implement `composeBase`**
 
+> **Superseded by review.** The version below shipped as `7d295e7` and then took
+> three fixes in a follow-up commit: `input.items[feed.id]` needs an
+> `Array.isArray` guard (a feed id of `constructor` or `__proto__` resolves
+> through the prototype chain and throws, the same hazard `getRecipe` documents);
+> the two-phase block build buys nothing and its comment asserts an invariant
+> that is not real, so the loops are fused; and `input.overrides[item.id]` uses
+> `Object.hasOwn`. Read the committed `src/compose/compose.ts`, not this block.
+
 Create `src/compose/compose.ts`:
 
 ```ts
@@ -1863,8 +1871,20 @@ In `src/editor/Editor.tsx`, hold the room and publish every change:
   // The editor window owns the clock, so it is the window that publishes.
   useEffect(() => {
     if (!feed) return
-    publishFeed({ feedId: feed.id, items: items[feed.id] ?? [] })
+    publishFeed({ feedId: feed.id, items: itemsOf(items, feed.id) })
   }, [feed, items])
+```
+
+`itemsOf` is a local helper, because a bare `items[feed.id]` is unsafe here for
+the same reason it is in `composeBase` — a feed id of `constructor` or
+`__proto__` resolves through the prototype chain to something that is not an
+array. Put it at module scope in this file:
+
+```ts
+function itemsOf(items: Record<string, FeedItem[]>, feedId: string): FeedItem[] {
+  const published = items[feedId]
+  return Array.isArray(published) ? published : []
+}
 ```
 
 Pass `items` into `composeBase`:
@@ -2252,7 +2272,7 @@ In `src/editor/Editor.tsx`, render it in the right column under `TrickLibrary`:
 
 ```tsx
           <OverridesPanel
-            items={feed ? (items[feed.id] ?? []) : []}
+            items={feed ? itemsOf(items, feed.id) : []}
             overrides={preset.overrides}
             onChange={(overrides) => update({ ...preset, overrides })}
           />

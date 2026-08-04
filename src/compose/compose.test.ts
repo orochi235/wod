@@ -95,4 +95,67 @@ describe('composeBase', () => {
       itemId: 'ben',
     })
   })
+
+  it('places two feeds anchored to the same static in feed order', () => {
+    const feedA: FeedConfig = { ...roster, id: 'a', insertAfter: 'seg1' }
+    const feedB: FeedConfig = { ...roster, id: 'b', insertAfter: 'seg1' }
+    const composed = composeBase({
+      statics,
+      feeds: [feedA, feedB],
+      items: { a: [{ id: 'x', label: 'X' }], b: [{ id: 'y', label: 'Y' }] },
+      overrides: {},
+    })
+    expect(composed.segments.map((s) => s.id)).toEqual(['seg1', 'a:x', 'b:y', 'seg2'])
+  })
+
+  it('does not throw when a feed id names a prototype member and has no entry in items', () => {
+    const feed: FeedConfig = { ...roster, id: 'constructor' }
+    const composed = composeBase({
+      statics,
+      feeds: [feed],
+      items: {},
+      overrides: {},
+    })
+    expect(composed.segments.map((s) => s.id)).toEqual(['seg1', 'seg2'])
+  })
+
+  it('keeps the first of two items sharing an id within one feed', () => {
+    const composed = composeBase({
+      statics,
+      feeds: [roster],
+      items: {
+        sim: [
+          { id: 'ana', label: 'First' },
+          { id: 'ana', label: 'Second' },
+        ],
+      },
+      overrides: {},
+    })
+    const anas = composed.segments.filter((s) => s.id === 'sim:ana')
+    expect(anas).toHaveLength(1)
+    expect(anas[0].label).toBe('First')
+  })
+
+  it('applies each feed defaults independently and preserves feed order', () => {
+    const feedA: FeedConfig = { ...roster, id: 'a', defaults: { weight: 2, color: '#111111' } }
+    const feedB: FeedConfig = { ...roster, id: 'b', defaults: { weight: 5 } }
+    const composed = composeBase({
+      statics,
+      feeds: [feedA, feedB],
+      items: { a: [{ id: 'x', label: 'X' }], b: [{ id: 'y', label: 'Y' }] },
+      overrides: {},
+    })
+    expect(composed.segments.map((s) => s.id)).toEqual(['seg1', 'seg2', 'a:x', 'b:y'])
+    expect(composed.segments.find((s) => s.id === 'a:x')).toEqual({
+      id: 'a:x',
+      label: 'X',
+      weight: 2,
+      color: '#111111',
+    })
+    expect(composed.segments.find((s) => s.id === 'b:y')).toEqual({
+      id: 'b:y',
+      label: 'Y',
+      weight: 5,
+    })
+  })
 })

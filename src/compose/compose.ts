@@ -49,31 +49,33 @@ export function composeBase(input: ComposeInput): Composition {
     origins.set(segment.id, { kind: 'static' })
   }
 
-  // Blocks are built before any are placed, so insertAfter reads against the
-  // authored static order rather than against whatever an earlier feed inserted.
-  const blocks = input.feeds.map((feed) => {
+  const staticIds = new Set(statics.map((segment) => segment.id))
+  const anchored = new Map<string, Segment[]>()
+  const appended: Segment[] = []
+
+  for (const feed of input.feeds) {
     const block: Segment[] = []
-    for (const item of input.items[feed.id] ?? []) {
-      const override = input.overrides[item.id]
+    const published = input.items[feed.id]
+    // Same hazard getRecipe guards: a feed id of 'constructor' or '__proto__'
+    // resolves through the prototype chain, so ?? never fires and the loop
+    // throws. Array.isArray also absorbs a malformed value off the bus.
+    for (const item of Array.isArray(published) ? published : []) {
+      const override = Object.hasOwn(input.overrides, item.id)
+        ? input.overrides[item.id]
+        : undefined
       if (override?.excluded) continue
       const id = wedgeId(feed.id, item.id)
       if (origins.has(id)) continue
       block.push(toSegment(feed, item, override))
       origins.set(id, { kind: 'external', feedId: feed.id, itemId: item.id })
     }
-    return { after: feed.insertAfter, block }
-  })
 
-  const staticIds = new Set(statics.map((segment) => segment.id))
-  const anchored = new Map<string, Segment[]>()
-  const appended: Segment[] = []
-  for (const { after, block } of blocks) {
     // An anchor naming a segment that is not there degrades to appending rather
     // than dropping the block: a missing wedge must never cost you the roster.
-    if (after !== undefined && staticIds.has(after)) {
-      const existing = anchored.get(after)
+    if (feed.insertAfter !== undefined && staticIds.has(feed.insertAfter)) {
+      const existing = anchored.get(feed.insertAfter)
       if (existing) existing.push(...block)
-      else anchored.set(after, [...block])
+      else anchored.set(feed.insertAfter, block)
     } else {
       appended.push(...block)
     }
