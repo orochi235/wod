@@ -1833,11 +1833,16 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
 
 `PropertyPanel` and `PropertyRow` both come from `@weasel-js/labkit` directly, as in `RecipeForm.tsx`.
 
-`MIN_CHURN_INTERVAL_MS` is exported from `src/preset/storage.ts`, where the
-parser already floors the stored value. Re-applying it at the `setInterval` call
-is not belt-and-braces: the parser can only guarantee what it hands over, and
-this component takes a live `config` prop that a panel edit can drive below the
-floor between parses.
+`MIN_CHURN_INTERVAL_MS` lives in `src/preset/storage.ts`, where the parser floors
+the stored value, but it is currently module-private — **export it** as part of
+this task. Re-applying it at the `setInterval` call is not belt-and-braces: the
+parser can only guarantee what it hands over, and this component takes a live
+`config` prop that a panel edit can drive below the floor between parses.
+
+If threading a constant out of the storage module reads wrong to you, moving it
+to `src/feed/simulated.ts` and importing it into `storage.ts` is the better home
+— it describes the simulator, not the preset format. Either is acceptable; say
+which you chose.
 
 - [ ] **Step 4: Add the styles**
 
