@@ -1,6 +1,9 @@
 import { LabShell } from '@weasel-js/labkit'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { composeBase } from '../compose/compose'
+import { publishFeed } from '../feed/bus'
+import { itemsFor } from '../feed/simulated'
+import type { FeedItem } from '../feed/types'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
 import { findConflicts } from '../tricks/conflicts'
@@ -9,14 +12,28 @@ import { Wheel } from '../wheel/Wheel'
 import type { Segment, SpinConfig } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
+import { FeedPanel } from './FeedPanel'
 import { PresetIo } from './PresetIo'
 import { SegmentList } from './SegmentList'
 import { Transport } from './Transport'
 import { TrickLibrary } from './TrickLibrary'
 
+/**
+ * Never a bare `items[feedId]`, for the same reason composeBase avoids one: a
+ * feed id of 'constructor' or '__proto__' resolves through the prototype chain
+ * to something that is not an array.
+ */
+function itemsOf(items: Record<string, FeedItem[]>, feedId: string): FeedItem[] {
+  const published = items[feedId]
+  return Array.isArray(published) ? published : []
+}
+
 export function Editor() {
   const [preset, setPreset] = useState<Preset>(loadPreset)
   const [selectedTrickId, setSelectedTrickId] = useState<string | null>(null)
+  // Who is in the simulated meeting. Component state, never preset state: the
+  // preset stores how to get a roster, and a roster dies with the window.
+  const [present, setPresent] = useState<string[]>([])
 
   // Every edit persists immediately; an open show window picks it up through
   // the storage event, so there is nothing to "apply".
@@ -25,9 +42,29 @@ export function Editor() {
     savePreset(next)
   }, [])
 
+  const feed = preset.feeds[0]
+
+  // Items are derived, never stored: the preset keeps how to get a roster, not
+  // who is in it.
+  const items = useMemo(() => (feed ? { [feed.id]: itemsFor(present) } : {}), [feed, present])
+
+  // The editor window owns the clock, so it is the window that publishes. With
+  // no editor open the show window's roster freezes at whatever last arrived,
+  // which is a comprehensible failure rather than two windows both churning.
+  useEffect(() => {
+    if (!feed) return
+    publishFeed({ feedId: feed.id, items: itemsOf(items, feed.id) })
+  }, [feed, items])
+
   const base = useMemo(
-    () => composeBase({ statics: preset.segments, feeds: [], items: {}, overrides: {} }),
-    [preset.segments],
+    () =>
+      composeBase({
+        statics: preset.segments,
+        feeds: preset.feeds,
+        items,
+        overrides: preset.overrides,
+      }),
+    [preset.segments, preset.feeds, preset.overrides, items],
   )
 
   const resolved = useMemo(
@@ -91,6 +128,21 @@ export function Editor() {
             onChange={(segments) => update({ ...preset, segments })}
             onSelectTrick={setSelectedTrickId}
           />
+          {feed ? (
+            <FeedPanel
+              config={feed}
+              present={present}
+              onPresent={setPresent}
+              onChange={(next) =>
+                update({
+                  ...preset,
+                  feeds: preset.feeds.map((existing) =>
+                    existing.id === next.id ? next : existing,
+                  ),
+                })
+              }
+            />
+          ) : null}
         </section>
         <section className="editor__column editor__column--center">
           <Wheel segments={shown} rotorRef={rotorRef} />

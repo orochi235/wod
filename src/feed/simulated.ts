@@ -1,6 +1,19 @@
 import type { Rng } from '../wheel/selection'
 import type { FeedItem, SimulatedFeedConfig } from './types'
 
+/**
+ * Autochurn runs off setInterval, and browsers floor nested timers at 4ms: a
+ * shorter period than this republishes the roster hundreds of times a second,
+ * recomposing and re-rendering the wheel on each one. Same reasoning as
+ * readMotion clamping durationMs for Element.animate().
+ *
+ * It lives with the simulator rather than with the preset parser because it
+ * describes how fast this simulation can be driven, not what the stored format
+ * allows — every caller that starts a clock has to honor it, and the parser is
+ * only one of them.
+ */
+export const MIN_CHURN_INTERVAL_MS = 250
+
 function pick<T>(items: T[], rng: Rng): T {
   return items[Math.min(items.length - 1, Math.floor(rng() * items.length))]
 }

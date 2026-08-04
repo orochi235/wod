@@ -226,3 +226,28 @@
   cursor: pointer;
   text-decoration: underline;
 }
+
+.feed-panel__roster,
+.feed-panel__pool {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.feed-panel__roster li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* One name per line, so it needs to show several without the operator
+   scrolling a single-row box. */
+.feed-panel__pool-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 6rem;
+  resize: vertical;
+}

@@ -1,3 +1,4 @@
+import { MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { getRecipe } from '../tricks/registry'
 import { isSelectorToken } from '../tricks/targets'
@@ -249,14 +250,6 @@ function readCount(value: unknown, fallback: number): number {
     ? Math.round(Math.max(0, value))
     : fallback
 }
-
-/**
- * The simulator drives churn from setInterval, and browsers floor nested timers
- * at 4ms: a stored interval below this republishes the roster hundreds of times
- * a second, recomposing and re-rendering the wheel on each one. Same reasoning
- * as readMotion clamping durationMs for Element.animate().
- */
-const MIN_CHURN_INTERVAL_MS = 250
 
 /**
  * A feed id has to be unique: composeBase namespaces wedge ids by it, so two
