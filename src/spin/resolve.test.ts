@@ -1,6 +1,7 @@
-import { assert, describe, expect, it } from 'vitest'
+import { assert, describe, expect, it, vi } from 'vitest'
 import { composeBase } from '../compose/compose'
 import type { BranchAction, BranchNode, ScriptedSpin } from '../preset/types'
+import { RECIPES } from '../tricks/registry'
 import type { Trick } from '../tricks/types'
 import type { Rng } from '../wheel/selection'
 import type { Segment } from '../wheel/types'
@@ -270,6 +271,37 @@ describe('resolveScriptedSpin', () => {
     ]
     resolveScriptedSpin(base, [], spin, branches, counting)
     expect(calls).toBe(1)
+  })
+
+  it('hands every recipe that same roll at every depth', () => {
+    // Freezing the draw only matters if it reaches recipes: selectors resolve
+    // against `ctx.roll`, so a re-roll per depth would reshuffle one trick's
+    // pick because an unrelated modifier fired deeper in the tree.
+    const seen: number[] = []
+    const spy = vi.spyOn(RECIPES.recolor, 'resolve').mockImplementation((_params, ctx) => {
+      seen.push(ctx.roll)
+      return []
+    })
+
+    const tricks: Trick[] = [
+      { id: 'gray', name: 'gray', recipe: 'recolor', params: {}, enabled: true },
+    ]
+    const branches: BranchNode[] = [
+      {
+        id: 'a',
+        when: { kind: 'landsOn', segmentIds: ['ana'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 9 } } },
+        // biome-ignore lint/suspicious/noThenProperty: `then` is BranchNode's routing field, not a thenable.
+        then: [{ id: 'b', when: { kind: 'landsOn', segmentIds: ['ana'] } }],
+      },
+    ]
+
+    resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
+
+    // More than one evaluation, all of them the same draw.
+    expect(seen.length).toBeGreaterThan(1)
+    expect(new Set(seen)).toEqual(new Set([0.1]))
+    spy.mockRestore()
   })
 
   it('ignores every draw after the first', () => {

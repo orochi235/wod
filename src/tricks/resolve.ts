@@ -12,9 +12,10 @@ export type ResolvedTricks = Composition & {
  * must exist before any recipe resolves, or a recipe targeting "everything"
  * would miss a wedge contributed by a trick listed after it.
  *
- * Composition is last-write-wins in trick-list order. `applyMorphs` walks the
+ * Morphs are last-write-wins in trick-list order. `applyMorphs` walks the
  * morph array in sequence, and a morph carrying an explicit `at: 0` keyframe
- * overwrites whatever an earlier morph accumulated.
+ * overwrites whatever an earlier morph accumulated. Wedges go the other way —
+ * first write wins, so a computed wedge can never displace a static one.
  */
 export function resolveTricks(
   base: Composition,

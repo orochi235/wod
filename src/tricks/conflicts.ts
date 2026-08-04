@@ -10,7 +10,11 @@ export type Conflict = Write & { trickIds: string[] }
  * can produce a misleading badge but can never change what the wheel does.
  */
 export function findConflicts(base: Composition, tricks: Trick[], durationMs: number): Conflict[] {
-  const resolved = resolveTricks(base, tricks, durationMs)
+  // No spin is in flight, so a badge is a static preview rather than a draw.
+  // Both uses below must agree, or `writes()` would describe a composition
+  // other than the one it was handed.
+  const roll = 0
+  const resolved = resolveTricks(base, tricks, durationMs, roll)
   // Keyed by segment, then by property. Nesting two maps avoids building a
   // composite string key, which would break on any id containing the separator.
   const claims = new Map<string, Map<Write['property'], string[]>>()
@@ -24,7 +28,7 @@ export function findConflicts(base: Composition, tricks: Trick[], durationMs: nu
       segments: resolved.segments,
       origins: resolved.origins,
       durationMs,
-      roll: 0,
+      roll,
     }
     for (const write of recipe.writes(trick.params, ctx)) {
       let byProperty = claims.get(write.segmentId)
