@@ -13,6 +13,7 @@ import type { Segment, SpinConfig } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
 import { FeedPanel } from './FeedPanel'
+import { OverridesPanel } from './OverridesPanel'
 import { PresetIo } from './PresetIo'
 import { SegmentList } from './SegmentList'
 import { Transport } from './Transport'
@@ -168,6 +169,11 @@ export function Editor() {
             selectedId={selectedTrickId}
             onChange={(tricks) => update({ ...preset, tricks })}
             onSelect={setSelectedTrickId}
+          />
+          <OverridesPanel
+            items={feed ? itemsOf(items, feed.id) : []}
+            overrides={preset.overrides}
+            onChange={(overrides) => update({ ...preset, overrides })}
           />
         </section>
       </div>

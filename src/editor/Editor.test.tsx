@@ -124,6 +124,28 @@ describe('Editor feed', () => {
   })
 })
 
+describe('Editor overrides', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('keeps an override editable after its target leaves the room', async () => {
+    render(<Editor />)
+    await userEvent.click(screen.getByRole('button', { name: 'Join Fay' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Exclude Fay' }))
+
+    // The whole point of keying on the item id: Fay walking out must not take
+    // the joke with her, and it has to still be reachable with her gone.
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Fay' }))
+
+    const known = within(screen.getByRole('group', { name: 'Known' }))
+    expect(known.getByRole('checkbox', { name: 'Exclude fay' })).toBeChecked()
+    expect(parsePreset(window.localStorage.getItem(PRESET_KEY)).overrides).toEqual({
+      fay: { excluded: true },
+    })
+  })
+})
+
 /**
  * Only what a landing needs: a controllable `finished` promise. The frame loop
  * is stubbed to a no-op so the morph tick never runs — the landed geometry
