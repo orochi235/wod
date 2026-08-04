@@ -215,11 +215,14 @@ function readBranches(value: unknown, depth = 0): BranchNode[] {
 }
 
 /**
- * `__proto__` cannot be a key of a plain-object record: assigning it invokes the
- * prototype setter, so the entry is never stored and the record's prototype is
- * replaced instead. JSON.parse does hand back an own `__proto__` key, so a
- * hand-edited preset reaches here with one. Readers already guard their lookups
- * (getRecipe, composeBase); this guards the write, which no lookup can undo.
+ * `__proto__` is a hazard on the write side, and only for some writes:
+ * `record[key] = value` invokes the prototype setter, so the entry is never
+ * stored and the record's prototype is replaced instead, while a computed key
+ * in an object literal defines an ordinary own property. JSON.parse likewise
+ * hands back an own `__proto__` key, so a hand-edited preset arrives here
+ * carrying one. Readers already guard their lookups (getRecipe, composeBase);
+ * dropping the key at the parse boundary is what means no record built from
+ * this data has to be constructed one particular way to stay safe.
  */
 const PROTO_KEY = '__proto__'
 
@@ -268,8 +271,11 @@ function readFeeds(value: unknown): FeedConfig[] {
     // Meet adapter bumps the version, and the gate above rejects older data
     // wholesale rather than leaving a kind this parser cannot construct.
     if (entry.kind !== 'simulated' || typeof entry.id !== 'string') continue
-    // Live items are keyed by feed id, and that record cannot hold a `__proto__`
-    // entry — the feed would publish into the prototype and never appear.
+    // Live items are keyed by feed id downstream. App builds that record with a
+    // computed key, which would store this id as an ordinary entry, so the
+    // guard is not rescuing the consumer that exists — it is refusing to make
+    // that consumer's construction style load-bearing, and it matches the
+    // sibling guard on the same data in feed/bus.ts.
     if (entry.id === PROTO_KEY) continue
     if (feeds.some((feed) => feed.id === entry.id)) continue
 

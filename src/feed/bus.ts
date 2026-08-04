@@ -27,11 +27,15 @@ function readMessage(value: unknown): FeedMessage | null {
   if (typeof value !== 'object' || value === null) return null
   const raw = value as Record<string, unknown>
   if (typeof raw.feedId !== 'string' || !Array.isArray(raw.items)) return null
-  // Same guard as readFeeds (storage.ts): Task 9 keys a live-items record by
-  // feedId, and a plain assignment to '__proto__' replaces the record's
-  // prototype instead of storing an entry. No configured feed can hit this
-  // today, but that safety belongs to composeBase, not to this channel — the
-  // Meet adapter is a second path in and this boundary has to hold on its own.
+  // Same guard as readFeeds (storage.ts), and not because today's consumer
+  // would break without it: App keys its live-items record with a computed key
+  // in an object literal, which defines an own property, so a '__proto__' feed
+  // id would land there as an ordinary entry. It is bracket assignment
+  // (`record[feedId] = items`) that invokes the prototype setter instead — a
+  // detail of how some future consumer happens to build that record, which is
+  // nothing this module can see. A boundary that only holds for one
+  // construction style is not a boundary, and the Meet adapter will be a
+  // second writer arriving through here.
   if (raw.feedId === '__proto__') return null
 
   const items: FeedItem[] = []
