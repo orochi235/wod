@@ -2376,6 +2376,17 @@ describe('churn during a spin', () => {
 })
 ```
 
+> **Superseded by review.** The sketch above is broken two ways. It never lands
+> the spin, so its second click targets a button still disabled by `isSpinning`
+> and silently does nothing — the final assertion fails. And it installs no spin
+> harness, so the first click throws: jsdom implements no Web Animations API.
+> Its premise is also wrong: the hold releases on the **next spin**, not on
+> landing, so "let the spin land — Zoe is gone" describes behavior the code
+> deliberately does not have. Read the committed `src/App.test.tsx`.
+>
+> Shortening `durationMs` turns out to be inert under the harness too — the fake
+> animation settles only via `land()`, and rAF is stubbed to a no-op.
+
 The default preset's spin runs 4500ms, which would make this test crawl. Seed a short one first, matching how the existing tests in this file already seed:
 
 ```tsx
@@ -2416,6 +2427,12 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
+- **An emptied roster strands the held frame.** Found writing Task 11. The hold
+  releases on the *next spin*, and the Spin button is disabled while the roster
+  is empty — so emptying a feed-only wheel mid-spin leaves the landed wedge on
+  screen with no way to clear it until someone rejoins. Coherent (there is
+  nothing to spin, and the empty-state message says so) and deliberately not
+  changed, but it is the one state where the hold has no exit.
 - **`ItemOverride.label` has no editor UI.** Found during Task 10. Storage parses
   it and `composeBase` applies it, so renaming an attendee works — but only by
   hand-editing an imported preset. The overrides panel row has no field for it.
