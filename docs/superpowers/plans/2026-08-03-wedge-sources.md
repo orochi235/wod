@@ -2371,6 +2371,13 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
+- **A huge weight overflows the normalizer to `NaN`.** Found reviewing Task 4.
+  `readSegments` and `readFeedDefaults` both reject `Infinity` and `NaN` but
+  accept `1e308`; three such weights sum to `Infinity`, and `arcs()` then emits
+  `NaN` start and end angles, which renders nothing and breaks pointer
+  resolution. Pre-existing, and `composeBase` mirrors `readSegments`
+  deliberately, so capping in one parser alone would break that stated symmetry.
+  The fix belongs in `normalizeWeights` / `arcs`, where it can be made once.
 - **`wedgeOwners` does not apply the dedupe rule.** Found reviewing Task 2. When
   a static wedge and a trick wedge collide on an id, `resolveTricks` correctly
   drops the computed one, but `wedgeOwners` still reports the trick as owner, so
