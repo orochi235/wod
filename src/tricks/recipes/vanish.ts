@@ -1,13 +1,7 @@
 import type { Morph, Segment } from '../../wheel/types'
 import { readEasing, readStringArray, readUnit } from '../params'
+import { isSelectorToken, resolveTargets } from '../targets'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
-
-/** Empty `targets` means every segment. */
-function resolveTargets(params: TrickParams, segments: Segment[]): Segment[] {
-  const names = readStringArray(params, 'targets')
-  if (names.length === 0) return segments
-  return segments.filter((segment) => names.includes(segment.id))
-}
 
 export const vanish: Recipe = {
   id: 'vanish',
@@ -35,7 +29,7 @@ export const vanish: Recipe = {
   resolve(params: TrickParams, ctx: RecipeContext): Morph[] {
     const startAt = readUnit(params, 'startAt', 0.5)
     const easing = readEasing(params, 'easing', 'easeIn')
-    return resolveTargets(params, ctx.segments).map((segment) => ({
+    return resolveTargets(readStringArray(params, 'targets'), ctx).map((segment) => ({
       segmentId: segment.id,
       durationMs: ctx.durationMs,
       easing,
@@ -48,7 +42,7 @@ export const vanish: Recipe = {
   },
 
   writes(params: TrickParams, ctx: RecipeContext): Write[] {
-    return resolveTargets(params, ctx.segments).map((segment) => ({
+    return resolveTargets(readStringArray(params, 'targets'), ctx).map((segment) => ({
       segmentId: segment.id,
       property: 'weight' as const,
     }))
@@ -56,7 +50,7 @@ export const vanish: Recipe = {
 
   validate(params: TrickParams, segments: Segment[]): string | null {
     const missing = readStringArray(params, 'targets').filter(
-      (id) => !segments.some((segment) => segment.id === id),
+      (id) => !isSelectorToken(id) && !segments.some((segment) => segment.id === id),
     )
     return missing.length === 0 ? null : `unknown wedge: ${missing.join(', ')}`
   },

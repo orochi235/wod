@@ -9,7 +9,13 @@ const segments: Segment[] = [
   { id: 'beer', label: 'free beer', weight: 1, color: '#ffd166' },
 ]
 
-const ctx: RecipeContext = { trickId: 't1', segments, durationMs: 1000 }
+const ctx: RecipeContext = {
+  trickId: 't1',
+  segments,
+  origins: new Map(),
+  durationMs: 1000,
+  roll: 0,
+}
 
 describe('recolor', () => {
   it('provides no segments', () => {
@@ -48,6 +54,9 @@ describe('recolor', () => {
 
   it('never touches weight', () => {
     const morphs = recolor.resolve({ targets: [], toColor: '#000000' }, ctx)
+    // Empty targets means every wedge. Pinned so the loop below cannot pass
+    // vacuously on a resolver that returned nothing at all.
+    expect(morphs.map((morph) => morph.segmentId)).toEqual(['ana', 'beer'])
     for (const morph of morphs) {
       expect(morph.keyframes.every((k) => k.weight === undefined)).toBe(true)
     }
@@ -61,5 +70,15 @@ describe('recolor', () => {
 
   it('rejects a missing target', () => {
     expect(recolor.validate({ targets: ['ghost'] }, segments)).toMatch(/ghost/)
+  })
+
+  it('accepts a selector token that matches nothing yet', () => {
+    expect(recolor.validate({ targets: ['@external'], toColor: '#000000' }, segments)).toBeNull()
+  })
+
+  it('reports a misspelled token as an unknown wedge', () => {
+    expect(recolor.validate({ targets: ['@extrenal'], toColor: '#000000' }, segments)).toMatch(
+      /@extrenal/,
+    )
   })
 })

@@ -1,6 +1,7 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { subscribeFeed } from '../feed/bus'
 import { PRESET_KEY, parsePreset } from '../preset/storage'
 import { Editor } from './Editor'
 
@@ -84,6 +85,64 @@ describe('Editor integration', () => {
     expect(screen.getByRole('status', { name: /slow burn conflicts/i })).toHaveTextContent(
       /also written by another trick/i,
     )
+  })
+})
+
+describe('Editor feed', () => {
+  /** BroadcastChannel delivers on a later turn of the event loop. */
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('publishes the room whenever it changes', async () => {
+    const seen = vi.fn()
+    const stop = subscribeFeed(seen)
+    try {
+      render(<Editor />)
+
+      await userEvent.click(screen.getByRole('button', { name: 'Join Fay' }))
+      await flush()
+      expect(seen).toHaveBeenLastCalledWith({
+        feedId: 'sim',
+        items: [{ id: 'fay', label: 'Fay' }],
+      })
+
+      // A pool edit is a roster change too: dropping Fay from the pool has to
+      // reach the show window, not wait for a churn tick that may never come.
+      const pool = screen.getByLabelText('Name pool')
+      await userEvent.click(pool)
+      await userEvent.keyboard('{Control>}a{/Control}')
+      await userEvent.paste('Gus')
+      await flush()
+
+      expect(seen).toHaveBeenLastCalledWith({ feedId: 'sim', items: [] })
+    } finally {
+      stop()
+    }
+  })
+})
+
+describe('Editor overrides', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('keeps an override editable after its target leaves the room', async () => {
+    render(<Editor />)
+    await userEvent.click(screen.getByRole('button', { name: 'Join Fay' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Exclude Fay' }))
+
+    // The whole point of keying on the item id: Fay walking out must not take
+    // the joke with her, and it has to still be reachable with her gone.
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Fay' }))
+
+    const known = within(screen.getByRole('group', { name: 'Known' }))
+    expect(known.getByRole('checkbox', { name: 'Exclude fay' })).toBeChecked()
+    expect(parsePreset(window.localStorage.getItem(PRESET_KEY)).overrides).toEqual({
+      fay: { excluded: true },
+    })
   })
 })
 

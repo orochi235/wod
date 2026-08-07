@@ -6,7 +6,7 @@ import type { Preset } from './types'
  * grows a sixth wedge out of nothing.
  */
 export const DEFAULT_PRESET: Preset = {
-  version: 2,
+  version: 3,
   name: 'standup',
   segments: [
     { id: 'ana', label: 'Ana', weight: 1 },
@@ -15,6 +15,19 @@ export const DEFAULT_PRESET: Preset = {
     { id: 'dee', label: 'Dee', weight: 1 },
     { id: 'eli', label: 'Eli', weight: 1 },
   ],
+  feeds: [
+    {
+      kind: 'simulated',
+      id: 'sim',
+      defaults: { weight: 1 },
+      // Deliberately disjoint from the static names above: the wedge ids never
+      // collide, so a shared name would render twice with nothing marking which
+      // wedge came from the feed.
+      pool: ['Fay', 'Gus', 'Hal', 'Ivy', 'Jo', 'Kit', 'Lou'],
+      autochurn: { intervalMs: 2500, targetSize: 5, volatility: 0.25 },
+    },
+  ],
+  overrides: {},
   tricks: [
     {
       id: 'beer',

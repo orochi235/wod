@@ -215,7 +215,7 @@ before pass 2 (`resolve`) — which is exactly where `RecipeContext.segments`
 already sits. The existing two-pass ordering already solved this problem;
 selectors only consume it.
 
-### `@randomExternal` draws from the frozen roll
+### `@randomExternal` draws from a *second* frozen roll
 
 `resolveScriptedSpin` freezes one rng roll for the entire branch walk, so that
 "every change in winner is caused by a modifier". `evaluateWheel` runs once per
@@ -223,9 +223,29 @@ branch depth, so a fresh draw per pass would mean enabling a trick at depth 2
 silently reshuffles which attendee an unrelated trick picked — the exact failure
 the frozen roll exists to prevent.
 
-`@randomExternal` therefore resolves as `candidates[floor(roll * candidates.length)]`
-using that same frozen roll. Deterministic, stable across depths, no extra state
-to thread.
+`@randomExternal` needs that same stability, so it also draws from a frozen
+value. It must **not** be the same one.
+
+An earlier draft of this spec said to reuse the winner's roll. That is wrong,
+and the way it is wrong matters. Both `weightedRandom` and `@randomExternal`
+reduce to `floor(roll * n)` over the same list, so on an equal-weight wheel that
+is exactly the roster they name the same wedge **every time** — measured at
+100% over 200k resolutions, against a 20% independent baseline. Morphs animate
+*during* the spin, so "recolor one random attendee gold" would paint the winner
+gold before the wheel landed.
+
+That is not a cosmetic flaw. The parent spec's central bet is that the winner is
+chosen up front precisely so a rigged spin is indistinguishable from a fair one.
+A morph that leaks the outcome mid-flight defeats the whole mechanism.
+
+So `resolveScriptedSpin` draws twice — `roll` for the winner, `selectorRoll` for
+selectors — and freezes both for the walk. Depth-stability is unchanged; only
+the correlation goes away. With the second draw, measured agreement falls to the
+independent baseline exactly (20.09% / 14.24% / 6.64% against theoretical
+20% / 14.29% / 6.67%).
+
+The index is clamped at both ends and rejects `NaN` separately, because `NaN`
+fails every comparison and would slip through a symmetric clamp untouched.
 
 ### No `@winner` for tricks
 
@@ -402,8 +422,9 @@ statics + overrides ──────┼─► composeBase ─► { segments, o
   fidelity for all three kinds.
 - Selectors: each token's expansion; `@` tokens composing with concrete ids;
   `@randomExternal` returning the same candidate across branch depths under a
-  frozen roll; empty external resolution producing a no-op rather than a
-  validation failure.
+  frozen roll; `@randomExternal` agreeing with the winner no more often than
+  chance; empty external resolution producing a no-op rather than a validation
+  failure.
 - Storage: v1 and v2 migrating to v3; malformed feed and override entries
   dropped without throwing; overrides for absent ids preserved across a
   round-trip.

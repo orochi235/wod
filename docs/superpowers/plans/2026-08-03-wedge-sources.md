@@ -217,6 +217,14 @@ Expected: FAIL — `Failed to resolve import "./compose"`.
 
 - [ ] **Step 4: Implement `composeBase`**
 
+> **Superseded by review.** The version below shipped as `7d295e7` and then took
+> three fixes in a follow-up commit: `input.items[feed.id]` needs an
+> `Array.isArray` guard (a feed id of `constructor` or `__proto__` resolves
+> through the prototype chain and throws, the same hazard `getRecipe` documents);
+> the two-phase block build buys nothing and its comment asserts an invariant
+> that is not real, so the loops are fused; and `input.overrides[item.id]` uses
+> `Object.hasOwn`. Read the committed `src/compose/compose.ts`, not this block.
+
 Create `src/compose/compose.ts`:
 
 ```ts
@@ -1428,6 +1436,21 @@ export function subscribeFeed(onMessage: (message: FeedMessage) => void): () => 
 
 A malformed `items` entry rejects the whole message rather than being skipped: a partial roster silently missing a person is worse on screen than no update at all.
 
+**Amended after review:** `readMessage` also rejects a `feedId` of `__proto__`,
+matching the guard `readFeeds` applies at the config boundary. Today nothing
+reaches it — no configured feed can carry that id, so `composeBase` never looks
+the key up — but that safety comes from a *different* module, and it stops
+holding as soon as the Meet adapter opens a second path onto this channel. Each
+boundary guards itself.
+
+Note also what `readMessage` does *not* reject: it rebuilds the message from
+only the fields it knows, so a message from a newer build carrying extra
+properties is tolerated rather than refused. That is deliberately the opposite
+of `parsePreset`'s wholesale version gate — an operator with a stale tab open
+should keep seeing the roster, and a version gate here would blank a live wheel
+over an additive field. It is also the one property a well-meaning "harden this"
+edit would destroy silently, so it carries its own test.
+
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/feed/bus.test.ts`
@@ -1551,6 +1574,16 @@ import type { FeedItem, SimulatedFeedConfig } from './types'
 function pick<T>(items: T[], rng: Rng): T {
   return items[Math.min(items.length - 1, Math.floor(rng() * items.length))]
 }
+
+> **Superseded by review.** This `churn` **fails its own test above**: with
+> `present = ['Ana','Zed']` and `targetSize: 2`, dropping the out-of-pool `Zed`
+> leaves `current` below target, so the same tick refills to `['Ana','Dee']`
+> while the test expects `['Ana']`. The shipped version guards it — if anything
+> was dropped, the tick returns immediately, because reconciling an edited pool
+> is not an autochurn move. `slugify` also had to change: `[^a-z0-9]+` collapsed
+> every non-Latin name to the `item` fallback, making ids positional and
+> breaking the promise that an override survives a rejoin. Read the committed
+> `src/feed/simulated.ts`, not this block.
 
 /**
  * One tick of the simulated meeting. At most one person moves per tick, so the
@@ -1742,11 +1775,20 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
     const id = window.setInterval(() => {
       const { config: current, present: room, onPresent: publish } = latest.current
       publish(churn(current, room, cryptoRng))
-    }, config.autochurn.intervalMs)
+    }, Math.max(MIN_CHURN_INTERVAL_MS, config.autochurn.intervalMs))
     return () => window.clearInterval(id)
   }, [running, config.autochurn.intervalMs])
 
   const absent = config.pool.filter((name) => !present.includes(name))
+
+> **Superseded by review.** The pool textarea below is a controlled input whose
+> value round-trips through `config.pool.join('\n')`. A blank line has no
+> representation in a parsed pool, so pressing Enter is swallowed and the next
+> name concatenates onto the previous one — the `edits the pool` test above,
+> typing `Cal{enter}Dee`, actually yields `['CalDee']`. The shipped panel keeps
+> the operator's raw text in local draft state and re-seeds from `config.pool`
+> only when a pool arrives from outside. Read the committed
+> `src/editor/FeedPanel.tsx`, not this block.
 
   return (
     <PropertyPanel title="Simulated meeting">
@@ -1825,6 +1867,17 @@ export function FeedPanel({ config, present, onPresent, onChange }: FeedPanelPro
 
 `PropertyPanel` and `PropertyRow` both come from `@weasel-js/labkit` directly, as in `RecipeForm.tsx`.
 
+`MIN_CHURN_INTERVAL_MS` lives in `src/preset/storage.ts`, where the parser floors
+the stored value, but it is currently module-private — **export it** as part of
+this task. Re-applying it at the `setInterval` call is not belt-and-braces: the
+parser can only guarantee what it hands over, and this component takes a live
+`config` prop that a panel edit can drive below the floor between parses.
+
+If threading a constant out of the storage module reads wrong to you, moving it
+to `src/feed/simulated.ts` and importing it into `storage.ts` is the better home
+— it describes the simulator, not the preset format. Either is acceptable; say
+which you chose.
+
 - [ ] **Step 4: Add the styles**
 
 Append to `src/editor/Editor.css`:
@@ -1863,8 +1916,20 @@ In `src/editor/Editor.tsx`, hold the room and publish every change:
   // The editor window owns the clock, so it is the window that publishes.
   useEffect(() => {
     if (!feed) return
-    publishFeed({ feedId: feed.id, items: items[feed.id] ?? [] })
+    publishFeed({ feedId: feed.id, items: itemsOf(items, feed.id) })
   }, [feed, items])
+```
+
+`itemsOf` is a local helper, because a bare `items[feed.id]` is unsafe here for
+the same reason it is in `composeBase` — a feed id of `constructor` or
+`__proto__` resolves through the prototype chain to something that is not an
+array. Put it at module scope in this file:
+
+```ts
+function itemsOf(items: Record<string, FeedItem[]>, feedId: string): FeedItem[] {
+  const published = items[feedId]
+  return Array.isArray(published) ? published : []
+}
 ```
 
 Pass `items` into `composeBase`:
@@ -2252,7 +2317,7 @@ In `src/editor/Editor.tsx`, render it in the right column under `TrickLibrary`:
 
 ```tsx
           <OverridesPanel
-            items={feed ? (items[feed.id] ?? []) : []}
+            items={feed ? itemsOf(items, feed.id) : []}
             overrides={preset.overrides}
             onChange={(overrides) => update({ ...preset, overrides })}
           />
@@ -2311,6 +2376,17 @@ describe('churn during a spin', () => {
 })
 ```
 
+> **Superseded by review.** The sketch above is broken two ways. It never lands
+> the spin, so its second click targets a button still disabled by `isSpinning`
+> and silently does nothing — the final assertion fails. And it installs no spin
+> harness, so the first click throws: jsdom implements no Web Animations API.
+> Its premise is also wrong: the hold releases on the **next spin**, not on
+> landing, so "let the spin land — Zoe is gone" describes behavior the code
+> deliberately does not have. Read the committed `src/App.test.tsx`.
+>
+> Shortening `durationMs` turns out to be inert under the harness too — the fake
+> animation settles only via `land()`, and rAF is stubbed to a no-op.
+
 The default preset's spin runs 4500ms, which would make this test crawl. Seed a short one first, matching how the existing tests in this file already seed:
 
 ```tsx
@@ -2351,6 +2427,72 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
+- **The editor offers roster ids that disable the trick on parse.** Found in the
+  final review. `Editor.tsx` passes `resolved.segments` to `TrickLibrary`, so the
+  Wedges multi-select now lists `sim:ana` alongside the statics — but
+  `readTricks` validates against `readSegments(data.segments)`, statics only, so
+  a trick targeting a roster id comes back `enabled: false`. The editor's own
+  state is never re-parsed, so the operator watches the trick work while the
+  *show window*, which reaches the preset through `parsePreset`, silently drops
+  it. Pre-existing for computed wedges (`beer:wedge` was already offered and
+  already unvalidatable); this branch widens it to the roster, which is the case
+  operators will actually click.
+
+  Deliberately not fixed. The obvious fix — exempt any id not on the static list,
+  since `resolveTargets` already drops unknown ids so an unresolvable target is a
+  no-op — also throws away the genuine "you deleted seg2" warning. That trade is
+  worth making consciously rather than as a side effect of this branch. The
+  narrower alternative is to validate against the composed wedge list, which
+  means teaching `readTricks` about feeds.
+- **An emptied roster strands the held frame.** Found writing Task 11. The hold
+  releases on the *next spin*, and the Spin button is disabled while the roster
+  is empty — so emptying a feed-only wheel mid-spin leaves the landed wedge on
+  screen with no way to clear it until someone rejoins. Coherent (there is
+  nothing to spin, and the empty-state message says so) and deliberately not
+  changed, but it is the one state where the hold has no exit.
+- **`ItemOverride.label` has no editor UI.** Found during Task 10. Storage parses
+  it and `composeBase` applies it, so renaming an attendee works — but only by
+  hand-editing an imported preset. The overrides panel row has no field for it.
+  A deliberate scope call, not an oversight; worth adding when someone actually
+  wants to rename a person on the wheel.
+- **A show window opened late sees no roster until the next churn tick.** Found
+  reviewing Task 9. The editor publishes on change, not on demand, so a show
+  window opened after the last publish shows only statics — and indefinitely if
+  autochurn is off. The spec covers the editor being *closed*; it does not cover
+  the show window arriving late. The fix belongs in `Editor.tsx` — either
+  republish whenever a subscriber appears, or have the show window announce
+  itself on the bus and the editor answer. Not reachable during a normal session
+  (the operator opens the editor first), but it will bite the first time someone
+  reloads the shared tab mid-meeting.
+- **Takeover's "existing wedge" mode is unusable from the editor.** Found during
+  Task 5, pre-existing. `takeover.ts:62` declares `wedgeSegmentId` as
+  `kind: 'segments'`, which `RecipeForm` renders as a *multi*-select writing a
+  `string[]`, but `takeover.ts:17,172` read it with `readString`, which rejects
+  arrays and falls back to `''`. So `validate` returns "no wedge chosen"
+  whatever the operator picks. The fix is a distinct single-valued field kind
+  (`'segment'`), which is also the natural place to decide whether selector
+  tokens belong in a single-id field — `@randomExternal` would be coherent
+  there, the set-valued tokens would not.
+- **A huge weight overflows the normalizer to `NaN`.** Found reviewing Task 4.
+  `readSegments` and `readFeedDefaults` both reject `Infinity` and `NaN` but
+  accept `1e308`; three such weights sum to `Infinity`, and `arcs()` then emits
+  `NaN` start and end angles, which renders nothing and breaks pointer
+  resolution. Pre-existing, and `composeBase` mirrors `readSegments`
+  deliberately, so capping in one parser alone would break that stated symmetry.
+  The fix belongs in `normalizeWeights` / `arcs`, where it can be made once.
+- **`wedgeOwners` does not apply the dedupe rule.** Found reviewing Task 2. When
+  a static wedge and a trick wedge collide on an id, `resolveTricks` correctly
+  drops the computed one, but `wedgeOwners` still reports the trick as owner, so
+  `SegmentList` renders a ghost row for a wedge that is not on the wheel. Not
+  reachable through the UI today — static ids are `seg{n}` and trick ids contain
+  no colon — so it needs an imported preset. Worth revisiting once operators can
+  choose a `feedId`, because composed `${feedId}:${itemId}` ids widen the
+  namespace that `${trickId}:wedge` can collide with.
+- **No soft hint for an empty selector resolution.** The spec says a selector
+  resolving to nothing should no-op "with a soft hint". The no-op ships; the hint
+  does not. There is no surface for it today — `TrickLibrary` renders `Conflict[]`
+  and never shows `validate` output — so it needs a place to live before it needs
+  writing.
 - **The feed-unavailable banner.** The spec's error handling calls for one when
   a feed never publishes. With a simulated feed the editor *is* the publisher,
   so there is nothing to warn about yet; the banner arrives with the adapter

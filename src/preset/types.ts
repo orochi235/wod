@@ -1,3 +1,4 @@
+import type { FeedConfig, ItemOverride } from '../feed/types'
 import type { Trick } from '../tricks/types'
 import type { Direction, Segment } from '../wheel/types'
 
@@ -48,9 +49,13 @@ export type BranchNode = {
 }
 
 export type Preset = {
-  version: 2
+  version: 3
   name: string
+  /** Statics. Feed items and trick wedges join these at compose time. */
   segments: Segment[]
+  feeds: FeedConfig[]
+  /** Keyed by FeedItem.id, not by wedge id: an override outlives its feed. */
+  overrides: Record<string, ItemOverride>
   tricks: Trick[]
   spin: ScriptedSpin
   branches: BranchNode[]

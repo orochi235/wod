@@ -47,18 +47,20 @@ export function useSpin(
 
   const [displaySegments, setDisplaySegments] = useState(segments)
   const [isSpinning, setIsSpinning] = useState(false)
+  const [landed, setLanded] = useState(false)
   const [winnerId, setWinnerId] = useState<string | null>(null)
 
   useEffect(() => {
-    // Resync only when the caller actually swaps the array, and never mid-spin —
-    // that would wipe the landed state, which is the whole visual payoff when
-    // weights morph. The ref is deliberately NOT advanced while spinning, so this
-    // effect re-runs and applies the pending swap once isSpinning goes false.
+    // Resync only when the caller actually swaps the array, and never while a
+    // spin owns the geometry — running or landed. A live roster republishes
+    // mid-spin, and applying that would wipe the landed frame, which is the
+    // whole visual payoff when weights morph. Nothing is lost by dropping the
+    // swap: the next spin takes ownership and draws from the live prop itself.
     if (lastSegmentsRef.current === segments) return
-    if (isSpinning) return
+    if (isSpinning || landed) return
     lastSegmentsRef.current = segments
     setDisplaySegments(segments)
-  }, [segments, isSpinning])
+  }, [segments, isSpinning, landed])
 
   const stopTracks = useCallback(() => {
     if (frameRef.current !== null) {
@@ -93,8 +95,15 @@ export function useSpin(
       stopTracks()
       spinningRef.current = true
       setIsSpinning(true)
+      setLanded(false)
       setWinnerId(null)
       setDisplaySegments(spinSegments)
+      // The spin, not the effect, is what resolves a swap that arrived while the
+      // wheel was held. Mark the props synced here so a later idle render does
+      // not replay them as still pending. Deliberately the prop array rather
+      // than spinSegments: an override is a one-spin substitution the caller
+      // never published, so it must not count as having synced to it.
+      lastSegmentsRef.current = segments
 
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
       const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
@@ -153,6 +162,7 @@ export function useSpin(
           setDisplaySegments(plan.landing)
           setIsSpinning(false)
           setWinnerId(plan.winnerId)
+          setLanded(true)
           onLanded?.(plan.winnerId)
         })
         .catch(() => {

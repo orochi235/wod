@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { composeBase } from './compose/compose'
+import { subscribeFeed } from './feed/bus'
+import type { FeedItem } from './feed/types'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
 import { resolveScriptedSpin } from './spin/resolve'
@@ -15,9 +18,32 @@ export function App() {
   // An edit in the /edit window lands here without a reload.
   useEffect(() => subscribePreset(setPreset), [])
 
+  const [items, setItems] = useState<Record<string, FeedItem[]>>({})
+
+  // The editor window owns the clock; this one only renders what arrives. With
+  // no editor open the roster freezes, which is a comprehensible failure.
+  useEffect(
+    () =>
+      subscribeFeed(({ feedId, items: published }) =>
+        setItems((current) => ({ ...current, [feedId]: published })),
+      ),
+    [],
+  )
+
+  const base = useMemo(
+    () =>
+      composeBase({
+        statics: preset.segments,
+        feeds: preset.feeds,
+        items,
+        overrides: preset.overrides,
+      }),
+    [preset.segments, preset.feeds, preset.overrides, items],
+  )
+
   const resolved = useMemo(
-    () => resolveTricks(preset.segments, preset.tricks, preset.spin.motion.durationMs),
-    [preset],
+    () => resolveTricks(base, preset.tricks, preset.spin.motion.durationMs),
+    [base, preset.tricks, preset.spin.motion.durationMs],
   )
 
   const config = useMemo<SpinConfig>(
@@ -38,7 +64,7 @@ export function App() {
 
   const onSpin = useCallback(() => {
     const resolution = resolveScriptedSpin(
-      preset.segments,
+      base,
       preset.tricks,
       preset.spin,
       preset.branches,
@@ -59,12 +85,15 @@ export function App() {
       // collapsed, which is the safety net for a branch that zeroes its winner.
       strategy: forced(resolution.winnerId),
     })
-  }, [preset, spin])
+  }, [base, preset, spin])
 
   const winner = displaySegments.find((segment) => segment.id === winnerId)
   // Nothing to land on. planSpin would return null and the click would quietly
-  // do nothing, which reads as a broken button rather than an empty wheel.
-  const isEmpty = displaySegments.length === 0
+  // do nothing, which reads as a broken button rather than an empty wheel. Read
+  // the resolved roster, not displaySegments: the wheel holds a landed frame
+  // until the next spin, so it can still be showing wedges that onSpin no longer
+  // has anything to spin.
+  const isEmpty = resolved.segments.length === 0
 
   return (
     <main className="app">

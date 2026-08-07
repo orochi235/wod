@@ -1,5 +1,9 @@
-import { assert, describe, expect, it } from 'vitest'
+import { assert, describe, expect, it, vi } from 'vitest'
+import { composeBase } from '../compose/compose'
+import type { Composition } from '../compose/types'
+import type { SimulatedFeedConfig } from '../feed/types'
 import type { BranchAction, BranchNode, ScriptedSpin } from '../preset/types'
+import { RECIPES } from '../tricks/registry'
 import type { Trick } from '../tricks/types'
 import type { Rng } from '../wheel/selection'
 import type { Segment } from '../wheel/types'
@@ -10,6 +14,26 @@ const people: Segment[] = [
   { id: 'ben', label: 'Ben', weight: 1 },
   { id: 'cal', label: 'Cal', weight: 1 },
 ]
+
+const base = composeBase({ statics: people, feeds: [], items: {}, overrides: {} })
+
+const feed: SimulatedFeedConfig = {
+  kind: 'simulated',
+  id: 'sim',
+  defaults: { weight: 1 },
+  pool: [],
+  autochurn: { intervalMs: 1000, targetSize: 3, volatility: 0 },
+}
+
+/** Statics plus a live roster, so a condition's token has both kinds to tell apart. */
+function withRoster(statics: Segment[], names: string[]): Composition {
+  return composeBase({
+    statics,
+    feeds: [feed],
+    items: { sim: names.map((name) => ({ id: name.toLowerCase(), label: name })) },
+    overrides: {},
+  })
+}
 
 const spin: ScriptedSpin = {
   target: { kind: 'fair' },
@@ -43,18 +67,26 @@ function anaChain(length: number, rootAction?: BranchAction): BranchNode[] {
 
 describe('resolveScriptedSpin', () => {
   it('settles immediately when there are no branches', () => {
-    const result = resolveScriptedSpin(people, [], spin, [], fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, [], fixed(0.1))
     expect(result?.kind).toBe('settled')
     expect(result?.winnerId).toBe('ana')
   })
 
   it('returns null when there is nothing to spin', () => {
-    expect(resolveScriptedSpin([], [], spin, [], fixed(0.1))).toBeNull()
+    expect(
+      resolveScriptedSpin(
+        composeBase({ statics: [], feeds: [], items: {}, overrides: {} }),
+        [],
+        spin,
+        [],
+        fixed(0.1),
+      ),
+    ).toBeNull()
   })
 
   it('honors a forced target', () => {
     const rigged: ScriptedSpin = { ...spin, target: { kind: 'forced', segmentId: 'cal' } }
-    expect(resolveScriptedSpin(people, [], rigged, [], fixed(0.1))?.winnerId).toBe('cal')
+    expect(resolveScriptedSpin(base, [], rigged, [], fixed(0.1))?.winnerId).toBe('cal')
   })
 
   it('re-targets when a branch matches', () => {
@@ -65,7 +97,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'cal' } } },
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
   })
 
   it('leaves the spin alone when no branch matches', () => {
@@ -76,7 +108,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'cal' } } },
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('ana')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('ana')
   })
 
   it('replaces motion wholesale', () => {
@@ -93,7 +125,7 @@ describe('resolveScriptedSpin', () => {
         },
       },
     ]
-    const result = resolveScriptedSpin(people, [], spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, branches, fixed(0.1))
     expect(result?.motion.direction).toBe('ccw')
     expect(result?.motion.turns).toBe(2)
     expect(result?.winnerId).toBe('ben')
@@ -107,7 +139,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { motion: { direction: 'ccw' } } },
       },
     ]
-    const result = resolveScriptedSpin(people, [], spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, branches, fixed(0.1))
     expect(result?.motion.direction).toBe('ccw')
     expect(result?.motion.turns).toBe(5)
     expect(result?.motion.easing).toBe('linear')
@@ -136,7 +168,7 @@ describe('resolveScriptedSpin', () => {
         ],
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
   })
 
   it('does not re-scan siblings after descending', () => {
@@ -155,7 +187,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'ben' } } },
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('cal')
   })
 
   it('takes the first matching sibling, not the last', () => {
@@ -174,7 +206,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { target: { kind: 'forced', segmentId: 'cal' } } },
       },
     ]
-    expect(resolveScriptedSpin(people, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
+    expect(resolveScriptedSpin(base, [], spin, branches, fixed(0.1))?.winnerId).toBe('ben')
   })
 
   it('enables a trick through a modifier', () => {
@@ -203,7 +235,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { enableTricks: ['beer'] } },
       },
     ]
-    const result = resolveScriptedSpin(people, tricks, spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
     // The takeover wedge swallows the wheel, so it must be the winner.
     expect(result?.winnerId).toBe('beer:wedge')
     expect(result?.morphs.length).toBeGreaterThan(0)
@@ -224,7 +256,7 @@ describe('resolveScriptedSpin', () => {
       },
     ]
     // With the trick on, ana vanishes and cannot win. Turning it off restores her.
-    const withTrick = resolveScriptedSpin(people, tricks, spin, [], fixed(0.1))
+    const withTrick = resolveScriptedSpin(base, tricks, spin, [], fixed(0.1))
     expect(withTrick?.winnerId).not.toBe('ana')
 
     const branches: BranchNode[] = [
@@ -234,20 +266,57 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { disableTricks: ['gone'] } },
       },
     ]
-    const result = resolveScriptedSpin(people, tricks, spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
     expect(result?.morphs).toEqual([])
     expect(result?.winnerId).toBe('ana')
   })
 
-  it('uses one frozen roll for the whole walk', () => {
-    // A counting rng proves the resolver draws exactly once no matter how many
-    // times it re-evaluates. Re-rolling would move the winner for reasons the
-    // operator did not author.
-    let calls = 0
-    const counting: Rng = () => {
-      calls++
-      return 0.1
+  it('draws once for the winner and once for selectors, however deep the walk', () => {
+    // A counting rng proves the resolver draws a fixed number of times no matter
+    // how many times it re-evaluates: two up front, then nothing per depth.
+    // Re-rolling inside the loop would move the winner for reasons the operator
+    // did not author. The count is 2 rather than 1 because selectors must not
+    // share the winner's draw — see the comment on resolveScriptedSpin.
+    const drawsFor = (branches: BranchNode[]) => {
+      let calls = 0
+      const counting: Rng = () => {
+        calls++
+        return 0.1
+      }
+      resolveScriptedSpin(base, [], spin, branches, counting)
+      return calls
     }
+
+    const shallow: BranchNode[] = [
+      {
+        id: 'a',
+        when: { kind: 'landsOn', segmentIds: ['ana'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 9 } } },
+        // biome-ignore lint/suspicious/noThenProperty: `then` is BranchNode's routing field, not a thenable.
+        then: [{ id: 'b', when: { kind: 'landsOn', segmentIds: ['ana'] } }],
+      },
+    ]
+    // Holding the count flat from no branches to a full-depth chain is what pins
+    // the property. A bare number would also be satisfied by a resolver that drew
+    // once per pass over a fixture that happened to make two passes.
+    expect(drawsFor([])).toBe(2)
+    expect(drawsFor(shallow)).toBe(2)
+    expect(drawsFor(anaChain(MAX_DEPTH - 1))).toBe(2)
+  })
+
+  it('hands every recipe that same roll at every depth', () => {
+    // Freezing the draw only matters if it reaches recipes: selectors resolve
+    // against `ctx.roll`, so a re-roll per depth would reshuffle one trick's
+    // pick because an unrelated modifier fired deeper in the tree.
+    const seen: number[] = []
+    const spy = vi.spyOn(RECIPES.recolor, 'resolve').mockImplementation((_params, ctx) => {
+      seen.push(ctx.roll)
+      return []
+    })
+
+    const tricks: Trick[] = [
+      { id: 'gray', name: 'gray', recipe: 'recolor', params: {}, enabled: true },
+    ]
     const branches: BranchNode[] = [
       {
         id: 'a',
@@ -257,8 +326,13 @@ describe('resolveScriptedSpin', () => {
         then: [{ id: 'b', when: { kind: 'landsOn', segmentIds: ['ana'] } }],
       },
     ]
-    resolveScriptedSpin(people, [], spin, branches, counting)
-    expect(calls).toBe(1)
+
+    resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
+
+    // More than one evaluation, all of them the same draw.
+    expect(seen.length).toBeGreaterThan(1)
+    expect(new Set(seen)).toEqual(new Set([0.1]))
+    spy.mockRestore()
   })
 
   it('ignores every draw after the first', () => {
@@ -278,11 +352,45 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { motion: { turns: 9 } } },
       },
     ]
-    const drifted = resolveScriptedSpin(people, [], spin, branches, drifting)
-    expect(drifted).toEqual(resolveScriptedSpin(people, [], spin, branches, fixed(0.42)))
+    const drifted = resolveScriptedSpin(base, [], spin, branches, drifting)
+    expect(drifted).toEqual(resolveScriptedSpin(base, [], spin, branches, fixed(0.42)))
     // Vacuous if the branch never fired, which would mean only one evaluation ran.
     expect(drifted?.motion.turns).toBe(9)
     expect(drifted?.winnerId).toBe('ben')
+  })
+
+  it('keeps the selector roll off the winner, so a random trick cannot spoil it', () => {
+    // A shared draw made '@randomExternal' pick exactly the wedge weightedRandom
+    // was about to: on an equal-weight roster both reduce to floor(roll * n) over
+    // the same list, so they agreed every time. Morphs animate during the spin,
+    // so the trick painted the winner gold before the wheel landed — the leak
+    // that choosing the winner up front exists to prevent.
+    const roster: Composition = {
+      segments: people,
+      origins: new Map(
+        people.map((segment) => [
+          segment.id,
+          { kind: 'external', feedId: 'sim', itemId: segment.id } as const,
+        ]),
+      ),
+    }
+    const tricks: Trick[] = [
+      {
+        id: 'gold',
+        name: 'gold',
+        recipe: 'recolor',
+        params: { targets: ['@randomExternal'], toColor: '#ffd700' },
+        enabled: true,
+      },
+    ]
+    // First draw picks the winner, second picks the target. 0.1 lands on ana,
+    // 0.9 selects cal — a fixed rng cannot show this, since it makes the two
+    // agree for the honest reason.
+    let n = 0
+    const twoDraws: Rng = () => [0.1, 0.9][n++] ?? 0.5
+    const result = resolveScriptedSpin(roster, tricks, spin, [], twoDraws)
+    expect(result?.winnerId).toBe('ana')
+    expect(result?.morphs.map((morph) => morph.segmentId)).toEqual(['cal'])
   })
 
   it('settles on the deepest chain that still fits under the cap', () => {
@@ -290,7 +398,7 @@ describe('resolveScriptedSpin', () => {
     // final pass finds no node, so MAX_DEPTH - 1 nodes is the longest legal chain.
     // An off-by-one here makes deep-but-valid trees stop descending and report
     // exhausted, which is a wrong answer that looks like a working one.
-    const result = resolveScriptedSpin(people, [], spin, anaChain(MAX_DEPTH - 1), fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, anaChain(MAX_DEPTH - 1), fixed(0.1))
     expect(result?.kind).toBe('settled')
     expect(result?.winnerId).toBe('ana')
   })
@@ -302,12 +410,99 @@ describe('resolveScriptedSpin', () => {
       kind: 'modify',
       modifier: { motion: { turns: 9, direction: 'ccw' } },
     })
-    const result = resolveScriptedSpin(people, [], spin, deepest, fixed(0.1))
+    const result = resolveScriptedSpin(base, [], spin, deepest, fixed(0.1))
     assert(result?.kind === 'exhausted')
     expect(result.winnerId).toBe('ana')
     expect(result.depth).toBe(MAX_DEPTH)
     expect(result.motion.turns).toBe(9)
     expect(result.motion.direction).toBe('ccw')
+  })
+
+  it('expands a selector token in a branch condition', () => {
+    // A feed-only wheel: the only wedge is an attendee, so '@external' is the
+    // only way to write a rule about whoever is in the room. Matching the raw
+    // id list never fired, which made every branch on a live roster dead.
+    const roster = withRoster([], ['Ana'])
+    const branches: BranchNode[] = [
+      {
+        id: 'attendee',
+        when: { kind: 'landsOn', segmentIds: ['@external'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 99 } } },
+      },
+    ]
+    const result = resolveScriptedSpin(roster, [], spin, branches, fixed(0.1))
+    expect(result?.winnerId).toBe('sim:ana')
+    expect(result?.motion.turns).toBe(99)
+  })
+
+  it('tells the two origins apart in a condition', () => {
+    // The same wheel and the same rigged winner, so only the token can decide.
+    const mixed = withRoster([{ id: 'again', label: 'Spin again', weight: 1 }], ['Ana'])
+    const rigged: ScriptedSpin = { ...spin, target: { kind: 'forced', segmentId: 'again' } }
+    const on = (token: string): BranchNode[] => [
+      {
+        id: 'rule',
+        when: { kind: 'landsOn', segmentIds: [token] },
+        do: { kind: 'modify', modifier: { motion: { turns: 99 } } },
+      },
+    ]
+
+    expect(resolveScriptedSpin(mixed, [], rigged, on('@external'), fixed(0.1))?.motion.turns).toBe(
+      spin.motion.turns,
+    )
+    expect(resolveScriptedSpin(mixed, [], rigged, on('@static'), fixed(0.1))?.motion.turns).toBe(99)
+  })
+
+  it('still matches a concrete id alongside a token', () => {
+    // Concrete ids are the only form that existed before selectors, so mixing
+    // one in has to keep resolving exactly as it did — the token must not
+    // become the whole condition.
+    const mixed = withRoster([{ id: 'again', label: 'Spin again', weight: 1 }], ['Ana'])
+    const branches: BranchNode[] = [
+      {
+        id: 'either',
+        when: { kind: 'landsOn', segmentIds: ['@computed', 'again'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 99 } } },
+      },
+    ]
+    const rigged = (segmentId: string): ScriptedSpin => ({
+      ...spin,
+      target: { kind: 'forced', segmentId },
+    })
+
+    expect(
+      resolveScriptedSpin(mixed, [], rigged('again'), branches, fixed(0.1))?.motion.turns,
+    ).toBe(99)
+    expect(
+      resolveScriptedSpin(mixed, [], rigged('sim:ana'), branches, fixed(0.1))?.motion.turns,
+    ).toBe(spin.motion.turns)
+  })
+
+  it('draws @randomExternal in a condition from the selector roll', () => {
+    // Same fixture, same winner, two different second draws. Matching on the
+    // winner's own roll would make the token name the winner every time on an
+    // equal-weight roster — the correlation the second draw exists to break.
+    const roster = withRoster([], ['Ana', 'Ben', 'Cal'])
+    const branches: BranchNode[] = [
+      {
+        id: 'chosen',
+        when: { kind: 'landsOn', segmentIds: ['@randomExternal'] },
+        do: { kind: 'modify', modifier: { motion: { turns: 99 } } },
+      },
+    ]
+    const draws = (values: number[]): ReturnType<typeof resolveScriptedSpin> => {
+      let n = 0
+      return resolveScriptedSpin(roster, [], spin, branches, () => values[n++] ?? 0.5)
+    }
+
+    // 0.1 wins ana in both runs; the selector picks cal, then ana.
+    const missed = draws([0.1, 0.9])
+    expect(missed?.winnerId).toBe('sim:ana')
+    expect(missed?.motion.turns).toBe(spin.motion.turns)
+
+    const hit = draws([0.1, 0.1])
+    expect(hit?.winnerId).toBe('sim:ana')
+    expect(hit?.motion.turns).toBe(99)
   })
 
   it('lets enable win when one modifier names a trick in both lists', () => {
@@ -330,7 +525,7 @@ describe('resolveScriptedSpin', () => {
         do: { kind: 'modify', modifier: { enableTricks: ['gone'], disableTricks: ['gone'] } },
       },
     ]
-    const result = resolveScriptedSpin(people, tricks, spin, branches, fixed(0.1))
+    const result = resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
     // The trick ran, so ana vanished and someone else took the landing.
     expect(result?.morphs.length).toBeGreaterThan(0)
     expect(result?.winnerId).toBe('ben')

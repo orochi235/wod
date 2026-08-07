@@ -1,9 +1,9 @@
+import type { Composition, Origin } from '../compose/types'
 import type { Morph, Segment } from '../wheel/types'
 import { getRecipe } from './registry'
 import type { Trick } from './types'
 
-export type ResolvedTricks = {
-  segments: Segment[]
+export type ResolvedTricks = Composition & {
   morphs: Morph[]
 }
 
@@ -12,34 +12,50 @@ export type ResolvedTricks = {
  * must exist before any recipe resolves, or a recipe targeting "everything"
  * would miss a wedge contributed by a trick listed after it.
  *
- * Composition is last-write-wins in trick-list order. `applyMorphs` walks the
+ * Morphs are last-write-wins in trick-list order. `applyMorphs` walks the
  * morph array in sequence, and a morph carrying an explicit `at: 0` keyframe
- * overwrites whatever an earlier morph accumulated.
+ * overwrites whatever an earlier morph accumulated. Wedges go the other way —
+ * first write wins, so a computed wedge can never displace a static one.
  */
 export function resolveTricks(
-  segments: Segment[],
+  base: Composition,
   tricks: Trick[],
   durationMs: number,
+  roll = 0,
 ): ResolvedTricks {
   const active = tricks.filter((trick) => trick.enabled && getRecipe(trick.recipe) !== null)
 
   // Pass 1: provide.
-  const provided: Segment[] = []
+  const segments: Segment[] = [...base.segments]
+  const origins = new Map<string, Origin>(base.origins)
   for (const trick of active) {
     const recipe = getRecipe(trick.recipe)
-    if (recipe) provided.push(...recipe.provides(trick.params, trick.id))
+    if (!recipe) continue
+    for (const segment of recipe.provides(trick.params, trick.id)) {
+      // Same dedupe rule composeBase applies: one id, one arc.
+      if (origins.has(segment.id)) continue
+      segments.push(segment)
+      origins.set(segment.id, { kind: 'computed', trickId: trick.id })
+    }
   }
-  const all = [...segments, ...provided]
 
   // Pass 2: resolve.
   const morphs: Morph[] = []
   for (const trick of active) {
     const recipe = getRecipe(trick.recipe)
     if (!recipe) continue
-    morphs.push(...recipe.resolve(trick.params, { trickId: trick.id, segments: all, durationMs }))
+    morphs.push(
+      ...recipe.resolve(trick.params, {
+        trickId: trick.id,
+        segments,
+        origins,
+        durationMs,
+        roll,
+      }),
+    )
   }
 
-  return { segments: all, morphs }
+  return { segments, origins, morphs }
 }
 
 /**

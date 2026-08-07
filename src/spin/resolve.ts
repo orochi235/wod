@@ -1,5 +1,7 @@
+import type { Composition, Origin } from '../compose/types'
 import type { BranchNode, Motion, ScriptedSpin, SpinModifier, Target } from '../preset/types'
 import { resolveTricks } from '../tricks/resolve'
+import { resolveTargets } from '../tricks/targets'
 import type { Trick } from '../tricks/types'
 import { landingSegments } from '../wheel/morph'
 import type { Rng, SelectionStrategy } from '../wheel/selection'
@@ -57,15 +59,17 @@ function applyModifier(spin: ScriptedSpin, modifier: SpinModifier): ScriptedSpin
 /** The wheel as it launches (`withWedges`) and as it comes to rest (`landing`). */
 type WheelState = {
   withWedges: Segment[]
+  origins: Map<string, Origin>
   morphs: Morph[]
   landing: Segment[]
 }
 
 function evaluateWheel(
-  segments: Segment[],
+  base: Composition,
   tricks: Trick[],
   enabled: Set<string>,
   spin: ScriptedSpin,
+  selectorRoll: number,
 ): WheelState {
   // `resolveTricks` filters on each trick's own `enabled` flag, which is only the
   // baseline here. Stamping the resolved set onto the copies it receives is what
@@ -74,9 +78,43 @@ function evaluateWheel(
   const active = tricks
     .filter((trick) => enabled.has(trick.id))
     .map((trick) => ({ ...trick, enabled: true }))
-  const { segments: withWedges, morphs } = resolveTricks(segments, active, spin.motion.durationMs)
+  const {
+    segments: withWedges,
+    origins,
+    morphs,
+  } = resolveTricks(base, active, spin.motion.durationMs, selectorRoll)
   const landing = landingSegments(withWedges, morphs, spin.motion.durationMs)
-  return { withWedges, morphs, landing }
+  return { withWedges, origins, morphs, landing }
+}
+
+/**
+ * Whether the winner satisfies a node's condition, with selector tokens expanded
+ * the same way a recipe's `targets` are — the spec asks for late binding on both,
+ * and a condition naming '@external' is the only way to write a rule about a
+ * roster whose ids do not exist at authoring time.
+ *
+ * Expanded against `withWedges`, not `landing`. Both hold the same wedges today
+ * — `applyMorphs` rewrites a wedge's weight, never the membership of the list —
+ * so this is a choice rather than a difference in outcome, and it is the choice
+ * that keeps "did this land on an attendee" independent of whether that
+ * attendee's arc happened to collapse on the way down.
+ *
+ * `selectorRoll`, not `roll`, for the reason spelled out on resolveScriptedSpin:
+ * '@randomExternal' and the winner's draw both reduce to floor(roll * n) over
+ * the same list, so sharing one would make the token name the winner every time.
+ *
+ * An empty `segmentIds` cannot arrive here: `readCondition` drops the node, as
+ * `storage.test.ts` pins. That matters because `resolveTargets` reads empty as
+ * *every* wedge, which would turn such a condition into a match-anything rather
+ * than the never-matches it used to be — so a future relaxation there needs an
+ * explicit empty check added right here.
+ */
+function matches(node: BranchNode, winnerId: string, wheel: WheelState, roll: number): boolean {
+  return resolveTargets(node.when.segmentIds, {
+    segments: wheel.withWedges,
+    origins: wheel.origins,
+    roll,
+  }).some((segment) => segment.id === winnerId)
 }
 
 /**
@@ -86,18 +124,25 @@ function evaluateWheel(
  * already returns null for.
  */
 export function resolveScriptedSpin(
-  segments: Segment[],
+  base: Composition,
   tricks: Trick[],
   spin: ScriptedSpin,
   branches: BranchNode[],
   rng: Rng,
 ): Resolution | null {
-  // One roll for the whole resolution. Re-rolling on each pass would move the
-  // winner for reasons unrelated to the operator's modifiers: a node could fire
-  // on a draw that no longer exists, and the same preset would resolve
-  // differently every run. Freezing it means every change in winner is caused
-  // by a modifier, which is the only way the tree is readable.
+  // Two draws, each frozen for the whole resolution. Re-rolling on each pass
+  // would move the winner for reasons unrelated to the operator's modifiers: a
+  // node could fire on a draw that no longer exists, and the same preset would
+  // resolve differently every run. Freezing means every change in winner is
+  // caused by a modifier, which is the only way the tree is readable.
+  //
+  // They have to be two. Selection and '@randomExternal' both reduce to
+  // floor(roll * n) over the same list, so one shared number makes the random
+  // attendee *be* the winner on an equal-weight roster. Morphs animate during
+  // the spin, so that trick would paint the outcome before the wheel lands —
+  // the exact leak that picking the winner up front is meant to prevent.
   const roll = rng()
+  const selectorRoll = rng()
   const frozen: Rng = () => roll
 
   let current = spin
@@ -105,12 +150,13 @@ export function resolveScriptedSpin(
   let level = branches
 
   for (let depth = 0; depth < MAX_DEPTH; depth++) {
-    const { withWedges, morphs, landing } = evaluateWheel(segments, tricks, enabled, current)
+    const wheel = evaluateWheel(base, tricks, enabled, current, selectorRoll)
+    const { withWedges, morphs, landing } = wheel
     const winnerId = strategyFor(current.target)(landing, frozen)
     if (!winnerId) return null
 
     // First match wins, so sibling order is authored meaning, not an accident.
-    const node = level.find((candidate) => candidate.when.segmentIds.includes(winnerId))
+    const node = level.find((candidate) => matches(candidate, winnerId, wheel, selectorRoll))
     if (!node) {
       return { kind: 'settled', winnerId, segments: withWedges, morphs, motion: current.motion }
     }
@@ -126,7 +172,13 @@ export function resolveScriptedSpin(
 
   // The cap was reached with a node still matching. Recompute once so the caller
   // sees the wheel as the last applied modifier left it.
-  const { withWedges, morphs, landing } = evaluateWheel(segments, tricks, enabled, current)
+  const { withWedges, morphs, landing } = evaluateWheel(
+    base,
+    tricks,
+    enabled,
+    current,
+    selectorRoll,
+  )
   const winnerId = strategyFor(current.target)(landing, frozen)
   if (!winnerId) return null
   return {
