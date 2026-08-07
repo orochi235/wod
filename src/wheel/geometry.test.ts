@@ -31,6 +31,15 @@ describe('normalizeWeights', () => {
   it('returns an empty array for no segments', () => {
     expect(normalizeWeights([])).toEqual([])
   })
+
+  it('keeps the proportions when the weights sum past the float ceiling', () => {
+    const result = normalizeWeights([
+      { id: 'a', weight: 1e308 },
+      { id: 'b', weight: 1e308 },
+      { id: 'c', weight: 1e308 },
+    ])
+    for (const fraction of result) expect(fraction).toBeCloseTo(1 / 3, 10)
+  })
 })
 
 describe('arcs', () => {
@@ -82,6 +91,17 @@ describe('arcs', () => {
         expect(arc.start).toBeGreaterThanOrEqual(0)
       }
     }
+  })
+
+  it('lays out weights that individually fit but together overflow to Infinity', () => {
+    const result = arcs([
+      { id: 'a', weight: 1e308 },
+      { id: 'b', weight: 1e308 },
+      { id: 'c', weight: 1e308 },
+    ])
+    expect(result[0].end).toBeCloseTo(1 / 3, 10)
+    expect(result[1].end).toBeCloseTo(2 / 3, 10)
+    expect(result[2].end).toBe(1)
   })
 })
 

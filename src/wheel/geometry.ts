@@ -3,18 +3,37 @@ export type Weighted = { id: string; weight: number }
 /** An arc measured in turns: 0 is 12 o'clock, increasing clockwise to 1. */
 export type Arc = { id: string; start: number; end: number }
 
-export function normalizeWeights(items: Weighted[]): number[] {
-  if (items.length === 0) return []
+/**
+ * Weights reduced to something safe to divide by, plus their total.
+ *
+ * Each weight is screened the same way both callers used to screen it. The sum
+ * needs its own screen: a weight of 1e308 is finite and passes, but three of
+ * them total `Infinity`, and every boundary derived from that total comes back
+ * `NaN` — arcs with `NaN` angles render nothing and resolve no pointer. Scaling
+ * by the largest weight first bounds the total at `items.length` while leaving
+ * the ratios alone. Only overflow takes that path, so ordinary weights divide by
+ * exactly the total they always did and no boundary shifts by a float.
+ */
+function safeWeights(items: Weighted[]): { safe: number[]; total: number } {
   const safe = items.map((i) => (Number.isFinite(i.weight) && i.weight > 0 ? i.weight : 0))
   const total = safe.reduce((sum, w) => sum + w, 0)
+  if (Number.isFinite(total)) return { safe, total }
+
+  const max = safe.reduce((m, w) => (w > m ? w : m), 0)
+  const scaled = safe.map((w) => w / max)
+  return { safe: scaled, total: scaled.reduce((sum, w) => sum + w, 0) }
+}
+
+export function normalizeWeights(items: Weighted[]): number[] {
+  if (items.length === 0) return []
+  const { safe, total } = safeWeights(items)
   if (total <= 0) return items.map(() => 1 / items.length)
   return safe.map((w) => w / total)
 }
 
 export function arcs(items: Weighted[]): Arc[] {
   if (items.length === 0) return []
-  const safe = items.map((i) => (Number.isFinite(i.weight) && i.weight > 0 ? i.weight : 0))
-  const total = safe.reduce((sum, w) => sum + w, 0)
+  const { safe, total } = safeWeights(items)
 
   const out: Arc[] = []
   let cursor = 0
