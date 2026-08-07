@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { publishFeed, subscribeFeed } from './bus'
+import { publishFeed, requestFeeds, subscribeFeed, subscribeFeedRequests } from './bus'
 
 /** BroadcastChannel delivers on a later turn of the event loop. */
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -65,6 +65,45 @@ describe('feed bus', () => {
 
     expect(seen).not.toHaveBeenCalled()
     stop()
+  })
+
+  it('carries a request to whoever answers them', async () => {
+    const asked = vi.fn()
+    const stop = subscribeFeedRequests(asked)
+
+    requestFeeds()
+    await flush()
+
+    expect(asked).toHaveBeenCalledTimes(1)
+    stop()
+  })
+
+  it('keeps requests off the roster subscribers', async () => {
+    // A window that hears its own arrival announcement as a roster would
+    // compose an empty wheel from it.
+    const seen = vi.fn()
+    const asked = vi.fn()
+    const stopSeen = subscribeFeed(seen)
+    const stopAsked = subscribeFeedRequests(asked)
+
+    requestFeeds()
+    publishFeed({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] })
+    await flush()
+
+    expect(seen).toHaveBeenCalledTimes(1)
+    expect(asked).toHaveBeenCalledTimes(1)
+    stopSeen()
+    stopAsked()
+  })
+
+  it('stops delivering requests after unsubscribe', async () => {
+    const asked = vi.fn()
+    subscribeFeedRequests(asked)()
+
+    requestFeeds()
+    await flush()
+
+    expect(asked).not.toHaveBeenCalled()
   })
 
   it('leaves one subscriber receiving after another unsubscribes', async () => {

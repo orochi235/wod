@@ -1,7 +1,7 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { subscribeFeed } from '../feed/bus'
+import { requestFeeds, subscribeFeed } from '../feed/bus'
 import { PRESET_KEY, parsePreset } from '../preset/storage'
 import { Editor } from './Editor'
 
@@ -118,6 +118,29 @@ describe('Editor feed', () => {
       await flush()
 
       expect(seen).toHaveBeenLastCalledWith({ feedId: 'sim', items: [] })
+    } finally {
+      stop()
+    }
+  })
+
+  it('answers a show window that arrives after the last publish', async () => {
+    const seen = vi.fn()
+    const stop = subscribeFeed(seen)
+    try {
+      render(<Editor />)
+      await userEvent.click(screen.getByRole('button', { name: 'Join Fay' }))
+      await flush()
+      seen.mockClear()
+
+      // A show window reloaded mid-meeting has missed every publish so far,
+      // and with autochurn off there may never be another one.
+      requestFeeds()
+      await flush()
+
+      expect(seen).toHaveBeenLastCalledWith({
+        feedId: 'sim',
+        items: [{ id: 'fay', label: 'Fay' }],
+      })
     } finally {
       stop()
     }
