@@ -129,6 +129,7 @@ export function Editor() {
         <section className="editor__column editor__column--left">
           <SegmentList
             segments={preset.segments}
+            base={base}
             tricks={preset.tricks}
             selectedTrickId={selectedTrickId}
             onChange={(segments) => update({ ...preset, segments })}

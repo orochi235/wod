@@ -1,11 +1,16 @@
 import { PropertyPanel } from '@weasel-js/labkit'
 import { Button } from '@weasel-js/labkit/weasel-ui'
+import type { Composition } from '../compose/types'
 import { wedgeOwners } from '../tricks/resolve'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 
 export type SegmentListProps = {
+  /** The authored wedges, the only ones these rows may edit. */
   segments: Segment[]
+  /** Everything already on the wheel before tricks, so a ghost row cannot
+      duplicate a wedge the composition already produced. */
+  base: Composition
   tricks: Trick[]
   /** Highlights the ghost row belonging to the trick under edit. */
   selectedTrickId: string | null
@@ -21,12 +26,13 @@ function nextId(segments: Segment[]): string {
 
 export function SegmentList({
   segments,
+  base,
   tricks,
   selectedTrickId,
   onChange,
   onSelectTrick,
 }: SegmentListProps) {
-  const owners = wedgeOwners(tricks)
+  const owners = wedgeOwners(base, tricks)
 
   const replace = (index: number, patch: Partial<Segment>) => {
     onChange(segments.map((segment, i) => (i === index ? { ...segment, ...patch } : segment)))

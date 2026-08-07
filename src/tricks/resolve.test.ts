@@ -123,18 +123,37 @@ describe('trick data that names something on Object.prototype', () => {
 
 describe('wedgeOwners', () => {
   it('reports the trick that contributed a wedge', () => {
-    expect(wedgeOwners([beerTakeover]).get('beer:wedge')?.id).toBe('beer')
+    expect(wedgeOwners(base, [beerTakeover]).get('beer:wedge')?.id).toBe('beer')
   })
 
   it('reports nothing for a disabled trick, which contributes no wedge', () => {
     // Must agree with resolveTricks, or the editor labels a segment that is
     // not on the wheel.
-    expect(wedgeOwners([{ ...beerTakeover, enabled: false }]).size).toBe(0)
+    expect(wedgeOwners(base, [{ ...beerTakeover, enabled: false }]).size).toBe(0)
   })
 
   it('reports nothing for an unknown recipe', () => {
     const bogus = { ...beerTakeover, recipe: 'nonsense' } as unknown as Trick
-    expect(wedgeOwners([bogus]).size).toBe(0)
+    expect(wedgeOwners(base, [bogus]).size).toBe(0)
+  })
+
+  it('reports nothing when the base already owns the id', () => {
+    // resolveTricks drops the computed wedge in favor of the composed one, so
+    // claiming ownership here would draw a ghost row for a wedge the wheel
+    // does not have.
+    const taken = composeBase({
+      statics: [...people, { id: 'beer:wedge', label: 'free beer', weight: 1 }],
+      feeds: [],
+      items: {},
+      overrides: {},
+    })
+    expect(wedgeOwners(taken, [beerTakeover]).size).toBe(0)
+  })
+
+  it('gives a contested id to the first trick, as resolveTricks does', () => {
+    const second: Trick = { ...beerTakeover, name: 'second claim' }
+    const owners = wedgeOwners(base, [beerTakeover, second])
+    expect(owners.get('beer:wedge')?.name).toBe('slow burn')
   })
 })
 
