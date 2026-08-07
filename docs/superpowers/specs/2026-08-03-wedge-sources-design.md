@@ -287,6 +287,15 @@ wheel window is a pure consumer that renders whatever arrives. With the editor
 closed, the roster freezes at its last published state, which is a
 comprehensible failure rather than two windows fighting over who churns.
 
+**A consumer announces itself.** Publishing on change alone strands a wheel
+window that was opened or reloaded after the last publish: it holds statics
+only, and with autochurn off nothing would ever resend. So the channel carries
+a second shape — `requestFeeds()` posts `{ request: true }`, and the publisher
+answers with its current roster (`subscribeFeedRequests`). Every reader screens
+for the shape it wants, so a request never lands on a roster subscriber. An
+editor that is not open cannot answer, which degrades to exactly the frozen
+roster above.
+
 ## The simulated meeting
 
 `feeds/simulated.ts` implements the same `Feed` interface a real source would.

@@ -59,7 +59,7 @@ export const takeover: Recipe = {
     },
     { key: 'wedgeLabel', label: 'Wedge label', kind: 'text' },
     { key: 'wedgeColor', label: 'Wedge color', kind: 'color' },
-    { key: 'wedgeSegmentId', label: 'Existing wedge', kind: 'segments' },
+    { key: 'wedgeSegmentId', label: 'Existing wedge', kind: 'segment' },
     { key: 'holdUntil', label: 'Holds until', kind: 'slider', min: 0, max: 1, step: 0.05 },
     { key: 'endShare', label: 'Final share', kind: 'slider', min: 0, max: 1, step: 0.05 },
     { key: 'endColor', label: 'Final color', kind: 'color' },

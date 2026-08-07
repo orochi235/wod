@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { composeBase } from './compose/compose'
-import { subscribeFeed } from './feed/bus'
+import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
@@ -22,13 +22,18 @@ export function App() {
 
   // The editor window owns the clock; this one only renders what arrives. With
   // no editor open the roster freezes, which is a comprehensible failure.
-  useEffect(
-    () =>
-      subscribeFeed(({ feedId, items: published }) =>
-        setItems((current) => ({ ...current, [feedId]: published })),
-      ),
-    [],
-  )
+  //
+  // Subscribing first, then announcing: this window may have been opened or
+  // reloaded long after the last publish, and nothing would resend one until
+  // the roster next changed. An editor that is not open cannot answer, which
+  // leaves exactly the frozen-roster case above.
+  useEffect(() => {
+    const stop = subscribeFeed(({ feedId, items: published }) =>
+      setItems((current) => ({ ...current, [feedId]: published })),
+    )
+    requestFeeds()
+    return stop
+  }, [])
 
   const base = useMemo(
     () =>

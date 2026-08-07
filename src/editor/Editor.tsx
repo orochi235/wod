@@ -1,7 +1,7 @@
 import { LabShell } from '@weasel-js/labkit'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { composeBase } from '../compose/compose'
-import { publishFeed } from '../feed/bus'
+import { publishFeed, subscribeFeedRequests } from '../feed/bus'
 import { itemsFor } from '../feed/simulated'
 import type { FeedItem } from '../feed/types'
 import { loadPreset, savePreset } from '../preset/storage'
@@ -61,6 +61,23 @@ export function Editor() {
     if (!feedId) return
     publishFeed({ feedId, items: itemsOf(items, feedId) })
   }, [feedId, items])
+
+  // What the last publish said, for answering a window that missed it. A ref
+  // rather than a dependency: subscribing on every roster change would open and
+  // close a channel on each churn tick, and the answer only ever needs the
+  // latest roster.
+  const published = useRef<FeedItem[]>([])
+  published.current = feedId ? itemsOf(items, feedId) : []
+
+  // Publishing on change alone leaves a show window opened later showing
+  // statics, until a change it happens to be present for. It announces itself
+  // instead, and this answers.
+  useEffect(() => {
+    if (!feedId) return
+    return subscribeFeedRequests(() => {
+      publishFeed({ feedId, items: published.current })
+    })
+  }, [feedId])
 
   const base = useMemo(
     () =>
@@ -129,6 +146,7 @@ export function Editor() {
         <section className="editor__column editor__column--left">
           <SegmentList
             segments={preset.segments}
+            base={base}
             tricks={preset.tricks}
             selectedTrickId={selectedTrickId}
             onChange={(segments) => update({ ...preset, segments })}

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { recolor } from '../tricks/recipes/recolor'
 import { takeover } from '../tricks/recipes/takeover'
 import type { TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
@@ -84,8 +85,8 @@ describe('RecipeForm', () => {
   it('lists the current segments in a segments field', () => {
     render(
       <RecipeForm
-        recipe={takeover}
-        params={takeover.defaults}
+        recipe={recolor}
+        params={recolor.defaults}
         segments={segments}
         onChange={vi.fn()}
       />,
@@ -98,8 +99,8 @@ describe('RecipeForm', () => {
     // would otherwise be indistinguishable from the selector of that name.
     render(
       <RecipeForm
-        recipe={takeover}
-        params={takeover.defaults}
+        recipe={recolor}
+        params={recolor.defaults}
         segments={segments}
         onChange={vi.fn()}
       />,
@@ -107,5 +108,33 @@ describe('RecipeForm', () => {
     expect(screen.getByRole('option', { name: 'All roster wedges' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Selectors' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Wedges' })).toBeInTheDocument()
+  })
+
+  it('writes a single-wedge field as a bare id the recipe accepts', async () => {
+    // The whole point of the field kind: takeover reads wedgeSegmentId with
+    // readString, so a multi-select writing ['ana'] left validate() reporting
+    // "no wedge chosen" whatever the operator picked.
+    const onChange = vi.fn()
+    const params = { ...takeover.defaults, wedgeMode: 'existing' }
+    render(<RecipeForm recipe={takeover} params={params} segments={segments} onChange={onChange} />)
+    await userEvent.selectOptions(screen.getByLabelText('Existing wedge'), 'ana')
+
+    const next = onChange.mock.calls.at(-1)?.[0]
+    expect(next?.wedgeSegmentId).toBe('ana')
+    expect(takeover.validate(next as TrickParams, segments)).toBeNull()
+  })
+
+  it('leaves a single-wedge field unchosen rather than defaulting to a wedge', () => {
+    // '' is a real state: takeover.validate reports "no wedge chosen" for it,
+    // and an operator who switched to 'existing' has not chosen yet.
+    render(
+      <RecipeForm
+        recipe={takeover}
+        params={{ ...takeover.defaults, wedgeMode: 'existing' }}
+        segments={segments}
+        onChange={vi.fn()}
+      />,
+    )
+    expect(screen.getByLabelText('Existing wedge')).toHaveValue('')
   })
 })

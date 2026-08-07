@@ -2455,39 +2455,57 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
   hand-editing an imported preset. The overrides panel row has no field for it.
   A deliberate scope call, not an oversight; worth adding when someone actually
   wants to rename a person on the wheel.
-- **A show window opened late sees no roster until the next churn tick.** Found
-  reviewing Task 9. The editor publishes on change, not on demand, so a show
-  window opened after the last publish shows only statics — and indefinitely if
-  autochurn is off. The spec covers the editor being *closed*; it does not cover
-  the show window arriving late. The fix belongs in `Editor.tsx` — either
-  republish whenever a subscriber appears, or have the show window announce
-  itself on the bus and the editor answer. Not reachable during a normal session
-  (the operator opens the editor first), but it will bite the first time someone
-  reloads the shared tab mid-meeting.
-- **Takeover's "existing wedge" mode is unusable from the editor.** Found during
-  Task 5, pre-existing. `takeover.ts:62` declares `wedgeSegmentId` as
+- ~~**A show window opened late sees no roster until the next churn tick.**~~
+  Found reviewing Task 9. The editor publishes on change, not on demand, so a
+  show window opened after the last publish shows only statics — and
+  indefinitely if autochurn is off.
+
+  **Fixed after the merge.** The announce-and-answer option: `requestFeeds()`
+  posts `{ request: true }` on the same channel, `subscribeFeedRequests` hands
+  it to the editor, and the editor republishes the roster it last sent. App
+  subscribes before it announces, so an answer cannot arrive unheard. Chosen
+  over "republish whenever a subscriber appears" because a `BroadcastChannel`
+  publisher cannot see its subscribers — the arrival has to be a message
+  whatever it is called.
+- ~~**Takeover's "existing wedge" mode is unusable from the editor.**~~ Found
+  during Task 5, pre-existing. `takeover.ts` declared `wedgeSegmentId` as
   `kind: 'segments'`, which `RecipeForm` renders as a *multi*-select writing a
-  `string[]`, but `takeover.ts:17,172` read it with `readString`, which rejects
-  arrays and falls back to `''`. So `validate` returns "no wedge chosen"
-  whatever the operator picks. The fix is a distinct single-valued field kind
-  (`'segment'`), which is also the natural place to decide whether selector
-  tokens belong in a single-id field — `@randomExternal` would be coherent
-  there, the set-valued tokens would not.
-- **A huge weight overflows the normalizer to `NaN`.** Found reviewing Task 4.
-  `readSegments` and `readFeedDefaults` both reject `Infinity` and `NaN` but
-  accept `1e308`; three such weights sum to `Infinity`, and `arcs()` then emits
+  `string[]`, but the recipe reads it with `readString`, which rejects arrays
+  and falls back to `''`. So `validate` returned "no wedge chosen" whatever the
+  operator picked.
+
+  **Fixed after the merge.** A `kind: 'segment'` field renders one `SelectRow`
+  over the live wedge list, with an explicit empty choice so "not chosen yet"
+  stays representable. It carries **no selector tokens**: the set-valued ones
+  have no single-id meaning, and `@randomExternal` — the one that would be
+  coherent — needs the resolver and the frozen roll plumbed through `provides`,
+  which is a feature and not this fix. That decision is now recorded on the
+  field kind itself in `tricks/types.ts`.
+- ~~**A huge weight overflows the normalizer to `NaN`.**~~ Found reviewing Task
+  4. `readSegments` and `readFeedDefaults` both reject `Infinity` and `NaN` but
+  accept `1e308`; three such weights sum to `Infinity`, and `arcs()` then emitted
   `NaN` start and end angles, which renders nothing and breaks pointer
-  resolution. Pre-existing, and `composeBase` mirrors `readSegments`
-  deliberately, so capping in one parser alone would break that stated symmetry.
-  The fix belongs in `normalizeWeights` / `arcs`, where it can be made once.
-- **`wedgeOwners` does not apply the dedupe rule.** Found reviewing Task 2. When
-  a static wedge and a trick wedge collide on an id, `resolveTricks` correctly
-  drops the computed one, but `wedgeOwners` still reports the trick as owner, so
-  `SegmentList` renders a ghost row for a wedge that is not on the wheel. Not
-  reachable through the UI today — static ids are `seg{n}` and trick ids contain
-  no colon — so it needs an imported preset. Worth revisiting once operators can
-  choose a `feedId`, because composed `${feedId}:${itemId}` ids widen the
-  namespace that `${trickId}:wedge` can collide with.
+  resolution.
+
+  **Fixed after the merge**, in `geometry.ts` as predicted rather than in either
+  parser, so the parsers keep the symmetry `composeBase` depends on. A shared
+  `safeWeights` screens the *sum* the way both functions already screened each
+  weight: when the total is not finite it divides through by the largest weight
+  first, which bounds the total at `items.length` and leaves the ratios alone.
+  Only the overflow case takes that branch, so ordinary weights still divide by
+  exactly the total they always did and no existing boundary moves by a float.
+- ~~**`wedgeOwners` does not apply the dedupe rule.**~~ Found reviewing Task 2.
+  When a static wedge and a trick wedge collide on an id, `resolveTricks`
+  correctly drops the computed one, but `wedgeOwners` still reported the trick
+  as owner, so `SegmentList` rendered a ghost row for a wedge that is not on the
+  wheel.
+
+  **Fixed after the merge.** `wedgeOwners` now takes the `Composition` and
+  applies both rules pass 1 applies: an id the base already owns is skipped, and
+  between two tricks reaching for one id the first wins (it was last-write-wins).
+  `SegmentList` takes a `base` prop to supply it. This also covers the widening
+  the note anticipated — a composed `${feedId}:${itemId}` id is in `base.origins`
+  like any other, so no new rule is needed when operators can choose a `feedId`.
 - **No soft hint for an empty selector resolution.** The spec says a selector
   resolving to nothing should no-op "with a soft hint". The no-op ships; the hint
   does not. There is no surface for it today — `TrickLibrary` renders `Conflict[]`

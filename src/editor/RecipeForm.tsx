@@ -102,6 +102,22 @@ export function RecipeForm({ recipe, params, segments, onChange }: RecipeFormPro
             onChange={(next) => set(field.key, next)}
           />
         )
+      case 'segment':
+        return (
+          <SelectRow
+            key={field.key}
+            label={field.label}
+            // The empty choice is not padding: '' is what an unchosen field
+            // holds, and without a matching option the browser would show the
+            // first wedge while the params still said nothing was picked.
+            options={[
+              { value: '', label: 'Choose a wedge…' },
+              ...segments.map((segment) => ({ value: segment.id, label: segment.label })),
+            ]}
+            value={typeof value === 'string' ? value : ''}
+            onChange={(next) => set(field.key, next)}
+          />
+        )
       case 'segments':
         // No labkit multi-select exists. PropertyRow still provides the label
         // association and the panel's row styling.

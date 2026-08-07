@@ -2,9 +2,13 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { composeBase } from '../compose/compose'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 import { SegmentList } from './SegmentList'
+
+/** Statics only: what the wheel holds before any feed or trick contributes. */
+const baseOf = (statics: Segment[]) => composeBase({ statics, feeds: [], items: {}, overrides: {} })
 
 /**
  * SegmentList's inputs are genuinely controlled: React restores an <input>'s
@@ -27,6 +31,7 @@ function ControlledSegmentList({
   return (
     <SegmentList
       segments={segments}
+      base={baseOf(segments)}
       tricks={[]}
       selectedTrickId={null}
       onChange={(next) => {
@@ -43,6 +48,8 @@ const segments: Segment[] = [
   { id: 'ben', label: 'Ben', weight: 2 },
 ]
 
+const base = baseOf(segments)
+
 const beerTrick: Trick = {
   id: 'beer',
   name: 'slow burn',
@@ -56,6 +63,7 @@ describe('SegmentList', () => {
     render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[]}
         selectedTrickId={null}
         onChange={vi.fn()}
@@ -71,6 +79,7 @@ describe('SegmentList', () => {
     render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[]}
         selectedTrickId={null}
         onChange={onChange}
@@ -89,6 +98,7 @@ describe('SegmentList', () => {
     render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[]}
         selectedTrickId={null}
         onChange={onChange}
@@ -124,6 +134,7 @@ describe('SegmentList', () => {
     render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[beerTrick]}
         selectedTrickId={null}
         onChange={vi.fn()}
@@ -139,6 +150,7 @@ describe('SegmentList', () => {
     const { container } = render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[beerTrick]}
         selectedTrickId="beer"
         onChange={vi.fn()}
@@ -153,6 +165,7 @@ describe('SegmentList', () => {
     render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[beerTrick]}
         selectedTrickId={null}
         onChange={vi.fn()}
@@ -170,6 +183,7 @@ describe('SegmentList reordering', () => {
     render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[]}
         selectedTrickId={null}
         onChange={onChange}
@@ -185,6 +199,7 @@ describe('SegmentList reordering', () => {
     render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[]}
         selectedTrickId={null}
         onChange={vi.fn()}
@@ -208,6 +223,7 @@ describe('SegmentList reordering', () => {
     render(
       <SegmentList
         segments={segments}
+        base={base}
         tricks={[unlabelled]}
         selectedTrickId={null}
         onChange={vi.fn()}

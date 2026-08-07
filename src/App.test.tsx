@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
-import { publishFeed } from './feed/bus'
+import { publishFeed, subscribeFeedRequests } from './feed/bus'
 import { DEFAULT_PRESET } from './preset/defaults'
 import { PRESET_KEY } from './preset/storage'
 
@@ -228,6 +228,25 @@ describe('feed', () => {
 
     await publish([])
     await waitFor(() => expect(screen.queryByText('Zoe')).not.toBeInTheDocument())
+  })
+
+  it('asks for a roster on arrival instead of waiting for the next change', async () => {
+    // The show window reloaded mid-meeting. Standing in for the editor: a
+    // publisher that has already published everything it is going to publish
+    // until someone joins or leaves.
+    const stop = subscribeFeedRequests(() => {
+      publishFeed({ feedId: 'sim', items: [{ id: 'zoe', label: 'Zoe' }] })
+    })
+    try {
+      await act(async () => {
+        render(<App />)
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+
+      await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
+    } finally {
+      stop()
+    }
   })
 })
 
