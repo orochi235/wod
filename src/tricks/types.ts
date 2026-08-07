@@ -20,6 +20,15 @@ export type RecipeField =
   | { key: string; label: string; kind: 'select'; options: { value: string; label: string }[] }
   /** Multi-select over the current segment list, resolved at render time. */
   | { key: string; label: string; kind: 'segments' }
+  /**
+   * One wedge, written as a bare id. Distinct from 'segments' because a recipe
+   * that reads its value with `readString` cannot be handed an array, and
+   * distinct from 'select' because the choices are the live wheel, not a fixed
+   * list. Carries no selector tokens: the set-valued ones have no single-id
+   * meaning, and '@randomExternal' would need the resolver and the frozen roll
+   * plumbed through `provides`, which is a feature rather than this fix.
+   */
+  | { key: string; label: string; kind: 'segment' }
 
 /** All segments including provided wedges, plus what a recipe needs to resolve. */
 export type RecipeContext = {
