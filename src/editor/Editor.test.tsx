@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { requestFeeds, subscribeFeed } from '../feed/bus'
@@ -135,12 +135,16 @@ describe('Editor feed', () => {
       // A show window reloaded mid-meeting has missed every publish so far,
       // and with autochurn off there may never be another one.
       requestFeeds()
-      await flush()
 
-      expect(seen).toHaveBeenLastCalledWith({
-        feedId: 'sim',
-        items: [{ id: 'fay', label: 'Fay' }],
-      })
+      // Polled, not flushed once: this is a round trip, so the answer is two
+      // channel deliveries away — the request out, the roster back — and a
+      // single macrotask only reliably covers the first.
+      await waitFor(() =>
+        expect(seen).toHaveBeenLastCalledWith({
+          feedId: 'sim',
+          items: [{ id: 'fay', label: 'Fay' }],
+        }),
+      )
     } finally {
       stop()
     }

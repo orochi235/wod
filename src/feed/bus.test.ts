@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import { publishFeed, requestFeeds, subscribeFeed, subscribeFeedRequests } from './bus'
 
-/** BroadcastChannel delivers on a later turn of the event loop. */
+/**
+ * BroadcastChannel delivers on a later turn of the event loop — usually the
+ * very next one, but not reliably under load, which flaked this file at
+ * roughly one run in twelve. Waiting for the delivery is what the tests below
+ * actually mean.
+ *
+ * The tests asserting something is *not* delivered still wait a fixed turn:
+ * absence cannot be polled for, so they give the message its chance and then
+ * check it never came.
+ */
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 describe('feed bus', () => {
@@ -10,9 +19,10 @@ describe('feed bus', () => {
     const stop = subscribeFeed(seen)
 
     publishFeed({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] })
-    await flush()
 
-    expect(seen).toHaveBeenCalledWith({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] })
+    await vi.waitFor(() =>
+      expect(seen).toHaveBeenCalledWith({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] }),
+    )
     stop()
   })
 
@@ -50,9 +60,10 @@ describe('feed bus', () => {
       items: [{ id: 'ana', label: 'Ana', avatar: '…' }],
       version: 2,
     } as never)
-    await flush()
 
-    expect(seen).toHaveBeenCalledWith({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] })
+    await vi.waitFor(() =>
+      expect(seen).toHaveBeenCalledWith({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] }),
+    )
     stop()
   })
 
@@ -72,9 +83,8 @@ describe('feed bus', () => {
     const stop = subscribeFeedRequests(asked)
 
     requestFeeds()
-    await flush()
 
-    expect(asked).toHaveBeenCalledTimes(1)
+    await vi.waitFor(() => expect(asked).toHaveBeenCalledTimes(1))
     stop()
   })
 
@@ -88,10 +98,12 @@ describe('feed bus', () => {
 
     requestFeeds()
     publishFeed({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] })
-    await flush()
 
-    expect(seen).toHaveBeenCalledTimes(1)
-    expect(asked).toHaveBeenCalledTimes(1)
+    // One each, never one reader taking both: the counts are the assertion.
+    await vi.waitFor(() => {
+      expect(seen).toHaveBeenCalledTimes(1)
+      expect(asked).toHaveBeenCalledTimes(1)
+    })
     stopSeen()
     stopAsked()
   })
@@ -114,10 +126,13 @@ describe('feed bus', () => {
 
     stopA()
     publishFeed({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] })
-    await flush()
 
+    await vi.waitFor(() =>
+      expect(seenB).toHaveBeenCalledWith({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] }),
+    )
+    // Checked after B's delivery, which is the same turn A's would have
+    // arrived on had unsubscribing not worked.
     expect(seenA).not.toHaveBeenCalled()
-    expect(seenB).toHaveBeenCalledWith({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] })
     stopB()
   })
 })
