@@ -1,8 +1,10 @@
+import { inFeedNamespace, wedgeIndexOf } from '../compose/compose'
+import type { WedgeIndex } from '../compose/types'
 import { MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { getRecipe } from '../tricks/registry'
 import { isSelectorToken } from '../tricks/targets'
-import type { Trick } from '../tricks/types'
+import type { Trick, TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 import { DEFAULT_PRESET } from './defaults'
 import type {
@@ -95,27 +97,71 @@ function migrateV1Spin(value: unknown): ScriptedSpin {
 }
 
 /**
+ * Which ids a trick may name here, which is not the same set the editor sees.
+ *
+ * Statics are on the wheel already. A roster wedge is not and cannot be — items
+ * arrive on the bus long after this runs — so the most this can ask is whether
+ * some configured feed owns that namespace. A wedge another trick contributes
+ * is knowable, since the tricks are right here in the same data.
+ *
+ * Deliberately not "anything unrecognized is fine". That would also swallow the
+ * warning this validation exists for: an id like `seg2` that named a segment
+ * somebody has since deleted is stale, and the trick should come back switched
+ * off rather than silently aiming at nothing.
+ */
+function knownWedges(statics: Segment[], feeds: FeedConfig[], provided: Set<string>): WedgeIndex {
+  const onTheWheel = wedgeIndexOf(statics)
+  return { has: (id) => onTheWheel.has(id) || provided.has(id) || inFeedNamespace(feeds, id) }
+}
+
+/**
  * A stored trick that cannot run is disabled, never dropped and never thrown on.
  * The parent spec's rule is that the wheel never breaks the bit, and losing a
  * trick silently would be worse than showing it switched off.
+ *
+ * Two passes, because a trick may aim at a wedge a later trick contributes and
+ * the order tricks were written in is the operator's business, not a validity
+ * rule. Pass 1 asks every recipe what it provides; pass 2 validates against the
+ * union of that and the wheel.
  */
-function readTricks(value: unknown, segments: Segment[]): Trick[] {
+function readTricks(value: unknown, statics: Segment[], feeds: FeedConfig[]): Trick[] {
   if (!Array.isArray(value)) return []
-  const tricks: Trick[] = []
+
+  type Entry = { id: string; name: string; recipe: string; params: TrickParams; asked: boolean }
+  const entries: Entry[] = []
   for (const entry of value) {
     if (!isRecord(entry)) continue
     if (typeof entry.id !== 'string' || typeof entry.recipe !== 'string') continue
-
-    const recipe = getRecipe(entry.recipe)
-    const params = isRecord(entry.params) ? entry.params : {}
-    const runnable = recipe !== null && recipe.validate(params, segments) === null
-
-    tricks.push({
+    entries.push({
       id: entry.id,
       name: typeof entry.name === 'string' ? entry.name : entry.id,
+      recipe: entry.recipe,
+      params: isRecord(entry.params) ? entry.params : {},
+      // What the file asked for, which only becomes `enabled` if it validates.
+      asked: entry.enabled === true,
+    })
+  }
+
+  const provided = new Set<string>()
+  for (const entry of entries) {
+    const recipe = getRecipe(entry.recipe)
+    if (!recipe) continue
+    // Safe on unvalidated params: every recipe reads them through the readers
+    // in params.ts, which fall back rather than throw.
+    for (const segment of recipe.provides(entry.params, entry.id)) provided.add(segment.id)
+  }
+
+  const wedges = knownWedges(statics, feeds, provided)
+  const tricks: Trick[] = []
+  for (const entry of entries) {
+    const recipe = getRecipe(entry.recipe)
+    const runnable = recipe !== null && recipe.validate(entry.params, wedges) === null
+    tricks.push({
+      id: entry.id,
+      name: entry.name,
       recipe: entry.recipe as Trick['recipe'],
-      params,
-      enabled: runnable && entry.enabled === true,
+      params: entry.params,
+      enabled: runnable && entry.asked,
     })
   }
   return tricks
@@ -346,13 +392,16 @@ export function parsePreset(raw: string | null): Preset {
           motion: readMotion(isRecord(data.spin) ? data.spin.motion : undefined),
         }
 
+  // Read before the tricks, which validate against the namespaces it defines.
+  const feeds = readFeeds(data.feeds)
+
   return {
     version: 3,
     name: typeof data.name === 'string' ? data.name : DEFAULT_PRESET.name,
     segments,
-    feeds: readFeeds(data.feeds),
+    feeds,
     overrides: readOverrides(data.overrides),
-    tricks: readTricks(data.tricks, segments),
+    tricks: readTricks(data.tricks, segments, feeds),
     spin,
     branches: readBranches(data.branches),
   }

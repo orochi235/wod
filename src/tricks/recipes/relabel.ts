@@ -1,4 +1,5 @@
-import type { Morph, Segment } from '../../wheel/types'
+import type { WedgeIndex } from '../../compose/types'
+import type { Morph } from '../../wheel/types'
 import { readString, readStringArray, readUnit } from '../params'
 import { isSelectorToken, resolveTargets } from '../targets'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
@@ -40,9 +41,9 @@ export const relabel: Recipe = {
     }))
   },
 
-  validate(params: TrickParams, segments: Segment[]): string | null {
+  validate(params: TrickParams, wedges: WedgeIndex): string | null {
     const missing = readStringArray(params, 'targets').filter(
-      (id) => !isSelectorToken(id) && !segments.some((segment) => segment.id === id),
+      (id) => !isSelectorToken(id) && !wedges.has(id),
     )
     return missing.length === 0 ? null : `unknown wedge: ${missing.join(', ')}`
   },

@@ -2427,8 +2427,8 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
 - **The flip trick.** The winning wedge flips in place to show a different item on its back. It is a `provides()` recipe plus a reveal-time transform, and it is the one place a `@winner` selector would be coherent.
 - **Reveals and media on overrides.** The fields exist on `ItemOverride` but are deliberately not parsed by `readOverrides`, matching `readSegments`, until the wheel renders them.
 - **Round state.** Draw removal, pick-N, full ordering, repeat-avoidance.
-- **The editor offers roster ids that disable the trick on parse.** Found in the
-  final review. `Editor.tsx` passes `resolved.segments` to `TrickLibrary`, so the
+- ~~**The editor offers roster ids that disable the trick on parse.**~~ Found in
+  the final review. `Editor.tsx` passes `resolved.segments` to `TrickLibrary`, so the
   Wedges multi-select now lists `sim:ana` alongside the statics — but
   `readTricks` validates against `readSegments(data.segments)`, statics only, so
   a trick targeting a roster id comes back `enabled: false`. The editor's own
@@ -2438,12 +2438,23 @@ Carried from the spec's "Noted, not scoped", so nobody builds them by accident:
   already unvalidatable); this branch widens it to the roster, which is the case
   operators will actually click.
 
-  Deliberately not fixed. The obvious fix — exempt any id not on the static list,
-  since `resolveTargets` already drops unknown ids so an unresolvable target is a
-  no-op — also throws away the genuine "you deleted seg2" warning. That trade is
-  worth making consciously rather than as a side effect of this branch. The
-  narrower alternative is to validate against the composed wedge list, which
-  means teaching `readTricks` about feeds.
+  **Fixed after the merge**, by the narrower alternative: `readTricks` was
+  taught about feeds, so the "you deleted seg2" warning survives intact. The
+  exemption route — accept any id not on the static list — was considered and
+  rejected for exactly that reason.
+
+  The shape it took, since "validate against the composed wedge list" turned out
+  to be impossible as stated: at parse time there *is* no composed list, because
+  items arrive on the bus long after a preset is read. So `validate` stopped
+  taking a `Segment[]` and started taking a `WedgeIndex` — `{ has(id) }` — which
+  lets each caller answer with what it actually knows. The parser's index
+  accepts three things: a static wedge, an id inside a configured feed's
+  namespace (`inFeedNamespace`, which mirrors `wedgeId` and is pinned to it by
+  test), and an id some trick in the same file contributes. That last one closes
+  the `beer:wedge` case this note called pre-existing, and needed a second pass
+  over the tricks so declaration order stops deciding validity. Anything else —
+  a bare `seg2`, or `gone:fay` from a feed someone deleted — still comes back
+  switched off.
 - **An emptied roster strands the held frame.** Found writing Task 11. The hold
   releases on the *next spin*, and the Spin button is disabled while the roster
   is empty — so emptying a feed-only wheel mid-spin leaves the landed wedge on

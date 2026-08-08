@@ -1,4 +1,4 @@
-import type { Origin } from '../compose/types'
+import type { Origin, WedgeIndex } from '../compose/types'
 import type { EasingName, Morph, Segment } from '../wheel/types'
 
 export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel'
@@ -57,8 +57,15 @@ export type Recipe = {
   resolve(params: TrickParams, ctx: RecipeContext): Morph[]
   /** Editor-facing only. Never consulted during resolution. */
   writes(params: TrickParams, ctx: RecipeContext): Write[]
-  /** Human-readable reason this trick cannot run, or null when it can. */
-  validate(params: TrickParams, segments: Segment[]): string | null
+  /**
+   * Human-readable reason this trick cannot run, or null when it can.
+   *
+   * Takes membership, not a wedge list: the parser calls this before any
+   * roster exists, so "is this id real" is a question only its caller can
+   * answer. A recipe that walked a `Segment[]` itself would be deciding that
+   * a wedge no feed has published yet does not exist.
+   */
+  validate(params: TrickParams, wedges: WedgeIndex): string | null
 }
 
 export type Trick = {

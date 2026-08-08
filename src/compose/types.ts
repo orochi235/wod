@@ -14,3 +14,13 @@ export type Composition = {
   segments: Segment[]
   origins: Map<string, Origin>
 }
+
+/**
+ * Which wedge ids a validator should treat as real. Membership rather than a
+ * `Segment[]` because the two callers know different things: the editor holds
+ * a composed wheel and can answer exactly, while the parser runs before any
+ * roster exists and can only answer "a feed could produce that id".
+ */
+export type WedgeIndex = {
+  has(id: string): boolean
+}

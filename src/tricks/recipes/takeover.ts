@@ -1,3 +1,4 @@
+import type { WedgeIndex } from '../../compose/types'
 import { parseHex } from '../../wheel/morph'
 import { effectiveColor } from '../../wheel/palette'
 import type { Morph, MorphKeyframe, Segment } from '../../wheel/types'
@@ -160,7 +161,7 @@ export const takeover: Recipe = {
     return writes
   },
 
-  validate(params: TrickParams, segments: Segment[]): string | null {
+  validate(params: TrickParams, wedges: WedgeIndex): string | null {
     // lerpColor only understands hex; anything else holds the start color for
     // the whole spin and cuts on the last frame instead of fading.
     for (const key of ['endColor', 'wedgeColor']) {
@@ -171,6 +172,6 @@ export const takeover: Recipe = {
     if (isNewMode(params)) return null
     const id = readString(params, 'wedgeSegmentId', '')
     if (id === '') return 'no wedge chosen'
-    return segments.some((segment) => segment.id === id) ? null : `unknown wedge: ${id}`
+    return wedges.has(id) ? null : `unknown wedge: ${id}`
   },
 }
