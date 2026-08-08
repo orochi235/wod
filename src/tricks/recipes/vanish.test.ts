@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { wedgeIndexOf } from '../../compose/compose'
 import type { Segment } from '../../wheel/types'
 import type { RecipeContext } from '../types'
 import { vanish } from './vanish'
@@ -57,23 +58,23 @@ describe('vanish', () => {
   })
 
   it('rejects a target that no longer exists', () => {
-    expect(vanish.validate({ targets: ['ghost'] }, segments)).toMatch(/ghost/)
+    expect(vanish.validate({ targets: ['ghost'] }, wedgeIndexOf(segments))).toMatch(/ghost/)
   })
 
   it('accepts a valid target', () => {
-    expect(vanish.validate({ targets: ['ana'] }, segments)).toBeNull()
+    expect(vanish.validate({ targets: ['ana'] }, wedgeIndexOf(segments))).toBeNull()
   })
 
   it('accepts a selector token that matches nothing yet', () => {
     // Validate only sees segments, so it cannot tell whether a token resolves.
     // It must not have to: an empty roster is the normal authoring state, and
     // reporting it would badge every preset built before the meeting as broken.
-    expect(vanish.validate({ targets: ['@external'] }, segments)).toBeNull()
+    expect(vanish.validate({ targets: ['@external'] }, wedgeIndexOf(segments))).toBeNull()
   })
 
   it('reports a misspelled token as an unknown wedge', () => {
     // The one genuinely static error here: '@extrenal' is not a token, so it
     // falls through to the concrete-id branch and gets named.
-    expect(vanish.validate({ targets: ['@extrenal'] }, segments)).toMatch(/@extrenal/)
+    expect(vanish.validate({ targets: ['@extrenal'] }, wedgeIndexOf(segments))).toMatch(/@extrenal/)
   })
 })

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { wedgeIndexOf } from '../../compose/compose'
 import { landingSegments } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import type { RecipeContext } from '../types'
@@ -211,12 +212,12 @@ describe('takeover color on a wedge left to the palette', () => {
 
 describe('takeover.validate', () => {
   it('rejects an existing-mode target that is gone', () => {
-    expect(takeover.validate({ wedgeMode: 'existing', wedgeSegmentId: 'ghost' }, people)).toMatch(
-      /ghost/,
-    )
+    expect(
+      takeover.validate({ wedgeMode: 'existing', wedgeSegmentId: 'ghost' }, wedgeIndexOf(people)),
+    ).toMatch(/ghost/)
   })
 
   it('accepts new mode regardless of the segment list', () => {
-    expect(takeover.validate(newWedgeParams, [])).toBeNull()
+    expect(takeover.validate(newWedgeParams, wedgeIndexOf([]))).toBeNull()
   })
 })

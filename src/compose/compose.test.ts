@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FeedConfig, FeedItem, ItemOverride } from '../feed/types'
 import type { Segment } from '../wheel/types'
-import { composeBase, wedgeId } from './compose'
+import { composeBase, inFeedNamespace, wedgeId, wedgeIndexOf } from './compose'
 
 const statics: Segment[] = [
   { id: 'seg1', label: 'Spin again', weight: 1 },
@@ -161,5 +161,34 @@ describe('composeBase', () => {
       label: 'Y',
       weight: 5,
     })
+  })
+})
+
+describe('inFeedNamespace', () => {
+  it('claims exactly the ids wedgeId builds for a configured feed', () => {
+    // The coupling is the point: this is how a parser recognizes a roster
+    // wedge before any roster exists, so the test and the format have to move
+    // together or presets start disabling tricks that were fine.
+    expect(inFeedNamespace([roster], wedgeId('sim', 'ana'))).toBe(true)
+    expect(inFeedNamespace([roster], wedgeId('other', 'ana'))).toBe(false)
+  })
+
+  it('does not claim a bare id, or one whose colon is in the wrong place', () => {
+    expect(inFeedNamespace([roster], 'seg2')).toBe(false)
+    expect(inFeedNamespace([roster], 'notsim:ana')).toBe(false)
+    // A wedge id ending where the namespace begins is not inside it.
+    expect(inFeedNamespace([roster], 'sim')).toBe(false)
+  })
+
+  it('keeps an item id that contains a colon inside its feed', () => {
+    expect(inFeedNamespace([roster], wedgeId('sim', 'ana:1'))).toBe(true)
+  })
+})
+
+describe('wedgeIndexOf', () => {
+  it('answers for the wedges it was given and nothing else', () => {
+    const index = wedgeIndexOf(statics)
+    expect(index.has('seg1')).toBe(true)
+    expect(index.has('sim:ana')).toBe(false)
   })
 })

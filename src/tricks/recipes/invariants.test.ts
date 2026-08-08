@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { wedgeIndexOf } from '../../compose/compose'
 import { applyMorphs } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import type { Recipe, RecipeContext, TrickParams } from '../types'
@@ -63,12 +64,12 @@ describe('a color a recipe cannot actually fade is refused', () => {
   for (const { recipe, key } of cases) {
     it(`${recipe.id} rejects a named color in ${key}`, () => {
       const params = { ...recipe.defaults, [key]: 'rebeccapurple' }
-      expect(recipe.validate(params, segments)).toMatch(/rebeccapurple/)
+      expect(recipe.validate(params, wedgeIndexOf(segments))).toMatch(/rebeccapurple/)
     })
 
     it(`${recipe.id} accepts hex in ${key}`, () => {
       const params = { ...recipe.defaults, [key]: '#ff8811' }
-      expect(recipe.validate(params, segments)).toBeNull()
+      expect(recipe.validate(params, wedgeIndexOf(segments))).toBeNull()
     })
   }
 })

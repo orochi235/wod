@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { wedgeIndexOf } from '../compose/compose'
 import { recolor } from '../tricks/recipes/recolor'
 import { takeover } from '../tricks/recipes/takeover'
 import type { TrickParams } from '../tricks/types'
@@ -121,7 +122,7 @@ describe('RecipeForm', () => {
 
     const next = onChange.mock.calls.at(-1)?.[0]
     expect(next?.wedgeSegmentId).toBe('ana')
-    expect(takeover.validate(next as TrickParams, segments)).toBeNull()
+    expect(takeover.validate(next as TrickParams, wedgeIndexOf(segments))).toBeNull()
   })
 
   it('leaves a single-wedge field unchosen rather than defaulting to a wedge', () => {

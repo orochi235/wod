@@ -1,6 +1,7 @@
+import type { WedgeIndex } from '../../compose/types'
 import { parseHex } from '../../wheel/morph'
 import { effectiveColor } from '../../wheel/palette'
-import type { Morph, Segment } from '../../wheel/types'
+import type { Morph } from '../../wheel/types'
 import { readEasing, readString, readStringArray, readUnit } from '../params'
 import { isSelectorToken, resolveTargets } from '../targets'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
@@ -56,11 +57,11 @@ export const recolor: Recipe = {
     }))
   },
 
-  validate(params: TrickParams, segments: Segment[]): string | null {
+  validate(params: TrickParams, wedges: WedgeIndex): string | null {
     // A token resolving to nothing is the normal state while authoring with no
     // meeting running. Reporting it would badge every preset as broken.
     const missing = readStringArray(params, 'targets').filter(
-      (id) => !isSelectorToken(id) && !segments.some((segment) => segment.id === id),
+      (id) => !isSelectorToken(id) && !wedges.has(id),
     )
     if (missing.length > 0) return `unknown wedge: ${missing.join(', ')}`
 

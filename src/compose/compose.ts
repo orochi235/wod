@@ -1,6 +1,6 @@
 import type { FeedConfig, FeedItem, ItemOverride } from '../feed/types'
 import type { Segment } from '../wheel/types'
-import type { Composition, Origin } from './types'
+import type { Composition, Origin, WedgeIndex } from './types'
 
 export type ComposeInput = {
   statics: Segment[]
@@ -12,6 +12,24 @@ export type ComposeInput = {
 
 export function wedgeId(feedId: string, itemId: string): string {
   return `${feedId}:${itemId}`
+}
+
+/** Membership over a wheel that already exists. */
+export function wedgeIndexOf(segments: Segment[]): WedgeIndex {
+  const ids = new Set(segments.map((segment) => segment.id))
+  return { has: (id) => ids.has(id) }
+}
+
+/**
+ * Whether some configured feed could produce this id, judged from the id alone.
+ *
+ * The only question a parser can answer about a roster wedge: items arrive on
+ * the bus long after the preset is read, so `sim:fay` names nothing yet and
+ * names something the moment Fay joins. Mirrors `wedgeId` — the prefix test and
+ * the format it tests have to change together.
+ */
+export function inFeedNamespace(feeds: FeedConfig[], id: string): boolean {
+  return feeds.some((feed) => id.startsWith(`${feed.id}:`))
 }
 
 /** Matches readSegments: anything not a usable number is zero, never NaN on the wheel. */

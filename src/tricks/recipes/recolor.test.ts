@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { wedgeIndexOf } from '../../compose/compose'
 import { applyMorphs } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import type { RecipeContext } from '../types'
@@ -69,16 +70,18 @@ describe('recolor', () => {
   })
 
   it('rejects a missing target', () => {
-    expect(recolor.validate({ targets: ['ghost'] }, segments)).toMatch(/ghost/)
+    expect(recolor.validate({ targets: ['ghost'] }, wedgeIndexOf(segments))).toMatch(/ghost/)
   })
 
   it('accepts a selector token that matches nothing yet', () => {
-    expect(recolor.validate({ targets: ['@external'], toColor: '#000000' }, segments)).toBeNull()
+    expect(
+      recolor.validate({ targets: ['@external'], toColor: '#000000' }, wedgeIndexOf(segments)),
+    ).toBeNull()
   })
 
   it('reports a misspelled token as an unknown wedge', () => {
-    expect(recolor.validate({ targets: ['@extrenal'], toColor: '#000000' }, segments)).toMatch(
-      /@extrenal/,
-    )
+    expect(
+      recolor.validate({ targets: ['@extrenal'], toColor: '#000000' }, wedgeIndexOf(segments)),
+    ).toMatch(/@extrenal/)
   })
 })

@@ -263,6 +263,15 @@ running. **Empty external resolution is a no-op with a soft hint, never a
 validation failure.** Otherwise every preset looks broken until a meeting
 starts.
 
+The same rule reaches concrete roster ids, not just selectors. `sim:fay` names
+nothing until Fay joins, so a validator that walked the wheel would disable a
+trick for aiming at somebody who is merely not here yet. So `validate` takes a
+`WedgeIndex` — `{ has(id) }` — rather than a `Segment[]`, and each caller
+answers with what it knows: the editor from the composed wheel, the parser from
+statics, the namespaces its configured feeds own, and the wedges the tricks in
+that same file contribute. **An id nobody could ever produce is still a
+failure** — that is what catches a target left behind by a deleted segment.
+
 ## Feeds at runtime
 
 **Feed config persists; feed items never do.** The preset stores *how* to get a

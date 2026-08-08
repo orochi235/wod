@@ -44,6 +44,72 @@ describe('parsePreset', () => {
     expect(parsed.tricks[0].enabled).toBe(false)
   })
 
+  it('keeps a trick aimed at a roster wedge enabled', () => {
+    // The wedge does not exist at parse time and cannot: items arrive on the
+    // bus later. Disabling the trick for that made the editor and the show
+    // window disagree about a trick the operator could watch working.
+    const raw = {
+      ...DEFAULT_PRESET,
+      tricks: [
+        { id: 'v', name: 'v', recipe: 'vanish', params: { targets: ['sim:fay'] }, enabled: true },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.tricks[0].enabled).toBe(true)
+  })
+
+  it('disables a trick aimed at a namespace no configured feed owns', () => {
+    // The rule is the feed's namespace, not "contains a colon" — an id from a
+    // feed someone deleted is as stale as a deleted segment.
+    const raw = {
+      ...DEFAULT_PRESET,
+      tricks: [
+        { id: 'v', name: 'v', recipe: 'vanish', params: { targets: ['gone:fay'] }, enabled: true },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.tricks[0].enabled).toBe(false)
+  })
+
+  it('keeps a trick aimed at another trick’s wedge enabled', () => {
+    // beer:wedge is contributed by the takeover trick in the same preset, so
+    // it is knowable here even though no parser ever sees it on the wheel.
+    const raw = {
+      ...DEFAULT_PRESET,
+      tricks: [
+        ...DEFAULT_PRESET.tricks,
+        {
+          id: 'v',
+          name: 'v',
+          recipe: 'vanish',
+          params: { targets: ['beer:wedge'] },
+          enabled: true,
+        },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.tricks[1].enabled).toBe(true)
+  })
+
+  it('keeps a trick aimed at a wedge provided by a later trick enabled', () => {
+    // Declaration order is the operator's business, not a validity rule.
+    const raw = {
+      ...DEFAULT_PRESET,
+      tricks: [
+        {
+          id: 'v',
+          name: 'v',
+          recipe: 'vanish',
+          params: { targets: ['beer:wedge'] },
+          enabled: true,
+        },
+        ...DEFAULT_PRESET.tricks,
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.tricks[0].enabled).toBe(true)
+  })
+
   it('drops a segment with a non-finite weight to zero', () => {
     const raw = {
       ...DEFAULT_PRESET,
