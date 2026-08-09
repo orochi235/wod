@@ -606,4 +606,52 @@ describe('resolveScriptedSpin', () => {
     const result = resolveScriptedSpin(base, tricks, spin, [], fixed(0.1))
     expect(result?.morphs).toEqual([])
   })
+
+  it('resolves @randomExternal from the same selector roll in both passes', () => {
+    // `swap` ignores the roll entirely, and `relabel` above targets a concrete
+    // id, so neither fixture would notice `resolveLate` drawing a fresh
+    // selectorRoll instead of reusing the frozen one. A recipe targeting
+    // '@randomExternal' does read it, and with more than one candidate on the
+    // roster, a fresh draw would be likely to pick a different wedge — which is
+    // exactly the winner-naming leak the frozen selectorRoll exists to prevent.
+    const roster: Composition = {
+      segments: people,
+      origins: new Map(
+        people.map((segment) => [
+          segment.id,
+          { kind: 'external', feedId: 'sim', itemId: segment.id } as const,
+        ]),
+      ),
+    }
+    const tricks: Trick[] = [
+      {
+        id: 's',
+        name: 'swap',
+        recipe: 'swap',
+        params: { otherWedgeId: 'ben', at: 0.95 },
+        enabled: true,
+      },
+      {
+        id: 'gold',
+        name: 'gold',
+        recipe: 'recolor',
+        params: { targets: ['@randomExternal'], toColor: '#ffd700' },
+        enabled: true,
+      },
+    ]
+    // 0.1 wins ana; 0.9 selects cal (floor(0.9 * 3) = 2) — distinct from both
+    // the winner and swap's other wedge, so its morph is unambiguous.
+    let n = 0
+    const twoDraws: Rng = () => [0.1, 0.9][n++] ?? 0.5
+    const result = resolveScriptedSpin(roster, tricks, spin, [], twoDraws)
+    if (!result) throw new Error('expected a resolution')
+    expect(result.winnerId).toBe('ana')
+
+    const late = result.resolveLate(result.winnerId)
+    const nonSwap = (morphs: Morph[]) =>
+      morphs.filter((m) => m.segmentId !== result.winnerId && m.segmentId !== 'ben')
+
+    expect(nonSwap(result.morphs).map((m) => m.segmentId)).toEqual(['cal'])
+    expect(nonSwap(late)).toEqual(nonSwap(result.morphs))
+  })
 })
