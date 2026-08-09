@@ -128,6 +128,14 @@ describe('rotationTrack', () => {
     expect(degreesOf(track.keyframes[2])).toBeCloseTo(LANDING, 6)
   })
 
+  it('has nothing to solve when the animation has no length', () => {
+    // Not reachable through the parser, which floors the duration above zero —
+    // but a zero denominator here would put `rotate(NaNdeg)` on the wheel.
+    const track = rotationTrack(0, 90, WITH_SETTLE, 0)
+    expect(track.keyframes).toHaveLength(2)
+    expect(degreesOf(track.keyframes[1])).toBe(LANDING)
+  })
+
   it('floors a zero settle to a frame rather than a zero-length interval', () => {
     const track = rotationTrack(0, 90, { ...SPEC, settle: { ms: 0, curve: DEFAULT_SETTLE_CURVE } })
     expect(Number(track.keyframes[1].offset)).toBeCloseTo((4000 - 16) / 4000, 9)

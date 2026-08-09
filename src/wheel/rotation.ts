@@ -36,12 +36,10 @@ const LINEAR: Curve = [0, 0, 1, 1]
  * scales by their ratio, so a shortened spin is the same spin played faster
  * rather than one whose cruise has been eaten.
  *
- * With a settle, the cruise runs at a constant speed `v` and the settle covers
- * `v·k·S`, where `k = 1/slope` of the settle curve at its start. Solving
- * `v = delta / (C + k·S)` is what makes the handover smooth by construction:
- * the settle begins at exactly the speed the cruise ended at, and the last
- * keyframe is still the angle `planSpin` asked for. The revolutions are free to
- * absorb whatever `v` the solve wants, since any whole turn lands the same angle.
+ * Solving `v = delta / (C + k·S)`, where `k` is the reciprocal of the settle
+ * curve's initial slope, is what makes the handover smooth by construction
+ * rather than by tuning: see the "Solving it" section of
+ * docs/superpowers/specs/2026-08-07-endless-spin-design.md.
  */
 export function rotationTrack(
   from: number,
@@ -57,7 +55,7 @@ export function rotationTrack(
     spec.direction === 'ccw' ? -(spec.fullSpins * 360 + backward) : spec.fullSpins * 360 + forward
   const to = from + delta
 
-  if (!spec.settle) {
+  if (!spec.settle || durationMs <= 0) {
     return {
       keyframes: [{ transform: `rotate(${from}deg)` }, { transform: `rotate(${to}deg)` }],
       durationMs,
