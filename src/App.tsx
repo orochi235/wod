@@ -78,6 +78,7 @@ export function App() {
       // the arc to stop. forced() degrades to a fair draw if that segment's arc
       // collapsed, which is the safety net for a branch that zeroes its winner.
       strategy: forced(resolution.winnerId),
+      resolveLate: resolution.resolveLate,
     })
   }, [base, preset, spin])
 

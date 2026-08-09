@@ -122,8 +122,11 @@ export function Editor() {
 
   const handleSpin = useCallback(() => {
     setSpun(true)
-    spin()
-  }, [spin])
+    spin({
+      resolveLate: (winnerId) =>
+        resolveTricks(base, preset.tricks, preset.spin.motion.durationMs, 0, winnerId).morphs,
+    })
+  }, [spin, base, preset.tricks, preset.spin.motion.durationMs])
 
   // A spin owns the geometry, running or landed; otherwise the scrubber does.
   const shown = isSpinning || spun ? displaySegments : (scrubbed ?? resolved.segments)
