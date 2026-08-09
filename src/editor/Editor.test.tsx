@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { requestFeeds, subscribeFeed } from '../feed/bus'
@@ -85,6 +85,16 @@ describe('Editor integration', () => {
     expect(screen.getByRole('status', { name: /slow burn conflicts/i })).toHaveTextContent(
       /also written by another trick/i,
     )
+  })
+
+  it('persists a motion edit to localStorage', async () => {
+    render(<Editor />)
+    fireEvent.change(screen.getByLabelText('Duration (ms)'), { target: { value: '30000' } })
+    fireEvent.change(screen.getByLabelText('Settle (ms)'), { target: { value: '700' } })
+
+    const stored = parsePreset(window.localStorage.getItem(PRESET_KEY))
+    expect(stored.spin.motion.durationMs).toBe(30000)
+    expect(stored.spin.motion.settle).toEqual({ ms: 700, curve: [0.33, 1, 0.68, 1] })
   })
 })
 
@@ -180,8 +190,12 @@ describe('Editor overrides', () => {
  */
 function installSpinHarness() {
   const finishers: (() => void)[] = []
+  const keyframes: Keyframe[][] = []
   const realAnimate = Element.prototype.animate
-  Element.prototype.animate = function animate() {
+  Element.prototype.animate = function animate(
+    frames: Keyframe[] | PropertyIndexedKeyframes | null,
+  ) {
+    keyframes.push((Array.isArray(frames) ? frames : []) as Keyframe[])
     let settle: (animation: Animation) => void = () => undefined
     const finished = new Promise<Animation>((resolve) => {
       settle = resolve
@@ -195,6 +209,7 @@ function installSpinHarness() {
   vi.stubGlobal('cancelAnimationFrame', () => undefined)
 
   return {
+    keyframes,
     async land() {
       for (const finish of finishers) finish()
       // Two ticks: one for `finished.then`, one for the state it sets.
@@ -226,6 +241,22 @@ describe('Editor spin', () => {
       const wheel = screen.getByRole('img', { name: 'wheel' })
       expect(within(wheel).getByText('free beer')).toBeInTheDocument()
       expect(within(wheel).queryByText('Ana')).not.toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('spins the settle the operator just authored', async () => {
+    const harness = installSpinHarness()
+    try {
+      render(<Editor />)
+      fireEvent.change(screen.getByLabelText('Settle (ms)'), { target: { value: '700' } })
+      await userEvent.click(screen.getByRole('button', { name: /spin with these tricks/i }))
+
+      // Three keyframes is the cruise-then-break track; two would mean the
+      // panel wrote a settle nothing downstream reads.
+      expect(harness.keyframes[0]).toHaveLength(3)
+      expect(harness.keyframes[0][1].easing).toBe('cubic-bezier(0.33, 1, 0.68, 1)')
     } finally {
       harness.restore()
     }

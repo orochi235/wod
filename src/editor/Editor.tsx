@@ -13,6 +13,7 @@ import type { Segment, SpinConfig } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
 import { FeedPanel } from './FeedPanel'
+import { MotionPanel } from './MotionPanel'
 import { OverridesPanel } from './OverridesPanel'
 import { PresetIo } from './PresetIo'
 import { SegmentList } from './SegmentList'
@@ -178,6 +179,10 @@ export function Editor() {
             isSpinning={isSpinning}
             onSpin={handleSpin}
             onScrub={handleScrub}
+          />
+          <MotionPanel
+            motion={preset.spin.motion}
+            onChange={(motion) => update({ ...preset, spin: { ...preset.spin, motion } })}
           />
         </section>
         <section className="editor__column editor__column--right">
