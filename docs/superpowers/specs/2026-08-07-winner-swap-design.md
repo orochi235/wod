@@ -76,10 +76,17 @@ resolveLate?: (winnerId: string) => Morph[]
 ```
 
 Called after `planSpin` returns and before `rotor.animate` starts. The returned
-morphs are appended, **and the landed frame is recomputed** from the merged
-list — `planSpin.landing` was sampled from pass 1 and still shows the pre-swap
+morphs **replace** the config's, **and the landed frame is recomputed** from
+them — `planSpin.landing` was sampled from pass 1 and still shows the pre-swap
 labels. Landing on the un-swapped frame would undo the trick at the exact moment
 it is supposed to fire.
+
+Replacement rather than appending, because the hook returns a whole second
+resolution rather than a delta: pass 2 re-runs every recipe, so appending would
+double every morph the swap did not author. Returning only the new ones would
+mean teaching the resolver to diff itself, for an identical result — pass 2
+reproduces pass 1 exactly plus the swap, which is what the equivalence test in
+`spin/resolve.test.ts` holds.
 
 Putting the seam here rather than in `App` is what lets the editor rehearse the
 gag, and it is also *more correct for the show window*: `App` knows
@@ -117,13 +124,29 @@ Three details, each load-bearing:
 pair, so color jumps rather than blends. Give the two keyframes different
 offsets and `sampleColor` fades between them — a tell that shows the audience
 the switch coming. This relies on `Array.prototype.sort` being stable, which the
-language guarantees and a test should pin, because the failure mode is a swap
+language guarantees and a test now pins, because the failure mode is a swap
 that fires backwards.
 
-**The implicit base holds the first half.** `withImplicitBase` prepends the
-wedge's current value when the first keyframe starts after 0, so neither morph
-needs an opening keyframe. But it only fires when the base is defined, which
-leads to:
+It also relied on something that was *not* true when this was written:
+`bracket` tested `p <= first.at` before `p >= last.at`, so a pair sharing one
+offset resolved to the value being traded away from at exactly that instant.
+Harmless mid-spin, but at `at: 1` that instant is the landing frame, and a wedge
+whose color came from the palette — no base to prepend, so the pair sat first —
+landed with its label traded and its color stale. The guards are now ordered the
+other way, so a tie goes to the later keyframe, agreeing with the `span === 0`
+branch that already prefers `to`.
+
+**Each morph opens with the wedge as itself, and that keyframe is only half
+redundant.** `withImplicitBase` prepends the wedge's current value when the
+first keyframe starts after 0, which for the *label* already holds the wedge as
+itself across the first half — a label is never undefined, so the base is always
+prepended, and `sampleStep` takes the last point at or before the sampled
+instant. For the *color* it is load-bearing: without an explicit opening
+keyframe the color would lerp continuously from the base to the traded value
+across the whole run-up, instead of holding and then jumping. Written once for
+both, correct for both.
+
+`withImplicitBase` only fires when the base is defined, which leads to:
 
 **`effectiveColor`, not `segment.color`.** A wedge with no explicit color takes
 one from the palette, and `segment.color` is `undefined` for it. Passed straight
@@ -142,6 +165,9 @@ exact reason.
 - **The chosen wedge is gone** (deleted, or a roster member who left): emit
   nothing. `validate` reports it through the `WedgeIndex`, which accepts a
   roster wedge that has not arrived yet and rejects an id nobody can produce.
+- **The winner is not on the wheel**: emit nothing. The mirror of the case
+  above, and reachable for the same reasons — `forced()` degrades to a fair
+  draw, and the hook is handed whichever id actually won.
 - **Nothing chosen**: `validate` returns "no wedge chosen", matching
   `takeover`'s existing-wedge mode.
 
