@@ -22,6 +22,9 @@ export type Segment = {
 /** CSS cubic-bezier control points, in the order CSS writes them: x1, y1, x2, y2. */
 export type Curve = [number, number, number, number]
 
+/** A cruise that breaks into a stop. `ms` is how long the break lasts. */
+export type Settle = { ms: number; curve: Curve }
+
 export type EasingName = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut'
 
 export type MorphKeyframe = {
