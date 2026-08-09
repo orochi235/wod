@@ -80,6 +80,22 @@ describe('swap', () => {
     expect(cal?.color).toBe('#ff0000')
   })
 
+  it('trades both labels and both colors at the landing frame when it fires at at: 1', () => {
+    // Cal has no color base, so `withImplicitBase` does not shield its color
+    // keyframes from the duplicate-offset pair the way a labeled property or a
+    // wedge with its own base color does. The landing frame samples at
+    // `p === at` exactly.
+    const morphs = swap.resolve({ otherWedgeId: 'cal', at: 1 }, ctx('ana'))
+    const landing = applyMorphs(SEGMENTS, morphs, DURATION_MS)
+    const ana = landing.find((s) => s.id === 'ana')
+    const cal = landing.find((s) => s.id === 'cal')
+    expect(ana?.label).toBe('Cal')
+    expect(cal?.label).toBe('Ana')
+    expect(ana?.color).toBeDefined()
+    expect(ana?.color).not.toBe('#ff0000')
+    expect(cal?.color).toBe('#ff0000')
+  })
+
   it('keeps the pre-swap keyframe first', () => {
     // Both keyframes share an offset, so only sort stability keeps them in the
     // authored order. Reversed, the swap fires backwards: each wedge would

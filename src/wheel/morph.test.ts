@@ -129,6 +129,21 @@ describe('applyMorphs', () => {
     expect(applyMorphs(base, [lateSwell], 500)[0].weight).toBeCloseTo(2)
     expect(applyMorphs(base, [lateSwell], 1000)[0].weight).toBeCloseTo(3)
   })
+
+  it('resolves a same-offset pair to the later keyframe at the exact offset', () => {
+    // `beer` has no color base, so `withImplicitBase` does not prepend and the
+    // duplicate pair stays as `first === last`. At `p === at` that must not
+    // fall into the `p <= first.at` branch and return the pre-swap value.
+    const snap: Morph = {
+      segmentId: 'beer',
+      durationMs: 1000,
+      keyframes: [
+        { at: 1, color: '#111111' },
+        { at: 1, color: '#222222' },
+      ],
+    }
+    expect(applyMorphs(base, [snap], 1000)[0].color).toBe('#222222')
+  })
 })
 
 describe('landingSegments', () => {
