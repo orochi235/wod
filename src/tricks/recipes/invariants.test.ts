@@ -3,9 +3,10 @@ import { wedgeIndexOf } from '../../compose/compose'
 import { applyMorphs } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import { RECIPE_LIST } from '../registry'
-import type { Recipe, RecipeContext, TrickParams } from '../types'
+import type { Recipe, RecipeContext, RecipeId, TrickParams } from '../types'
 import { recolor } from './recolor'
 import { relabel } from './relabel'
+import { swap } from './swap'
 import { takeover } from './takeover'
 import { vanish } from './vanish'
 
@@ -118,25 +119,33 @@ describe('timing parameters at their extremes stay well formed', () => {
 })
 
 describe('no winner-keyed weight writes', () => {
-  // `recipe.defaults` alone doesn't exercise this: swap's default
-  // `otherWedgeId` is `''`, so its blind and knowing output are both `[]` and
-  // the loop below would `continue` past every recipe without ever reaching
-  // the assertion. This names a real wedge for swap so the guard actually
-  // bites; every other recipe ignores `winnerId` and stays exercised fine by
-  // its own defaults.
-  const paramsFor = (recipe: Recipe): TrickParams =>
-    recipe.id === 'swap' ? { ...recipe.defaults, otherWedgeId: 'ben' } : recipe.defaults
+  // Typed `Record<RecipeId, TrickParams>` rather than a function that falls
+  // through to `recipe.defaults`: a recipe whose winner-dependent branch only
+  // fires when a param names a second wedge — as swap's does, since its
+  // default `otherWedgeId` is `''` — would otherwise skip the assertion
+  // silently, which is exactly how swap behaved before this map named a real
+  // wedge for it. Exhaustive typing means a recipe added to `RecipeId` makes
+  // this file stop compiling until its entry is filled in deliberately.
+  const EXERCISING_PARAMS: Record<RecipeId, TrickParams> = {
+    takeover: takeover.defaults,
+    vanish: vanish.defaults,
+    recolor: recolor.defaults,
+    relabel: relabel.defaults,
+    swap: { ...swap.defaults, otherWedgeId: 'ben' },
+  }
 
   it('never lets a winner-keyed recipe write weight', () => {
     // Weight determines the arcs, the arcs determine where the pointer lands,
     // and the landing determines the winner — so a recipe that moved weight in
     // response to the winner would make pass 2 produce a distribution planSpin
     // never saw, and the pointer would rest somewhere the plan did not predict.
+    let exercised = 0
     for (const recipe of RECIPE_LIST) {
-      const params = paramsFor(recipe)
+      const params = EXERCISING_PARAMS[recipe.id]
       const blind = recipe.resolve(params, { ...ctxFor(recipe, params), winnerId: null })
       const knowing = recipe.resolve(params, { ...ctxFor(recipe, params), winnerId: 'ana' })
       if (JSON.stringify(blind) === JSON.stringify(knowing)) continue
+      exercised++
 
       for (const morph of knowing) {
         for (const keyframe of morph.keyframes) {
@@ -147,5 +156,10 @@ describe('no winner-keyed weight writes', () => {
         }
       }
     }
+
+    // If a future change made every recipe's blind and knowing output
+    // identical, the loop above would pass having asserted nothing. Catch
+    // that here instead of trusting the loop reached its assertion at all.
+    expect(exercised).toBeGreaterThanOrEqual(1)
   })
 })
