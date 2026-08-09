@@ -1,4 +1,5 @@
 import { NumberRow, PropertyPanel, PropertyRow, SelectRow } from '@weasel-js/labkit'
+import { useLayoutEffect, useRef } from 'react'
 import type { Motion } from '../preset/types'
 import { DEFAULT_SETTLE_CURVE } from '../wheel/curve'
 import type { Direction } from '../wheel/types'
@@ -14,33 +15,37 @@ const DIRECTIONS: ReadonlyArray<{ value: Direction; label: string }> = [
 ]
 
 /**
- * Rebuilt field by field rather than deleted from a copy: Biome's recommended
- * rules forbid `delete`, and an explicit shape is what makes "absent" legible
- * next to a settle of zero, which is a different animation.
+ * Destructured rather than deleted or listed field by field: `delete` is
+ * forbidden by Biome, and a field added to `Motion` later rides along on
+ * `rest` without this function needing to know its name.
  */
-function withoutSettle(motion: Motion): Motion {
-  return {
-    durationMs: motion.durationMs,
-    turns: motion.turns,
-    direction: motion.direction,
-    easing: motion.easing,
-  }
+function withoutSettle({ settle, ...rest }: Motion): Motion {
+  return rest
 }
 
 export function MotionPanel({ motion, onChange }: MotionPanelProps) {
+  // Written in a layout effect, not during render, matching FeedPanel's
+  // `latest` ref for the same reason: a render that gets discarded rather
+  // than committed must not leave behind a curve the panel never actually
+  // held. Read here rather than `motion.settle?.curve`, which is undefined
+  // for exactly one render of a backspace-then-retype — the one where the
+  // field is empty and `motion.settle` is briefly absent.
+  const lastCurve = useRef(motion.settle?.curve ?? DEFAULT_SETTLE_CURVE)
+  useLayoutEffect(() => {
+    if (motion.settle) lastCurve.current = motion.settle.curve
+  })
+
   const editSettle = (text: string) => {
-    const ms = Number.parseInt(text, 10)
-    if (!Number.isFinite(ms)) {
+    // Only an empty field means absent. Anything else that will not parse is
+    // a keystroke on the way to a number, and clearing the settle under it
+    // would take the authored curve with it.
+    if (text.trim() === '') {
       onChange(withoutSettle(motion))
       return
     }
-    onChange({
-      ...motion,
-      // The curve survives a length edit. Nothing in this panel can author one
-      // yet, but an imported preset or a hand edit can, and retyping a number
-      // must not quietly throw it away.
-      settle: { ms: Math.max(0, ms), curve: motion.settle?.curve ?? DEFAULT_SETTLE_CURVE },
-    })
+    const ms = Number(text)
+    if (!Number.isFinite(ms)) return
+    onChange({ ...motion, settle: { ms: Math.max(0, ms), curve: lastCurve.current } })
   }
 
   return (

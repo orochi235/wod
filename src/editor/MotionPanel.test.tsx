@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Motion } from '../preset/types'
 import { MotionPanel } from './MotionPanel'
@@ -9,6 +10,31 @@ const motion: Motion = {
   turns: 6,
   direction: 'cw',
   easing: [0.1, 0.8, 0.2, 1],
+}
+
+/**
+ * Feeds each edit back, so a backspace-then-retype sequence runs against the
+ * `motion` the previous keystroke actually produced, the way it does under
+ * the real editor — a static `motion` prop never changes identity, and the
+ * hazard these tests target only shows up across renders.
+ */
+function Harness({
+  initialMotion,
+  onChange = () => undefined,
+}: {
+  initialMotion: Motion
+  onChange?: (motion: Motion) => void
+}) {
+  const [current, setCurrent] = useState(initialMotion)
+  return (
+    <MotionPanel
+      motion={current}
+      onChange={(next) => {
+        setCurrent(next)
+        onChange(next)
+      }}
+    />
+  )
 }
 
 describe('MotionPanel', () => {
@@ -76,5 +102,45 @@ describe('MotionPanel', () => {
     render(<MotionPanel motion={motion} onChange={onChange} />)
     fireEvent.change(screen.getByLabelText('Duration (ms)'), { target: { value: '-100' } })
     expect(onChange).toHaveBeenCalledWith({ ...motion, durationMs: 1 })
+  })
+
+  it('keeps a backspaced curve when the settle is retyped', async () => {
+    // The clear alone drops `settle` from the motion the panel is holding, so
+    // the curve has to survive somewhere other than that prop.
+    const onChange = vi.fn()
+    const bouncy: Motion = { ...motion, settle: { ms: 900, curve: [0.33, 1.4, 0.68, 1] } }
+    render(<Harness initialMotion={bouncy} onChange={onChange} />)
+
+    const settle = screen.getByLabelText('Settle (ms)')
+    await userEvent.clear(settle)
+    await userEvent.type(settle, '400')
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...motion,
+      settle: { ms: 400, curve: [0.33, 1.4, 0.68, 1] },
+    })
+  })
+
+  it('does not lose the curve to a value Number.parseInt could not read', async () => {
+    // A bare '-' never reaches the handler as non-empty: `<input type="number">`
+    // sanitizes any value that isn't itself a valid number down to '' before a
+    // change event fires at all, in jsdom and in real browsers alike. A
+    // leading-dot number like '.5' is the value that actually exercises the
+    // gap — `Number.parseInt('.5', 10)` is NaN, which the old handler read as
+    // an empty field and used to clear the settle and its curve.
+    const onChange = vi.fn()
+    const withSettle: Motion = { ...motion, settle: { ms: 900, curve: [0.33, 1, 0.68, 1] } }
+    const user = userEvent.setup()
+    render(<Harness initialMotion={withSettle} onChange={onChange} />)
+
+    const settle = screen.getByLabelText('Settle (ms)')
+    await user.click(settle)
+    await user.keyboard('{Control>}a{/Control}')
+    await user.paste('.5')
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...motion,
+      settle: { ms: 0.5, curve: [0.33, 1, 0.68, 1] },
+    })
   })
 })
