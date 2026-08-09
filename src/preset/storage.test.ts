@@ -151,7 +151,7 @@ describe('parsePreset', () => {
     ])
     expect(parsed.spin).toEqual({
       target: { kind: 'fair' },
-      motion: { durationMs: 4500, turns: 6, direction: 'cw', easing: 'linear' },
+      motion: { durationMs: 4500, turns: 6, direction: 'cw', easing: [0, 0, 1, 1] },
     })
     expect(parsed.branches).toEqual([])
   })
@@ -167,7 +167,7 @@ describe('parsePreset', () => {
     const parsed = parsePreset(JSON.stringify(v1))
     expect(parsed.spin.motion.durationMs).toBe(1234)
     expect(parsed.spin.motion.turns).toBe(3)
-    expect(parsed.spin.motion.easing).toBe('ease-in')
+    expect(parsed.spin.motion.easing).toEqual([0.42, 0, 1, 1])
     expect(parsed.spin.motion.direction).toBe('cw')
   })
 
@@ -326,6 +326,159 @@ describe('parsePreset', () => {
     ])
     expect(parsed.branches[0].do).toBeUndefined()
     expect(parsed.branches[0].then).toBeUndefined()
+  })
+
+  it('reads the array form its own export writes', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: { ...DEFAULT_PRESET.spin.motion, easing: [0.2, 0.9, 0.3, 1] },
+      },
+    }
+    expect(parsePreset(JSON.stringify(raw)).spin.motion.easing).toEqual([0.2, 0.9, 0.3, 1])
+  })
+
+  it('falls back to the default curve for an easing it cannot read', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: { ...DEFAULT_PRESET.spin.motion, easing: 'steps(4)' },
+      },
+    }
+    expect(parsePreset(JSON.stringify(raw)).spin.motion.easing).toEqual(
+      DEFAULT_PRESET.spin.motion.easing,
+    )
+  })
+
+  it('reads a settle', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: {
+          ...DEFAULT_PRESET.spin.motion,
+          settle: { ms: 800, curve: 'ease-out' },
+        },
+      },
+    }
+    expect(parsePreset(JSON.stringify(raw)).spin.motion.settle).toEqual({
+      ms: 800,
+      curve: [0, 0, 0.58, 1],
+    })
+  })
+
+  it('clamps a settle longer than half the spin', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: {
+          durationMs: 4000,
+          turns: 6,
+          direction: 'cw',
+          easing: 'linear',
+          settle: { ms: 9000 },
+        },
+      },
+    }
+    expect(parsePreset(JSON.stringify(raw)).spin.motion.settle?.ms).toBe(2000)
+  })
+
+  it('clamps a settle against the recovered duration, not a garbage one', () => {
+    // durationMs: -1 is invalid and recovers to the default preset's duration
+    // before readSettle ever sees it. A regression that clamped against the
+    // raw -1 instead would produce a settle of 0, not half the default.
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: { ...DEFAULT_PRESET.spin.motion, durationMs: -1, settle: { ms: 100000 } },
+      },
+    }
+    expect(parsePreset(JSON.stringify(raw)).spin.motion.settle?.ms).toBe(
+      DEFAULT_PRESET.spin.motion.durationMs / 2,
+    )
+  })
+
+  it('keeps a zero settle, which is not the same as having none', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: { ...DEFAULT_PRESET.spin.motion, settle: { ms: 0 } },
+      },
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    expect(parsed.spin.motion.settle?.ms).toBe(0)
+    expect(parsed.spin.motion.settle?.curve).toEqual([0.33, 1, 0.68, 1])
+  })
+
+  it('drops a settle with no usable length', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: { ...DEFAULT_PRESET.spin.motion, settle: { curve: 'ease-out' } },
+      },
+    }
+    expect(parsePreset(JSON.stringify(raw)).spin.motion.settle).toBeUndefined()
+  })
+
+  it('replaces a settle curve with no handover speed', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: {
+          ...DEFAULT_PRESET.spin.motion,
+          // Flat at the start: the solve would ask the settle to cover
+          // infinite ground.
+          settle: { ms: 500, curve: [0.5, 0, 0.68, 1] },
+        },
+      },
+    }
+    expect(parsePreset(JSON.stringify(raw)).spin.motion.settle?.curve).toEqual([0.33, 1, 0.68, 1])
+  })
+
+  it('reads a settle out of a branch modifier', () => {
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [
+        {
+          id: 'stall',
+          when: { kind: 'landsOn', segmentIds: ['ana'] },
+          do: { kind: 'modify', modifier: { motion: { settle: { ms: 400, curve: 'ease-out' } } } },
+        },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    const action = parsed.branches[0].do
+    expect(action?.kind).toBe('modify')
+    expect(action?.kind === 'modify' ? action.modifier.motion?.settle : null).toEqual({
+      ms: 400,
+      curve: [0, 0, 0.58, 1],
+    })
+  })
+
+  it('leaves a branch modifier settle unclamped, unlike readMotion', () => {
+    // A modifier carries no duration to clamp against, and rotationTrack
+    // clamps at spin time regardless — so a settle far longer than any
+    // reasonable spin must survive parsing untouched.
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [
+        {
+          id: 'stall',
+          when: { kind: 'landsOn', segmentIds: ['ana'] },
+          do: { kind: 'modify', modifier: { motion: { settle: { ms: 50000 } } } },
+        },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    const action = parsed.branches[0].do
+    expect(action?.kind === 'modify' ? action.modifier.motion?.settle?.ms : null).toBe(50000)
   })
 })
 

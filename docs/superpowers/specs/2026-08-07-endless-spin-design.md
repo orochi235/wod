@@ -257,3 +257,8 @@ than getting reinvented:
   a feeling, and nobody reads `[0.33, 1, 0.68, 1]` and pictures it — and a
   decision about whether overshoot is offered openly or left to people who type
   numbers. Applies to both curves through one control.
+- **The launch easing, while a settle is present.** The cruise is linear by
+  construction, so `motion.easing` governs nothing until the settle is removed
+  again — two launch curves that differ only from each other produce
+  byte-identical tracks. Restoring the launch curve's effect is exactly the
+  wind-up phase above: a bend before the cruise, parameterized in later.

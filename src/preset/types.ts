@@ -1,6 +1,6 @@
 import type { FeedConfig, ItemOverride } from '../feed/types'
 import type { Trick } from '../tricks/types'
-import type { Direction, Segment } from '../wheel/types'
+import type { Curve, Direction, Segment, Settle } from '../wheel/types'
 
 export type Target = { kind: 'fair' } | { kind: 'forced'; segmentId: string }
 
@@ -9,8 +9,10 @@ export type Motion = {
   durationMs: number
   turns: number
   direction: Direction
-  /** CSS easing string, handed to the Web Animations API. */
-  easing: string
+  /** Parsed from the legacy CSS string form on read; four numbers from there on. */
+  easing: Curve
+  /** Absent: today's single-curve rotation, unchanged. */
+  settle?: Settle
 }
 
 /** What an operator authors. Compiled down to SpinConfig at spin time. */

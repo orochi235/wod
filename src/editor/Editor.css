@@ -163,6 +163,11 @@
   max-width: 26rem;
 }
 
+.editor__column--center .lk-property-panel {
+  width: 100%;
+  max-width: 26rem;
+}
+
 .transport__scrub {
   display: grid;
   grid-template-columns: 4rem 1fr 3rem;

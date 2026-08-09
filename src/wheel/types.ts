@@ -19,6 +19,12 @@ export type Segment = {
   reveal?: Reveal
 }
 
+/** CSS cubic-bezier control points, in the order CSS writes them: x1, y1, x2, y2. */
+export type Curve = [number, number, number, number]
+
+/** A cruise that breaks into a stop. `ms` is how long the break lasts. */
+export type Settle = { ms: number; curve: Curve }
+
 export type EasingName = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut'
 
 export type MorphKeyframe = {
@@ -44,7 +50,9 @@ export type SpinConfig = {
   fullSpins: number
   /** Which way the wheel turns. The pointer is fixed either way. */
   direction: Direction
-  /** CSS easing string, handed to the Web Animations API. */
-  easing: string
+  /** Serialized to a cubic-bezier string only where the Web Animations API demands one. */
+  easing: Curve
+  /** Absent: one curve for the whole rotation. Present: cruise, then break. */
+  settle?: Settle
   morphs: Morph[]
 }

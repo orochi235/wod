@@ -1,6 +1,7 @@
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { applyMorphs } from './morph'
+import { rotationTrack } from './rotation'
 import type { SelectionStrategy } from './selection'
 import { cryptoRng, weightedRandom } from './selection'
 import { planSpin } from './spin'
@@ -108,25 +109,15 @@ export function useSpin(
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
       const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
 
-      // Continue from the resting angle: add the requested revolutions plus
-      // however much more is needed to bring the winner under the pointer, in
-      // the requested direction.
       const from = rotationRef.current
-      const forward = (((plan.restingRotationDeg - from) % 360) + 360) % 360
-      // The % 360 matters: without it a `forward` of exactly zero becomes a
-      // spurious extra revolution.
-      const backward = (360 - forward) % 360
-      const delta =
-        spinConfig.direction === 'ccw'
-          ? -(spinConfig.fullSpins * 360 + backward)
-          : spinConfig.fullSpins * 360 + forward
-      const to = from + delta
+      const track = rotationTrack(from, plan.restingRotationDeg, spinConfig, durationMs)
 
       // Track 1: rotation. One transform on one element, left to the compositor.
-      const animation = rotor.animate(
-        [{ transform: `rotate(${from}deg)` }, { transform: `rotate(${to}deg)` }],
-        { duration: durationMs, easing: spinConfig.easing, fill: 'forwards' },
-      )
+      const animation = rotor.animate(track.keyframes, {
+        duration: track.durationMs,
+        easing: track.easing,
+        fill: 'forwards',
+      })
       animationRef.current = animation
 
       // Track 2: geometry. Independent of rotation; only regenerates paths.
@@ -157,7 +148,7 @@ export function useSpin(
           // JavaScript's % keeps the sign of the dividend, so a counter-clockwise
           // spin would otherwise store a negative resting angle and the next spin
           // would start from a nonsense origin.
-          rotationRef.current = ((to % 360) + 360) % 360
+          rotationRef.current = ((track.to % 360) + 360) % 360
           spinningRef.current = false
           setDisplaySegments(plan.landing)
           setIsSpinning(false)

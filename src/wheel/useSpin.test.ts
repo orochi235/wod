@@ -42,11 +42,13 @@ const MORPHING: SpinConfig = {
   durationMs: DURATION_MS,
   fullSpins: 6,
   direction: 'cw',
-  easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
+  easing: [0.1, 0.8, 0.2, 1],
   morphs: MORPHS,
 }
 
 const PLAIN: SpinConfig = { ...MORPHING, morphs: [] }
+
+const SETTLING: SpinConfig = { ...PLAIN, settle: { ms: 1000, curve: [0.33, 1, 0.68, 1] } }
 
 type AnimateCall = {
   keyframes: Keyframe[]
@@ -304,6 +306,56 @@ describe('useSpin', () => {
     expect(start).toBeLessThan(360)
   })
 
+  it('cruises then breaks when the motion carries a settle', () => {
+    const { result } = renderSpin(SETTLING)
+    act(() => {
+      result.current.spin()
+    })
+
+    const { keyframes, options } = harness.animateCalls[0]
+    expect(keyframes).toHaveLength(3)
+    // The timeline must not ease: the keyframes carry their own curves, and a
+    // second easing over the top would warp both intervals and break the handover.
+    expect(options.easing).toBe('cubic-bezier(0, 0, 1, 1)')
+    expect(Number(keyframes[1].offset)).toBeCloseTo((DURATION_MS - 1000) / DURATION_MS, 9)
+    expect(keyframes[1].easing).toBe('cubic-bezier(0.33, 1, 0.68, 1)')
+  })
+
+  it('keeps a settle proportional to a reduced-motion duration', () => {
+    harness.setReducedMotion(true)
+    const { result } = renderSpin(SETTLING)
+    act(() => {
+      result.current.spin()
+    })
+
+    const { keyframes, options } = harness.animateCalls[0]
+    expect(options.duration).toBe(REDUCED_MOTION_MS)
+    // In milliseconds, not as a fraction: the offset alone is the same number
+    // whichever duration reached the track, so it cannot tell a proportional
+    // settle from a mis-wired one. An unscaled 1000ms settle would clamp to
+    // half of a 300ms spin and leave no cruise for the joke to live in.
+    const settleMs = Number(options.duration) * (1 - Number(keyframes[1].offset))
+    expect(settleMs).toBeCloseTo(REDUCED_MOTION_MS * (1000 / DURATION_MS), 6)
+  })
+
+  it('stores the settled resting angle for the next spin', async () => {
+    const { result } = renderSpin(SETTLING)
+    act(() => {
+      result.current.spin()
+    })
+    const landedAt = degreesOf(harness.animateCalls[0].keyframes[2])
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    act(() => {
+      result.current.spin()
+    })
+
+    // Resuming from the middle keyframe's angle instead would start the next
+    // spin a cruise-length short of where the wheel actually is.
+    expect(degreesOf(harness.animateCalls[1].keyframes[0])).toBeCloseTo(wrap360(landedAt), 6)
+  })
+
   it('refuses a second spin started in the same tick as the first', () => {
     const { result } = renderSpin(MORPHING)
 
@@ -410,7 +462,7 @@ describe('useSpin', () => {
           durationMs: 1200,
           fullSpins: 3,
           direction: 'ccw',
-          easing: 'linear',
+          easing: [0, 0, 1, 1],
           morphs: MORPHS,
         },
       })
@@ -418,7 +470,7 @@ describe('useSpin', () => {
 
     const { keyframes, options } = harness.animateCalls[0]
     expect(options.duration).toBe(1200)
-    expect(options.easing).toBe('linear')
+    expect(options.easing).toBe('cubic-bezier(0, 0, 1, 1)')
 
     // Negative pins the direction; the magnitude pins the revolutions, on the
     // ccw arm of the delta that the cw tests never reach.
