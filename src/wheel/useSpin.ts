@@ -109,17 +109,12 @@ export function useSpin(
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
       const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
 
-      // Continue from the resting angle, so the wheel does not teleport back to
-      // zero before it starts turning.
       const from = rotationRef.current
       const track = rotationTrack(from, plan.restingRotationDeg, spinConfig, durationMs)
 
       // Track 1: rotation. One transform on one element, left to the compositor.
       const animation = rotor.animate(track.keyframes, {
         duration: track.durationMs,
-        // The track decides: the authored curve when it is one interval, linear
-        // when the keyframes carry their own and a second easing over the top
-        // would undo the handover it solved for.
         easing: track.easing,
         fill: 'forwards',
       })

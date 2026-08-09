@@ -330,9 +330,12 @@ describe('useSpin', () => {
 
     const { keyframes, options } = harness.animateCalls[0]
     expect(options.duration).toBe(REDUCED_MOTION_MS)
-    // Scaled, not clamped: an unscaled 1000ms settle would swallow a 300ms spin
-    // whole and leave no cruise for the joke to live in.
-    expect(Number(keyframes[1].offset)).toBeCloseTo((DURATION_MS - 1000) / DURATION_MS, 9)
+    // In milliseconds, not as a fraction: the offset alone is the same number
+    // whichever duration reached the track, so it cannot tell a proportional
+    // settle from a mis-wired one. An unscaled 1000ms settle would clamp to
+    // half of a 300ms spin and leave no cruise for the joke to live in.
+    const settleMs = Number(options.duration) * (1 - Number(keyframes[1].offset))
+    expect(settleMs).toBeCloseTo(REDUCED_MOTION_MS * (1000 / DURATION_MS), 6)
   })
 
   it('stores the settled resting angle for the next spin', async () => {
