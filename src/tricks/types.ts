@@ -1,7 +1,7 @@
 import type { Origin, WedgeIndex } from '../compose/types'
 import type { EasingName, Morph, Segment } from '../wheel/types'
 
-export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel'
+export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel' | 'swap'
 
 export type TrickParams = Record<string, unknown>
 
