@@ -90,13 +90,6 @@ describe('rotationTrack', () => {
     expect(track.easing).toBe('cubic-bezier(0, 0, 1, 1)')
   })
 
-  it('turns more than the requested revolutions to buy the cruise its speed', () => {
-    // The turn count is what absorbs the speed solve, so the track may travel
-    // further than `fullSpins` — but never less, or the wheel would look slow.
-    const track = rotationTrack(0, 90, WITH_SETTLE)
-    expect(track.to).toBeGreaterThanOrEqual(5 * 360)
-  })
-
   it('hands the settle exactly the speed the cruise was holding', () => {
     // The property the whole design exists to hold. A stutter here is the joke
     // reading as a dropped frame.

@@ -121,11 +121,15 @@ describe('App', () => {
  */
 function installSpinHarness() {
   const finishers: (() => void)[] = []
+  const keyframes: Keyframe[][] = []
   // Live counters, so a test can pin that an in-flight animation was neither
   // restarted nor cancelled out from under itself.
   const calls = { animate: 0, cancel: 0 }
   const realAnimate = Element.prototype.animate
-  Element.prototype.animate = function animate() {
+  Element.prototype.animate = function animate(
+    frames: Keyframe[] | PropertyIndexedKeyframes | null,
+  ) {
+    keyframes.push((Array.isArray(frames) ? frames : []) as Keyframe[])
     let settle: (animation: Animation) => void = () => undefined
     const finished = new Promise<Animation>((resolve) => {
       settle = resolve
@@ -146,6 +150,7 @@ function installSpinHarness() {
 
   return {
     calls,
+    keyframes,
     async land() {
       for (const finish of finishers) finish()
       // Two ticks: one for `finished.then`, one for the state it sets.
@@ -190,6 +195,42 @@ describe('App empty guard', () => {
 
       expect(screen.getByRole('button', { name: /spin/i })).toBeDisabled()
       expect(screen.getByText(/nothing on the wheel yet/i)).toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
+  })
+})
+
+describe('App spin', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('carries the stored settle into the keyframes a plain Spin click hands the rotor', async () => {
+    // onSpin builds its own override SpinConfig and useSpin always prefers an
+    // override over the config it was constructed with, so this is the only
+    // SpinConfig construction site in App.tsx a click on the show page's Spin
+    // button can reach.
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({
+        ...DEFAULT_PRESET,
+        spin: {
+          ...DEFAULT_PRESET.spin,
+          motion: {
+            ...DEFAULT_PRESET.spin.motion,
+            settle: { ms: 700, curve: [0.33, 1, 0.68, 1] },
+          },
+        },
+      }),
+    )
+    const harness = installSpinHarness()
+    try {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+
+      expect(harness.keyframes[0]).toHaveLength(3)
+      expect(harness.keyframes[0][1].easing).toBe('cubic-bezier(0.33, 1, 0.68, 1)')
     } finally {
       harness.restore()
     }

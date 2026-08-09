@@ -225,7 +225,11 @@ function readModifier(value: unknown): SpinModifier {
     // on. readMotion would fill the gaps with defaults and silently overwrite
     // whatever the spin already had.
     const motion: Partial<Motion> = {}
-    if (typeof rawMotion.durationMs === 'number' && rawMotion.durationMs > 0) {
+    if (
+      typeof rawMotion.durationMs === 'number' &&
+      Number.isFinite(rawMotion.durationMs) &&
+      rawMotion.durationMs > 0
+    ) {
       motion.durationMs = rawMotion.durationMs
     }
     if (typeof rawMotion.turns === 'number' && Number.isFinite(rawMotion.turns)) {
