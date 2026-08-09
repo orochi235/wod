@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { wedgeIndexOf } from '../../compose/compose'
 import { applyMorphs } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
+import { RECIPE_LIST } from '../registry'
 import type { Recipe, RecipeContext, TrickParams } from '../types'
 import { recolor } from './recolor'
 import { relabel } from './relabel'
@@ -114,4 +115,37 @@ describe('timing parameters at their extremes stay well formed', () => {
       })
     }
   }
+})
+
+describe('no winner-keyed weight writes', () => {
+  // `recipe.defaults` alone doesn't exercise this: swap's default
+  // `otherWedgeId` is `''`, so its blind and knowing output are both `[]` and
+  // the loop below would `continue` past every recipe without ever reaching
+  // the assertion. This names a real wedge for swap so the guard actually
+  // bites; every other recipe ignores `winnerId` and stays exercised fine by
+  // its own defaults.
+  const paramsFor = (recipe: Recipe): TrickParams =>
+    recipe.id === 'swap' ? { ...recipe.defaults, otherWedgeId: 'ben' } : recipe.defaults
+
+  it('never lets a winner-keyed recipe write weight', () => {
+    // Weight determines the arcs, the arcs determine where the pointer lands,
+    // and the landing determines the winner — so a recipe that moved weight in
+    // response to the winner would make pass 2 produce a distribution planSpin
+    // never saw, and the pointer would rest somewhere the plan did not predict.
+    for (const recipe of RECIPE_LIST) {
+      const params = paramsFor(recipe)
+      const blind = recipe.resolve(params, { ...ctxFor(recipe, params), winnerId: null })
+      const knowing = recipe.resolve(params, { ...ctxFor(recipe, params), winnerId: 'ana' })
+      if (JSON.stringify(blind) === JSON.stringify(knowing)) continue
+
+      for (const morph of knowing) {
+        for (const keyframe of morph.keyframes) {
+          expect(
+            keyframe.weight,
+            `${recipe.id} reads winnerId and writes weight — no winner-keyed weight writes`,
+          ).toBeUndefined()
+        }
+      }
+    }
+  })
 })

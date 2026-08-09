@@ -144,6 +144,23 @@ describe('applyMorphs', () => {
     }
     expect(applyMorphs(base, [snap], 1000)[0].color).toBe('#222222')
   })
+
+  it('keeps two keyframes on one offset in authored order', () => {
+    // The swap puts both of a wedge's identities on the same offset and relies
+    // on the sort in `pointsFor` being stable. The language guarantees it; the
+    // failure mode if it ever stopped holding is a swap that fires backwards,
+    // which looks like a trick misfiring rather than a sort changing.
+    const morph: Morph = {
+      segmentId: 'dave',
+      durationMs: 1000,
+      keyframes: [
+        { at: 0.5, label: 'first' },
+        { at: 0.5, label: 'second' },
+      ],
+    }
+    expect(applyMorphs(base, [morph], 0).find((s) => s.id === 'dave')?.label).toBe('Dave')
+    expect(applyMorphs(base, [morph], 500).find((s) => s.id === 'dave')?.label).toBe('second')
+  })
 })
 
 describe('landingSegments', () => {
