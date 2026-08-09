@@ -44,6 +44,7 @@ describe('takeover.resolve at full share', () => {
     origins: new Map(),
     durationMs: 1000,
     roll: 0,
+    winnerId: null,
   }
   const morphs = takeover.resolve(newWedgeParams, ctx)
 
@@ -80,6 +81,7 @@ describe('takeover.resolve at partial share', () => {
     origins: new Map(),
     durationMs: 1000,
     roll: 0,
+    winnerId: null,
   }
   const morphs = takeover.resolve(params, ctx)
 
@@ -108,6 +110,7 @@ describe('takeover in existing mode', () => {
     origins: new Map(),
     durationMs: 1000,
     roll: 0,
+    winnerId: null,
   }
 
   it('grows the named segment from its own base weight', () => {
@@ -125,6 +128,7 @@ describe('takeover.writes', () => {
     origins: new Map(),
     durationMs: 1000,
     roll: 0,
+    winnerId: null,
   }
 
   it('matches the segments and properties resolve actually emits', () => {
@@ -164,6 +168,7 @@ describe('takeover when nobody else has weight', () => {
     origins: new Map(),
     durationMs: 1000,
     roll: 0,
+    winnerId: null,
   }
 
   it('gives the wedge the whole circle rather than an even split', () => {
@@ -197,6 +202,7 @@ describe('takeover color on a wedge left to the palette', () => {
     origins: new Map(),
     durationMs: 1000,
     roll: 0,
+    winnerId: null,
   }
 
   it('animates from the painted palette color', () => {

@@ -42,6 +42,8 @@ export type RecipeContext = {
    * reshuffle what an unrelated trick picked.
    */
   roll: number
+  /** Null everywhere the winner is not yet known, which is most places. */
+  winnerId: string | null
 }
 
 export type Recipe = {

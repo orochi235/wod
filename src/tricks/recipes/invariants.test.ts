@@ -26,6 +26,7 @@ function ctxFor(recipe: Recipe, params: TrickParams): RecipeContext {
     origins: new Map(),
     durationMs: 1000,
     roll: 0,
+    winnerId: null,
   }
 }
 
