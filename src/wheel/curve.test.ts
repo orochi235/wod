@@ -11,6 +11,10 @@ describe('parseCurve', () => {
     expect(parseCurve('ease-in-out')).toEqual([0.42, 0, 0.58, 1])
   })
 
+  it('trims whitespace around a keyword', () => {
+    expect(parseCurve('  linear  ')).toEqual([0, 0, 1, 1])
+  })
+
   it('reads a cubic-bezier string', () => {
     expect(parseCurve('cubic-bezier(0.1, 0.8, 0.2, 1)')).toEqual([0.1, 0.8, 0.2, 1])
   })
@@ -37,6 +41,7 @@ describe('parseCurve', () => {
     expect(parseCurve('cubic-bezier(a, b, c, d)')).toBeNull()
     expect(parseCurve([0.1, 0.8, 0.2])).toBeNull()
     expect(parseCurve([0.1, 0.8, 0.2, Number.NaN])).toBeNull()
+    expect(parseCurve([0.1, 0.8, 0.2, '1'])).toBeNull()
     expect(parseCurve(undefined)).toBeNull()
     expect(parseCurve(42)).toBeNull()
   })
