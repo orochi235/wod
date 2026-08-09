@@ -1,11 +1,11 @@
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { applyMorphs } from './morph'
+import { applyMorphs, landingSegments } from './morph'
 import { rotationTrack } from './rotation'
 import type { SelectionStrategy } from './selection'
 import { cryptoRng, weightedRandom } from './selection'
 import { planSpin } from './spin'
-import type { Segment, SpinConfig } from './types'
+import type { Morph, Segment, SpinConfig } from './types'
 
 const REDUCED_MOTION_MS = 300
 
@@ -18,6 +18,12 @@ export type SpinOverride = {
   segments?: Segment[]
   config?: SpinConfig
   strategy?: SelectionStrategy
+  /**
+   * Pass 2, run after the winner is drawn and before the rotation starts. The
+   * returned list replaces the config's morphs outright — it is a whole
+   * re-resolution, not a delta.
+   */
+  resolveLate?: (winnerId: string) => Morph[]
 }
 
 export type UseSpinResult = {
@@ -93,6 +99,14 @@ export function useSpin(
       const plan = planSpin(spinSegments, spinConfig, strategy, cryptoRng)
       if (!plan) return
 
+      const lateMorphs = override.resolveLate?.(plan.winnerId)
+      const morphs = lateMorphs ?? spinConfig.morphs
+      // plan.landing was sampled from pass 1 and still shows the pre-swap
+      // labels; landing on it would undo the trick as it fires.
+      const landing = lateMorphs
+        ? landingSegments(spinSegments, lateMorphs, spinConfig.durationMs)
+        : plan.landing
+
       stopTracks()
       spinningRef.current = true
       setIsSpinning(true)
@@ -121,7 +135,7 @@ export function useSpin(
       animationRef.current = animation
 
       // Track 2: geometry. Independent of rotation; only regenerates paths.
-      if (spinConfig.morphs.length > 0 && durationMs > 0) {
+      if (morphs.length > 0 && durationMs > 0) {
         const startedAt = performance.now()
         const tick = (now: number) => {
           const elapsed = Math.min(now - startedAt, durationMs)
@@ -130,7 +144,7 @@ export function useSpin(
           // the rotation at 300ms while the morph keeps running for seconds, and
           // the wheel contradicts the announced winner the entire time.
           const morphElapsed = (elapsed / durationMs) * spinConfig.durationMs
-          setDisplaySegments(applyMorphs(spinSegments, spinConfig.morphs, morphElapsed))
+          setDisplaySegments(applyMorphs(spinSegments, morphs, morphElapsed))
           if (elapsed < durationMs) {
             frameRef.current = requestAnimationFrame(tick)
           }
@@ -150,7 +164,7 @@ export function useSpin(
           // would start from a nonsense origin.
           rotationRef.current = ((track.to % 360) + 360) % 360
           spinningRef.current = false
-          setDisplaySegments(plan.landing)
+          setDisplaySegments(landing)
           setIsSpinning(false)
           setWinnerId(plan.winnerId)
           setLanded(true)

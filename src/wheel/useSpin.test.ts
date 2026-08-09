@@ -522,4 +522,77 @@ describe('useSpin', () => {
     // The landing was planned from the override's segments and morphs too.
     expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
   })
+
+  it('resolves late with the drawn winner and lands on the swapped frame', async () => {
+    const seen: string[] = []
+    const { result } = renderSpin(PLAIN)
+    act(() => {
+      result.current.spin({
+        resolveLate: (winnerId) => {
+          seen.push(winnerId)
+          return [
+            {
+              segmentId: winnerId,
+              durationMs: DURATION_MS,
+              keyframes: [
+                { at: 0.95, label: 'before' },
+                { at: 0.95, label: 'after' },
+              ],
+            },
+          ]
+        },
+      })
+    })
+
+    // Called with the winner planSpin actually drew, not one supplied up front.
+    expect(seen).toHaveLength(1)
+
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+
+    // The landed frame carries the late morph. Falling back to plan.landing
+    // here would show the pre-swap labels at the one moment that matters.
+    expect(result.current.winnerId).toBe(seen[0])
+    const landed = result.current.displaySegments.find((s) => s.id === seen[0])
+    expect(landed?.label).toBe('after')
+  })
+
+  it('runs the late morphs on the animation clock', () => {
+    const { result } = renderSpin(PLAIN)
+    harness.setNow(1000)
+    act(() => {
+      result.current.spin({
+        resolveLate: (winnerId) => [
+          {
+            segmentId: winnerId,
+            durationMs: DURATION_MS,
+            keyframes: [
+              { at: 0.5, label: 'early' },
+              { at: 0.5, label: 'late' },
+            ],
+          },
+        ],
+      })
+    })
+
+    // A config with no morphs of its own still has to start the geometry loop
+    // once a late morph exists, or the swap would only appear at the landing.
+    expect(harness.rafStarts).toBe(1)
+    act(() => {
+      harness.flushFrames(1000 + DURATION_MS * 0.6)
+    })
+    expect(result.current.displaySegments.some((s) => s.label === 'late')).toBe(true)
+  })
+
+  it('leaves the planned landing alone when nothing resolves late', async () => {
+    const { result } = renderSpin(MORPHING)
+    act(() => {
+      result.current.spin()
+    })
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
+  })
 })
