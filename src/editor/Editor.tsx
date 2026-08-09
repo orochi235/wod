@@ -106,6 +106,7 @@ export function Editor() {
       fullSpins: preset.spin.motion.turns,
       direction: preset.spin.motion.direction,
       easing: preset.spin.motion.easing,
+      settle: preset.spin.motion.settle,
       morphs: resolved.morphs,
     }),
     [preset.spin, resolved.morphs],

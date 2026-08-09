@@ -57,6 +57,7 @@ export function App() {
       fullSpins: preset.spin.motion.turns,
       direction: preset.spin.motion.direction,
       easing: preset.spin.motion.easing,
+      settle: preset.spin.motion.settle,
       morphs: resolved.morphs,
     }),
     [preset.spin, resolved.morphs],
@@ -83,6 +84,7 @@ export function App() {
         fullSpins: resolution.motion.turns,
         direction: resolution.motion.direction,
         easing: resolution.motion.easing,
+        settle: resolution.motion.settle,
         morphs: resolution.morphs,
       },
       // Resolution already decided who wins; planSpin still decides where in

@@ -37,7 +37,7 @@ function withRoster(statics: Segment[], names: string[]): Composition {
 
 const spin: ScriptedSpin = {
   target: { kind: 'fair' },
-  motion: { durationMs: 4000, turns: 5, direction: 'cw', easing: 'linear' },
+  motion: { durationMs: 4000, turns: 5, direction: 'cw', easing: [0, 0, 1, 1] },
 }
 
 /** Always returns the same value, so the fair draw is predictable. */
@@ -120,7 +120,7 @@ describe('resolveScriptedSpin', () => {
           kind: 'replace',
           spin: {
             target: { kind: 'forced', segmentId: 'ben' },
-            motion: { durationMs: 1000, turns: 2, direction: 'ccw', easing: 'ease-out' },
+            motion: { durationMs: 1000, turns: 2, direction: 'ccw', easing: [0, 0, 0.58, 1] },
           },
         },
       },
@@ -142,7 +142,7 @@ describe('resolveScriptedSpin', () => {
     const result = resolveScriptedSpin(base, [], spin, branches, fixed(0.1))
     expect(result?.motion.direction).toBe('ccw')
     expect(result?.motion.turns).toBe(5)
-    expect(result?.motion.easing).toBe('linear')
+    expect(result?.motion.easing).toEqual([0, 0, 1, 1])
   })
 
   it('descends into children against the post-modify landing', () => {

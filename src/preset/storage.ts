@@ -5,7 +5,8 @@ import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { getRecipe } from '../tricks/registry'
 import { isSelectorToken } from '../tricks/targets'
 import type { Trick, TrickParams } from '../tricks/types'
-import type { Segment } from '../wheel/types'
+import { DEFAULT_SETTLE_CURVE, isSettleCurve, parseCurve } from '../wheel/curve'
+import type { Curve, Segment, Settle } from '../wheel/types'
 import { DEFAULT_PRESET } from './defaults'
 import type {
   BranchAction,
@@ -68,18 +69,44 @@ function readTurns(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : fallback
 }
 
+/**
+ * Clamped to half the duration, the same posture `readFeedDefaults` takes with
+ * churn intervals. Zero is legal and means "stop dead from full speed", which
+ * is a different animation from the field being absent — absent runs the old
+ * single-curve rotation.
+ */
+function readSettle(value: unknown, durationMs: number): Settle | undefined {
+  if (!isRecord(value)) return undefined
+  if (typeof value.ms !== 'number' || !Number.isFinite(value.ms)) return undefined
+  const curve = parseCurve(value.curve)
+  return {
+    ms: Math.min(Math.max(0, value.ms), durationMs / 2),
+    // A curve with no positive finite slope has no handover speed to match, and
+    // the solve would divide by it. Falling back beats spinning to infinity.
+    curve: curve && isSettleCurve(curve) ? curve : DEFAULT_SETTLE_CURVE,
+  }
+}
+
+function readCurve(value: unknown, fallback: Curve): Curve {
+  return parseCurve(value) ?? fallback
+}
+
 function readMotion(value: unknown): Motion {
   const raw = isRecord(value) ? value : {}
   const fallback = DEFAULT_PRESET.spin.motion
-  return {
-    // Must be positive, not merely finite. Element.animate() throws
-    // synchronously on a negative duration, so a hand-edited preset would crash
-    // the wheel at spin time — the exact failure this module exists to prevent.
-    durationMs: readPositive(raw.durationMs, fallback.durationMs),
+  // Must be positive, not merely finite. Element.animate() throws
+  // synchronously on a negative duration, so a hand-edited preset would crash
+  // the wheel at spin time — the exact failure this module exists to prevent.
+  const durationMs = readPositive(raw.durationMs, fallback.durationMs)
+  const motion: Motion = {
+    durationMs,
     turns: readTurns(raw.turns, fallback.turns),
     direction: raw.direction === 'ccw' ? 'ccw' : 'cw',
-    easing: typeof raw.easing === 'string' ? raw.easing : fallback.easing,
+    easing: readCurve(raw.easing, fallback.easing),
   }
+  const settle = readSettle(raw.settle, durationMs)
+  if (settle) motion.settle = settle
+  return motion
 }
 
 /** The v1 shape: a flat spin block with `fullSpins`, no target, no branches. */
@@ -202,7 +229,20 @@ function readModifier(value: unknown): SpinModifier {
     if (rawMotion.direction === 'cw' || rawMotion.direction === 'ccw') {
       motion.direction = rawMotion.direction
     }
-    if (typeof rawMotion.easing === 'string') motion.easing = rawMotion.easing
+    const easing = parseCurve(rawMotion.easing)
+    if (easing) motion.easing = easing
+    // Unclamped, unlike readMotion: a modifier need not carry the duration to
+    // clamp against, and `rotationTrack` clamps at spin time regardless.
+    if (isRecord(rawMotion.settle)) {
+      const ms = rawMotion.settle.ms
+      if (typeof ms === 'number' && Number.isFinite(ms)) {
+        const curve = parseCurve(rawMotion.settle.curve)
+        motion.settle = {
+          ms: Math.max(0, ms),
+          curve: curve && isSettleCurve(curve) ? curve : DEFAULT_SETTLE_CURVE,
+        }
+      }
+    }
     if (Object.keys(motion).length > 0) modifier.motion = motion
   }
   const enable = readStringArray(raw.enableTricks)

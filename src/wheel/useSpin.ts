@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { cssCurve } from './curve'
 import { applyMorphs } from './morph'
 import type { SelectionStrategy } from './selection'
 import { cryptoRng, weightedRandom } from './selection'
@@ -125,7 +126,7 @@ export function useSpin(
       // Track 1: rotation. One transform on one element, left to the compositor.
       const animation = rotor.animate(
         [{ transform: `rotate(${from}deg)` }, { transform: `rotate(${to}deg)` }],
-        { duration: durationMs, easing: spinConfig.easing, fill: 'forwards' },
+        { duration: durationMs, easing: cssCurve(spinConfig.easing), fill: 'forwards' },
       )
       animationRef.current = animation
 

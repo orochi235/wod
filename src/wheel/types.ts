@@ -50,7 +50,9 @@ export type SpinConfig = {
   fullSpins: number
   /** Which way the wheel turns. The pointer is fixed either way. */
   direction: Direction
-  /** CSS easing string, handed to the Web Animations API. */
-  easing: string
+  /** Serialized to a cubic-bezier string only where the Web Animations API demands one. */
+  easing: Curve
+  /** Absent: one curve for the whole rotation. Present: cruise, then break. */
+  settle?: Settle
   morphs: Morph[]
 }

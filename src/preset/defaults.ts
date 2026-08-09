@@ -52,7 +52,7 @@ export const DEFAULT_PRESET: Preset = {
       durationMs: 4500,
       turns: 6,
       direction: 'cw',
-      easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
+      easing: [0.1, 0.8, 0.2, 1],
     },
   },
   branches: [],

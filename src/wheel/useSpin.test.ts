@@ -42,7 +42,7 @@ const MORPHING: SpinConfig = {
   durationMs: DURATION_MS,
   fullSpins: 6,
   direction: 'cw',
-  easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
+  easing: [0.1, 0.8, 0.2, 1],
   morphs: MORPHS,
 }
 
@@ -410,7 +410,7 @@ describe('useSpin', () => {
           durationMs: 1200,
           fullSpins: 3,
           direction: 'ccw',
-          easing: 'linear',
+          easing: [0, 0, 1, 1],
           morphs: MORPHS,
         },
       })
@@ -418,7 +418,7 @@ describe('useSpin', () => {
 
     const { keyframes, options } = harness.animateCalls[0]
     expect(options.duration).toBe(1200)
-    expect(options.easing).toBe('linear')
+    expect(options.easing).toBe('cubic-bezier(0, 0, 1, 1)')
 
     // Negative pins the direction; the magnitude pins the revolutions, on the
     // ccw arm of the delta that the cw tests never reach.
