@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { wedgeIndexOf } from '../../compose/compose'
-import { applyMorphs } from '../../wheel/morph'
+import { applyMorphs, landingSegments } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import { RECIPE_LIST } from '../registry'
 import type { Recipe, RecipeContext, RecipeId, TrickParams } from '../types'
@@ -134,32 +134,27 @@ describe('no winner-keyed weight writes', () => {
     swap: { ...swap.defaults, otherWedgeId: 'ben' },
   }
 
+  const weightsOf = (segments: Segment[]) => segments.map((segment) => [segment.id, segment.weight])
+
   it('never lets a winner-keyed recipe write weight', () => {
     // Weight determines the arcs, the arcs determine where the pointer lands,
     // and the landing determines the winner — so a recipe that moved weight in
     // response to the winner would make pass 2 produce a distribution planSpin
     // never saw, and the pointer would rest somewhere the plan did not predict.
-    let exercised = 0
+    // Comparing landed weights across both passes catches that directly, rather
+    // than checking pass 2's morphs for a `weight` keyframe: a recipe that
+    // writes weight only in pass 1 has none there either, and would slip past a
+    // check that only inspected the "knowing" output.
     for (const recipe of RECIPE_LIST) {
       const params = EXERCISING_PARAMS[recipe.id]
-      const blind = recipe.resolve(params, { ...ctxFor(recipe, params), winnerId: null })
-      const knowing = recipe.resolve(params, { ...ctxFor(recipe, params), winnerId: 'ana' })
-      if (JSON.stringify(blind) === JSON.stringify(knowing)) continue
-      exercised++
+      const ctx = ctxFor(recipe, params)
+      const blind = recipe.resolve(params, { ...ctx, winnerId: null })
+      const knowing = recipe.resolve(params, { ...ctx, winnerId: 'ana' })
 
-      for (const morph of knowing) {
-        for (const keyframe of morph.keyframes) {
-          expect(
-            keyframe.weight,
-            `${recipe.id} reads winnerId and writes weight — no winner-keyed weight writes`,
-          ).toBeUndefined()
-        }
-      }
+      expect(
+        weightsOf(landingSegments(ctx.segments, knowing, ctx.durationMs)),
+        `${recipe.id} reads winnerId and writes weight — no winner-keyed weight writes`,
+      ).toEqual(weightsOf(landingSegments(ctx.segments, blind, ctx.durationMs)))
     }
-
-    // If a future change made every recipe's blind and knowing output
-    // identical, the loop above would pass having asserted nothing. Catch
-    // that here instead of trusting the loop reached its assertion at all.
-    expect(exercised).toBeGreaterThanOrEqual(1)
   })
 })

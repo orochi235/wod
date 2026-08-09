@@ -82,6 +82,8 @@ export function App() {
     })
   }, [base, preset, spin])
 
+  // The landed frame: with a swap in play the announced name is the traded
+  // one, and the wheel and the announcement agree because they're the same frame.
   const winner = displaySegments.find((segment) => segment.id === winnerId)
   // Nothing to land on. planSpin would return null and the click would quietly
   // do nothing, which reads as a broken button rather than an empty wheel. Read

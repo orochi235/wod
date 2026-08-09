@@ -142,9 +142,10 @@ first keyframe starts after 0, which for the *label* already holds the wedge as
 itself across the first half — a label is never undefined, so the base is always
 prepended, and `sampleStep` takes the last point at or before the sampled
 instant. For the *color* it is load-bearing: without an explicit opening
-keyframe the color would lerp continuously from the base to the traded value
-across the whole run-up, instead of holding and then jumping. Written once for
-both, correct for both.
+keyframe, a wedge with a base color would lerp continuously from that base to
+the traded value across the whole run-up instead of holding and then jumping —
+and a palette-colored wedge, which prepends no base at all, would wear the
+traded color from `t = 0`. Written once for both, correct for both.
 
 `withImplicitBase` only fires when the base is defined, which leads to:
 
@@ -165,13 +166,15 @@ exact reason.
 - **The chosen wedge is gone** (deleted, or a roster member who left): emit
   nothing. `validate` reports it through the `WedgeIndex`, which accepts a
   roster wedge that has not arrived yet and rejects an id nobody can produce.
-- **The winner is not on the wheel**: emit nothing. The mirror of the case
-  above, and reachable for the same reasons — `forced()` degrades to a fair
-  draw, and the hook is handed whichever id actually won.
+- **The winner is not on the wheel**: emit nothing. Defensive rather than
+  reachable — `plan.winnerId` is always drawn from the segments pass 2 itself
+  resolves over, and `forced()` degrading still yields an id on that same
+  wheel, so the hook can never be handed a winner missing from `ctx.segments`.
+  The guard stays; the case cannot occur through either window.
 - **Nothing chosen**: `validate` returns "no wedge chosen", matching
   `takeover`'s existing-wedge mode.
 
-## Two consequences worth writing down
+## Three consequences worth writing down
 
 **The announced winner is the swapped-in name.** `App` reads the winner's label
 out of `displaySegments`, which is the landed frame, which now carries the
@@ -222,3 +225,10 @@ Set aside deliberately, and worth keeping on the shelf:
 - **Trading media, or a reveal.** `MorphKeyframe` already carries `media`, so
   the swap could trade avatars too. Left out until the wheel renders media at
   all, matching the posture `readSegments` and `readOverrides` already take.
+- **The editor's rehearsal and the show window can legitimately disagree.** The
+  editor never calls `resolveScriptedSpin`, so branch modifiers are invisible
+  to it, and its selector roll is a hardcoded `0` against the show window's
+  frozen random draw — so a preset combining `@randomExternal` with a swap
+  rehearses against a different wedge than it plays. Each window is
+  self-consistent; they are not consistent with each other. A known limit, not
+  a bug.
