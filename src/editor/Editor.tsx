@@ -4,6 +4,7 @@ import { composeBase } from '../compose/compose'
 import { publishFeed, subscribeFeedRequests } from '../feed/bus'
 import { itemsFor } from '../feed/simulated'
 import type { FeedItem } from '../feed/types'
+import { spinConfigOf } from '../preset/motion'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
 import { findConflicts } from '../tricks/conflicts'
@@ -102,14 +103,7 @@ export function Editor() {
   )
 
   const spinConfig = useMemo<SpinConfig>(
-    () => ({
-      durationMs: preset.spin.motion.durationMs,
-      fullSpins: preset.spin.motion.turns,
-      direction: preset.spin.motion.direction,
-      easing: preset.spin.motion.easing,
-      settle: preset.spin.motion.settle,
-      morphs: resolved.morphs,
-    }),
+    () => spinConfigOf(preset.spin.motion, resolved.morphs),
     [preset.spin, resolved.morphs],
   )
 

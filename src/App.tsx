@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
+import { spinConfigOf } from './preset/motion'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
 import { resolveScriptedSpin } from './spin/resolve'
@@ -52,14 +53,7 @@ export function App() {
   )
 
   const config = useMemo<SpinConfig>(
-    () => ({
-      durationMs: preset.spin.motion.durationMs,
-      fullSpins: preset.spin.motion.turns,
-      direction: preset.spin.motion.direction,
-      easing: preset.spin.motion.easing,
-      settle: preset.spin.motion.settle,
-      morphs: resolved.morphs,
-    }),
+    () => spinConfigOf(preset.spin.motion, resolved.morphs),
     [preset.spin, resolved.morphs],
   )
 
@@ -79,14 +73,7 @@ export function App() {
     if (!resolution) return
     spin({
       segments: resolution.segments,
-      config: {
-        durationMs: resolution.motion.durationMs,
-        fullSpins: resolution.motion.turns,
-        direction: resolution.motion.direction,
-        easing: resolution.motion.easing,
-        settle: resolution.motion.settle,
-        morphs: resolution.morphs,
-      },
+      config: spinConfigOf(resolution.motion, resolution.morphs),
       // Resolution already decided who wins; planSpin still decides where in
       // the arc to stop. forced() degrades to a fair draw if that segment's arc
       // collapsed, which is the safety net for a branch that zeroes its winner.
