@@ -1,7 +1,7 @@
 import type { Origin, WedgeIndex } from '../compose/types'
 import type { EasingName, Morph, Segment } from '../wheel/types'
 
-export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel'
+export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel' | 'swap'
 
 export type TrickParams = Record<string, unknown>
 
@@ -42,6 +42,8 @@ export type RecipeContext = {
    * reshuffle what an unrelated trick picked.
    */
   roll: number
+  /** Null everywhere the winner is not yet known, which is most places. */
+  winnerId: string | null
 }
 
 export type Recipe = {

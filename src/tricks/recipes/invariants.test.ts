@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { wedgeIndexOf } from '../../compose/compose'
-import { applyMorphs } from '../../wheel/morph'
+import { applyMorphs, landingSegments } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
-import type { Recipe, RecipeContext, TrickParams } from '../types'
+import { RECIPE_LIST } from '../registry'
+import type { Recipe, RecipeContext, RecipeId, TrickParams } from '../types'
 import { recolor } from './recolor'
 import { relabel } from './relabel'
+import { swap } from './swap'
 import { takeover } from './takeover'
 import { vanish } from './vanish'
 
@@ -26,6 +28,7 @@ function ctxFor(recipe: Recipe, params: TrickParams): RecipeContext {
     origins: new Map(),
     durationMs: 1000,
     roll: 0,
+    winnerId: null,
   }
 }
 
@@ -113,4 +116,45 @@ describe('timing parameters at their extremes stay well formed', () => {
       })
     }
   }
+})
+
+describe('no winner-keyed weight writes', () => {
+  // Typed `Record<RecipeId, TrickParams>` rather than a function that falls
+  // through to `recipe.defaults`: a recipe whose winner-dependent branch only
+  // fires when a param names a second wedge — as swap's does, since its
+  // default `otherWedgeId` is `''` — would otherwise skip the assertion
+  // silently, which is exactly how swap behaved before this map named a real
+  // wedge for it. Exhaustive typing means a recipe added to `RecipeId` makes
+  // this file stop compiling until its entry is filled in deliberately.
+  const EXERCISING_PARAMS: Record<RecipeId, TrickParams> = {
+    takeover: takeover.defaults,
+    vanish: vanish.defaults,
+    recolor: recolor.defaults,
+    relabel: relabel.defaults,
+    swap: { ...swap.defaults, otherWedgeId: 'ben' },
+  }
+
+  const weightsOf = (segments: Segment[]) => segments.map((segment) => [segment.id, segment.weight])
+
+  it('never lets a winner-keyed recipe write weight', () => {
+    // Weight determines the arcs, the arcs determine where the pointer lands,
+    // and the landing determines the winner — so a recipe that moved weight in
+    // response to the winner would make pass 2 produce a distribution planSpin
+    // never saw, and the pointer would rest somewhere the plan did not predict.
+    // Comparing landed weights across both passes catches that directly, rather
+    // than checking pass 2's morphs for a `weight` keyframe: a recipe that
+    // writes weight only in pass 1 has none there either, and would slip past a
+    // check that only inspected the "knowing" output.
+    for (const recipe of RECIPE_LIST) {
+      const params = EXERCISING_PARAMS[recipe.id]
+      const ctx = ctxFor(recipe, params)
+      const blind = recipe.resolve(params, { ...ctx, winnerId: null })
+      const knowing = recipe.resolve(params, { ...ctx, winnerId: 'ana' })
+
+      expect(
+        weightsOf(landingSegments(ctx.segments, knowing, ctx.durationMs)),
+        `${recipe.id} reads winnerId and writes weight — no winner-keyed weight writes`,
+      ).toEqual(weightsOf(landingSegments(ctx.segments, blind, ctx.durationMs)))
+    }
+  })
 })

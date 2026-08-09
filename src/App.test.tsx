@@ -206,6 +206,58 @@ describe('App spin', () => {
     window.localStorage.clear()
   })
 
+  it('announces the swapped-in name, and the wheel agrees', async () => {
+    // Pinned to an Ana win: otherWedgeId is fixed to 'ben', and the recipe
+    // no-ops a wedge swapping with itself, so a pinned Ben win would never
+    // exercise the trade at all. Mirrors the rng pin in useSpin.test.ts.
+    vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation((array) => {
+      if (array instanceof Uint32Array) array.fill(0)
+      return array
+    })
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({
+        ...DEFAULT_PRESET,
+        segments: [
+          { id: 'ana', label: 'Ana', weight: 1 },
+          { id: 'ben', label: 'Ben', weight: 1 },
+        ],
+        tricks: [
+          {
+            id: 's',
+            name: 'the swap',
+            recipe: 'swap',
+            params: { otherWedgeId: 'ben', at: 0.95 },
+            enabled: true,
+          },
+        ],
+      }),
+    )
+    const harness = installSpinHarness()
+    try {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /^spin$/i }))
+      await harness.land()
+
+      // The announcement reads the winner's label out of the landed frame.
+      // Ana won the pinned draw, so an announcement of 'Ben' is only possible
+      // if the trade actually ran — that is the gag working. Scoped to the
+      // announcement paragraph: with only two wedges, both labels are always
+      // visible somewhere on the wheel too, so an unscoped query would always
+      // find more than one match.
+      const announced = screen.getByText(/^(Ana|Ben)$/, { selector: '.app__result' }).textContent
+      expect(announced).toBe('Ben')
+
+      // And the wheel agrees: the announcement and the wheel are drawn from
+      // the same landed frame, so the traded name sits on the wheel too.
+      const wheel = screen.getByRole('img', { name: 'wheel' })
+      expect(within(wheel).getByText(announced as string)).toBeInTheDocument()
+    } finally {
+      harness.restore()
+      vi.restoreAllMocks()
+    }
+  })
+
   it('carries the stored settle into the keyframes a plain Spin click hands the rotor', async () => {
     // onSpin builds its own override SpinConfig and useSpin always prefers an
     // override over the config it was constructed with, so this is the only

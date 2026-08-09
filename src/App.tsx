@@ -78,9 +78,12 @@ export function App() {
       // the arc to stop. forced() degrades to a fair draw if that segment's arc
       // collapsed, which is the safety net for a branch that zeroes its winner.
       strategy: forced(resolution.winnerId),
+      resolveLate: resolution.resolveLate,
     })
   }, [base, preset, spin])
 
+  // The landed frame: with a swap in play the announced name is the traded
+  // one, and the wheel and the announcement agree because they're the same frame.
   const winner = displaySegments.find((segment) => segment.id === winnerId)
   // Nothing to land on. planSpin would return null and the click would quietly
   // do nothing, which reads as a broken button rather than an empty wheel. Read

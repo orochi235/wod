@@ -22,6 +22,7 @@ export function resolveTricks(
   tricks: Trick[],
   durationMs: number,
   roll = 0,
+  winnerId: string | null = null,
 ): ResolvedTricks {
   const active = tricks.filter((trick) => trick.enabled && getRecipe(trick.recipe) !== null)
 
@@ -51,6 +52,7 @@ export function resolveTricks(
         origins,
         durationMs,
         roll,
+        winnerId,
       }),
     )
   }

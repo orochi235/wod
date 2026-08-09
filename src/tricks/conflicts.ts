@@ -29,6 +29,9 @@ export function findConflicts(base: Composition, tricks: Trick[], durationMs: nu
       origins: resolved.origins,
       durationMs,
       roll,
+      // Conflicts are computed before any spin, so there is no winner to declare
+      // a claim on. A swap can only badge the wedge it was pointed at.
+      winnerId: null,
     }
     for (const write of recipe.writes(trick.params, ctx)) {
       let byProperty = claims.get(write.segmentId)

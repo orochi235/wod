@@ -129,6 +129,38 @@ describe('applyMorphs', () => {
     expect(applyMorphs(base, [lateSwell], 500)[0].weight).toBeCloseTo(2)
     expect(applyMorphs(base, [lateSwell], 1000)[0].weight).toBeCloseTo(3)
   })
+
+  it('resolves a same-offset pair to the later keyframe at the exact offset', () => {
+    // `beer` has no color base, so `withImplicitBase` does not prepend and the
+    // duplicate pair stays as `first === last`. At `p === at` that must not
+    // fall into the `p <= first.at` branch and return the pre-swap value.
+    const snap: Morph = {
+      segmentId: 'beer',
+      durationMs: 1000,
+      keyframes: [
+        { at: 1, color: '#111111' },
+        { at: 1, color: '#222222' },
+      ],
+    }
+    expect(applyMorphs(base, [snap], 1000)[0].color).toBe('#222222')
+  })
+
+  it('keeps two keyframes on one offset in authored order', () => {
+    // The swap puts both of a wedge's identities on the same offset and relies
+    // on the sort in `pointsFor` being stable. The language guarantees it; the
+    // failure mode if it ever stopped holding is a swap that fires backwards,
+    // which looks like a trick misfiring rather than a sort changing.
+    const morph: Morph = {
+      segmentId: 'dave',
+      durationMs: 1000,
+      keyframes: [
+        { at: 0.5, label: 'first' },
+        { at: 0.5, label: 'second' },
+      ],
+    }
+    expect(applyMorphs(base, [morph], 0).find((s) => s.id === 'dave')?.label).toBe('Dave')
+    expect(applyMorphs(base, [morph], 500).find((s) => s.id === 'dave')?.label).toBe('second')
+  })
 })
 
 describe('landingSegments', () => {

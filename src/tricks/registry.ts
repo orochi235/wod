@@ -1,5 +1,6 @@
 import { recolor } from './recipes/recolor'
 import { relabel } from './recipes/relabel'
+import { swap } from './recipes/swap'
 import { takeover } from './recipes/takeover'
 import { vanish } from './recipes/vanish'
 import type { Recipe, RecipeId } from './types'
@@ -9,9 +10,10 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   vanish,
   recolor,
   relabel,
+  swap,
 }
 
-export const RECIPE_LIST: Recipe[] = [takeover, vanish, recolor, relabel]
+export const RECIPE_LIST: Recipe[] = [takeover, vanish, recolor, relabel, swap]
 
 /**
  * Returns null rather than throwing, so stored data can never crash a load.

@@ -246,6 +246,43 @@ describe('Editor spin', () => {
     }
   })
 
+  it('rehearses the swap in the editor', async () => {
+    // Pinned to an Ana win: otherWedgeId is fixed to 'ben', and the recipe
+    // no-ops a wedge swapping with itself, so a pinned Ben win would never
+    // exercise the trade at all. A count-based assertion (exactly one wedge
+    // reads 'Ben') would pass even with the trade never firing, because the
+    // preset's five names are five distinct labels either way — swapping
+    // relabels two wedges without ever duplicating a name. Reading wedge
+    // position, which the trade does not reorder, is what actually shows
+    // whose label moved where.
+    vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation((array) => {
+      if (array instanceof Uint32Array) array.fill(0)
+      return array
+    })
+    const harness = installSpinHarness()
+    try {
+      render(<Editor />)
+      await userEvent.selectOptions(screen.getByLabelText(/add a trick/i), 'swap')
+      await userEvent.selectOptions(screen.getByLabelText('Trades with'), 'ben')
+      await userEvent.click(
+        screen.getByRole('checkbox', { name: /enable two wedges trade identities/i }),
+      )
+      await userEvent.click(screen.getByRole('button', { name: /spin with these tricks/i }))
+      await harness.land()
+
+      // Ana (first wedge, the pinned winner) now carries Ben's name, and
+      // Ben's own wedge (second) carries Ana's — the landed frame carries
+      // the trade both ways.
+      const wheel = screen.getByRole('img', { name: 'wheel' })
+      const labels = wheel.querySelectorAll('.wheel__label')
+      expect(labels[0]?.textContent).toBe('Ben')
+      expect(labels[1]?.textContent).toBe('Ana')
+    } finally {
+      harness.restore()
+      vi.restoreAllMocks()
+    }
+  })
+
   it('spins the settle the operator just authored', async () => {
     const harness = installSpinHarness()
     try {

@@ -58,8 +58,13 @@ function bracket<K extends keyof MorphKeyframe>(
   if (points.length === 0) return null
   const first = points[0]
   const last = points[points.length - 1]
-  if (p <= first.at) return { from: first, to: first, t: 0 }
+  // Checked before `p <= first.at`: when every point shares one offset,
+  // `first === last`, and a tie must go to the later keyframe to agree with
+  // the `span === 0` branch below, which already prefers `to`. Deciding it the
+  // other way would resolve the landing frame of a duplicate-offset pair to
+  // the value it is trading away from, not the value it is trading to.
   if (p >= last.at) return { from: last, to: last, t: 1 }
+  if (p <= first.at) return { from: first, to: first, t: 0 }
   for (let i = 0; i < points.length - 1; i++) {
     const from = points[i]
     const to = points[i + 1]
