@@ -19,6 +19,9 @@ export type Segment = {
   reveal?: Reveal
 }
 
+/** CSS cubic-bezier control points, in the order CSS writes them: x1, y1, x2, y2. */
+export type Curve = [number, number, number, number]
+
 export type EasingName = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut'
 
 export type MorphKeyframe = {
