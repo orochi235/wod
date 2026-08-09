@@ -70,20 +70,25 @@ function readTurns(value: unknown, fallback: number): number {
 }
 
 /**
- * Clamped to half the duration, the same posture `readFeedDefaults` takes with
- * churn intervals. Zero is legal and means "stop dead from full speed", which
- * is a different animation from the field being absent — absent runs the old
- * single-curve rotation.
+ * A curve with no positive finite slope has no handover speed to match, and
+ * the solve would divide by it. Falling back beats spinning to infinity.
+ */
+function readSettleCurve(value: unknown): Curve {
+  const curve = parseCurve(value)
+  return curve && isSettleCurve(curve) ? curve : DEFAULT_SETTLE_CURVE
+}
+
+/**
+ * Clamped to half the duration. Zero is legal and means "stop dead from full
+ * speed", which is a different animation from the field being absent —
+ * absent runs the old single-curve rotation.
  */
 function readSettle(value: unknown, durationMs: number): Settle | undefined {
   if (!isRecord(value)) return undefined
   if (typeof value.ms !== 'number' || !Number.isFinite(value.ms)) return undefined
-  const curve = parseCurve(value.curve)
   return {
     ms: Math.min(Math.max(0, value.ms), durationMs / 2),
-    // A curve with no positive finite slope has no handover speed to match, and
-    // the solve would divide by it. Falling back beats spinning to infinity.
-    curve: curve && isSettleCurve(curve) ? curve : DEFAULT_SETTLE_CURVE,
+    curve: readSettleCurve(value.curve),
   }
 }
 
@@ -236,11 +241,7 @@ function readModifier(value: unknown): SpinModifier {
     if (isRecord(rawMotion.settle)) {
       const ms = rawMotion.settle.ms
       if (typeof ms === 'number' && Number.isFinite(ms)) {
-        const curve = parseCurve(rawMotion.settle.curve)
-        motion.settle = {
-          ms: Math.max(0, ms),
-          curve: curve && isSettleCurve(curve) ? curve : DEFAULT_SETTLE_CURVE,
-        }
+        motion.settle = { ms: Math.max(0, ms), curve: readSettleCurve(rawMotion.settle.curve) }
       }
     }
     if (Object.keys(motion).length > 0) modifier.motion = motion

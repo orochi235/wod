@@ -386,6 +386,22 @@ describe('parsePreset', () => {
     expect(parsePreset(JSON.stringify(raw)).spin.motion.settle?.ms).toBe(2000)
   })
 
+  it('clamps a settle against the recovered duration, not a garbage one', () => {
+    // durationMs: -1 is invalid and recovers to the default preset's duration
+    // before readSettle ever sees it. A regression that clamped against the
+    // raw -1 instead would produce a settle of 0, not half the default.
+    const raw = {
+      ...DEFAULT_PRESET,
+      spin: {
+        target: { kind: 'fair' },
+        motion: { ...DEFAULT_PRESET.spin.motion, durationMs: -1, settle: { ms: 100000 } },
+      },
+    }
+    expect(parsePreset(JSON.stringify(raw)).spin.motion.settle?.ms).toBe(
+      DEFAULT_PRESET.spin.motion.durationMs / 2,
+    )
+  })
+
   it('keeps a zero settle, which is not the same as having none', () => {
     const raw = {
       ...DEFAULT_PRESET,
@@ -444,6 +460,25 @@ describe('parsePreset', () => {
       ms: 400,
       curve: [0, 0, 0.58, 1],
     })
+  })
+
+  it('leaves a branch modifier settle unclamped, unlike readMotion', () => {
+    // A modifier carries no duration to clamp against, and rotationTrack
+    // clamps at spin time regardless — so a settle far longer than any
+    // reasonable spin must survive parsing untouched.
+    const raw = {
+      ...DEFAULT_PRESET,
+      branches: [
+        {
+          id: 'stall',
+          when: { kind: 'landsOn', segmentIds: ['ana'] },
+          do: { kind: 'modify', modifier: { motion: { settle: { ms: 50000 } } } },
+        },
+      ],
+    }
+    const parsed = parsePreset(JSON.stringify(raw))
+    const action = parsed.branches[0].do
+    expect(action?.kind === 'modify' ? action.modifier.motion?.settle?.ms : null).toBe(50000)
   })
 })
 
