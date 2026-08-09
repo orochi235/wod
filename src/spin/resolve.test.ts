@@ -5,8 +5,9 @@ import type { SimulatedFeedConfig } from '../feed/types'
 import type { BranchAction, BranchNode, ScriptedSpin } from '../preset/types'
 import { RECIPES } from '../tricks/registry'
 import type { Trick } from '../tricks/types'
+import { landingSegments } from '../wheel/morph'
 import type { Rng } from '../wheel/selection'
-import type { Segment } from '../wheel/types'
+import type { Morph, Segment } from '../wheel/types'
 import { MAX_DEPTH, resolveScriptedSpin } from './resolve'
 
 const people: Segment[] = [
@@ -353,7 +354,15 @@ describe('resolveScriptedSpin', () => {
       },
     ]
     const drifted = resolveScriptedSpin(base, [], spin, branches, drifting)
-    expect(drifted).toEqual(resolveScriptedSpin(base, [], spin, branches, fixed(0.42)))
+    const fixedResult = resolveScriptedSpin(base, [], spin, branches, fixed(0.42))
+    // resolveLate closes over each call's own frozen rolls, so it is compared by
+    // presence rather than identity — the rest of the resolution is what the
+    // drift must not move.
+    const { resolveLate: _driftedLate, ...driftedRest } = drifted ?? {}
+    const { resolveLate: _fixedLate, ...fixedRest } = fixedResult ?? {}
+    expect(driftedRest).toEqual(fixedRest)
+    expect(drifted?.resolveLate).toBeInstanceOf(Function)
+    expect(fixedResult?.resolveLate).toBeInstanceOf(Function)
     // Vacuous if the branch never fired, which would mean only one evaluation ran.
     expect(drifted?.motion.turns).toBe(9)
     expect(drifted?.winnerId).toBe('ben')
@@ -529,5 +538,72 @@ describe('resolveScriptedSpin', () => {
     // The trick ran, so ana vanished and someone else took the landing.
     expect(result?.morphs.length).toBeGreaterThan(0)
     expect(result?.winnerId).toBe('ben')
+  })
+
+  it('reproduces the first pass exactly, plus the swap', () => {
+    const tricks: Trick[] = [
+      {
+        id: 's',
+        name: 'swap',
+        recipe: 'swap',
+        params: { otherWedgeId: 'ben', at: 0.95 },
+        enabled: true,
+      },
+      {
+        id: 'r',
+        name: 'relabel',
+        recipe: 'relabel',
+        params: { targets: ['cal'], at: 0.5 },
+        enabled: true,
+      },
+    ]
+    const result = resolveScriptedSpin(base, tricks, spin, [], fixed(0.1))
+    if (!result) throw new Error('expected a resolution')
+
+    const late = result.resolveLate(result.winnerId)
+    const unchanged = (morphs: Morph[]) =>
+      morphs.filter((m) => m.segmentId !== result.winnerId && m.segmentId !== 'ben')
+
+    // Every morph the swap did not author survives pass 2 byte for byte. If the
+    // rolls were re-drawn between passes, an unrelated selector would move.
+    expect(unchanged(late)).toEqual(unchanged(result.morphs))
+    // And the swap is what pass 2 added.
+    expect(late.length).toBeGreaterThan(result.morphs.length)
+  })
+
+  it('lands on the same weights in both passes', () => {
+    // The invariant, observed end to end: pass 2 must not move an arc, or the
+    // winner planSpin drew from a pass-1 wheel would not be the winner the
+    // pointer meets.
+    const tricks: Trick[] = [
+      {
+        id: 's',
+        name: 'swap',
+        recipe: 'swap',
+        params: { otherWedgeId: 'ben', at: 0.95 },
+        enabled: true,
+      },
+    ]
+    const result = resolveScriptedSpin(base, tricks, spin, [], fixed(0.1))
+    if (!result) throw new Error('expected a resolution')
+
+    const weightsOf = (morphs: Morph[]) =>
+      landingSegments(result.segments, morphs, spin.motion.durationMs).map((s) => [s.id, s.weight])
+
+    expect(weightsOf(result.resolveLate(result.winnerId))).toEqual(weightsOf(result.morphs))
+  })
+
+  it('emits no swap morphs in the first pass', () => {
+    const tricks: Trick[] = [
+      {
+        id: 's',
+        name: 'swap',
+        recipe: 'swap',
+        params: { otherWedgeId: 'ben', at: 0.95 },
+        enabled: true,
+      },
+    ]
+    const result = resolveScriptedSpin(base, tricks, spin, [], fixed(0.1))
+    expect(result?.morphs).toEqual([])
   })
 })

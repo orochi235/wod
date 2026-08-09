@@ -23,6 +23,12 @@ export type Resolution =
       segments: Segment[]
       morphs: Morph[]
       motion: Motion
+      /**
+       * Pass 2. Re-resolves with the winner the pointer actually landed on, over
+       * the frozen rolls and the enabled set this walk finished with, so nothing
+       * but a winner-keyed recipe can differ from the morphs above.
+       */
+      resolveLate: (winnerId: string) => Morph[]
     }
   | {
       kind: 'exhausted'
@@ -31,6 +37,12 @@ export type Resolution =
       segments: Segment[]
       morphs: Morph[]
       motion: Motion
+      /**
+       * Pass 2. Re-resolves with the winner the pointer actually landed on, over
+       * the frozen rolls and the enabled set this walk finished with, so nothing
+       * but a winner-keyed recipe can differ from the morphs above.
+       */
+      resolveLate: (winnerId: string) => Morph[]
     }
 
 function strategyFor(target: Target): SelectionStrategy {
@@ -70,6 +82,7 @@ function evaluateWheel(
   enabled: Set<string>,
   spin: ScriptedSpin,
   selectorRoll: number,
+  winnerId: string | null = null,
 ): WheelState {
   // `resolveTricks` filters on each trick's own `enabled` flag, which is only the
   // baseline here. Stamping the resolved set onto the copies it receives is what
@@ -82,7 +95,7 @@ function evaluateWheel(
     segments: withWedges,
     origins,
     morphs,
-  } = resolveTricks(base, active, spin.motion.durationMs, selectorRoll)
+  } = resolveTricks(base, active, spin.motion.durationMs, selectorRoll, winnerId)
   const landing = landingSegments(withWedges, morphs, spin.motion.durationMs)
   return { withWedges, origins, morphs, landing }
 }
@@ -158,7 +171,18 @@ export function resolveScriptedSpin(
     // First match wins, so sibling order is authored meaning, not an accident.
     const node = level.find((candidate) => matches(candidate, winnerId, wheel, selectorRoll))
     if (!node) {
-      return { kind: 'settled', winnerId, segments: withWedges, morphs, motion: current.motion }
+      const finalSpin = current
+      const finalEnabled = new Set(enabled)
+      const resolveLate = (winner: string): Morph[] =>
+        evaluateWheel(base, tricks, finalEnabled, finalSpin, selectorRoll, winner).morphs
+      return {
+        kind: 'settled',
+        winnerId,
+        segments: withWedges,
+        morphs,
+        motion: current.motion,
+        resolveLate,
+      }
     }
 
     if (node.do?.kind === 'replace') {
@@ -181,6 +205,10 @@ export function resolveScriptedSpin(
   )
   const winnerId = strategyFor(current.target)(landing, frozen)
   if (!winnerId) return null
+  const finalSpin = current
+  const finalEnabled = new Set(enabled)
+  const resolveLate = (winner: string): Morph[] =>
+    evaluateWheel(base, tricks, finalEnabled, finalSpin, selectorRoll, winner).morphs
   return {
     kind: 'exhausted',
     winnerId,
@@ -188,5 +216,6 @@ export function resolveScriptedSpin(
     segments: withWedges,
     morphs,
     motion: current.motion,
+    resolveLate,
   }
 }
