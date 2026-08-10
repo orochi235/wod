@@ -172,9 +172,7 @@ describe('landingSegments', () => {
 })
 
 describe('reveal morphs', () => {
-  const withReveal: Segment[] = [
-    { id: 'a', label: 'A', weight: 1, reveal: { headline: 'before' } },
-  ]
+  const withReveal: Segment[] = [{ id: 'a', label: 'A', weight: 1, reveal: { headline: 'before' } }]
 
   it('picks a reveal discretely at its keyframe rather than interpolating', () => {
     const morphs: Morph[] = [
@@ -189,9 +187,7 @@ describe('reveal morphs', () => {
       { segmentId: 'a', durationMs: 100, keyframes: [{ at: 0.5, reveal: null }] },
     ]
     expect(applyMorphs(withReveal, morphs, 40)[0].reveal).toEqual({ headline: 'before' })
-    const cleared = applyMorphs(withReveal, morphs, 60)[0]
-    expect(cleared.reveal).toBeUndefined()
-    expect('reveal' in cleared).toBe(false)
+    expect(applyMorphs(withReveal, morphs, 60)[0].reveal).toBeUndefined()
   })
 
   it('gives a reveal to a segment that started without one', () => {

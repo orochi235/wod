@@ -171,7 +171,7 @@ export function applyMorphs(segments: Segment[], morphs: Morph[], elapsedMs: num
       const media = sampleStep(morph.keyframes, 'media', p, out.media)
       if (media !== undefined) out.media = media as Media
       const reveal = sampleReveal(morph.keyframes, p, out.reveal)
-      if (reveal === null) delete out.reveal
+      if (reveal === null) out.reveal = undefined
       else if (reveal !== undefined) out.reveal = reveal
     }
     return out
