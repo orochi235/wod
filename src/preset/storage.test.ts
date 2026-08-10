@@ -267,7 +267,9 @@ describe('parsePreset', () => {
 
   it('truncates a then chain nested past the depth cap without throwing', () => {
     let deep: unknown = { id: 'leaf', when: { kind: 'landsOn', segmentIds: ['ana'] } }
-    for (let i = 0; i < 5000; i++) {
+    // Deep enough to clear the cap, shallow enough that the JSON round-trip
+    // below stays inside the worker's stack — V8 parses recursively.
+    for (let i = 0; i < 200; i++) {
       deep = {
         id: `n${i}`,
         when: { kind: 'landsOn', segmentIds: ['ana'] },
