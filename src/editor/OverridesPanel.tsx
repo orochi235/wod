@@ -1,5 +1,6 @@
 import { PropertyPanel } from '@weasel-js/labkit'
 import type { FeedItem, ItemOverride } from '../feed/types'
+import { RevealEditor } from './RevealEditor'
 
 export type OverridesPanelProps = {
   items: FeedItem[]
@@ -84,6 +85,11 @@ function Row({
       >
         ⌫
       </button>
+      <RevealEditor
+        name={label}
+        reveal={override.reveal}
+        onChange={(reveal) => onPatch({ reveal })}
+      />
       {/* Same convention as the clear-color control beside it: a button that
           would do nothing says so rather than writing an equal record back. */}
       <button

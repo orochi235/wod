@@ -4,6 +4,7 @@ import type { Composition } from '../compose/types'
 import { wedgeOwners } from '../tricks/resolve'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
+import { RevealEditor } from './RevealEditor'
 
 export type SegmentListProps = {
   /** The authored wedges, the only ones these rows may edit. */
@@ -34,8 +35,19 @@ export function SegmentList({
 }: SegmentListProps) {
   const owners = wedgeOwners(base, tricks)
 
+  // Deletes keys the patch set to undefined, so removing a reveal leaves no
+  // `reveal: undefined` behind for the serializer to carry.
   const replace = (index: number, patch: Partial<Segment>) => {
-    onChange(segments.map((segment, i) => (i === index ? { ...segment, ...patch } : segment)))
+    onChange(
+      segments.map((segment, i) => {
+        if (i !== index) return segment
+        const merged = { ...segment, ...patch }
+        for (const key of Object.keys(patch) as (keyof Segment)[]) {
+          if (merged[key] === undefined) delete merged[key]
+        }
+        return merged
+      }),
+    )
   }
 
   const move = (index: number, delta: number) => {
@@ -101,6 +113,11 @@ export function SegmentList({
             >
               ×
             </button>
+            <RevealEditor
+              name={segment.label}
+              reveal={segment.reveal}
+              onChange={(reveal) => replace(index, { reveal })}
+            />
           </li>
         ))}
 
