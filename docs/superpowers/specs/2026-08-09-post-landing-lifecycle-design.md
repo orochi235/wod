@@ -121,9 +121,13 @@ kind: `emoji` as text, `image` and `gif` as `<img>`. A media element that fails
 to load is suppressed and the text still renders — the bit does not break
 because a URL rotted.
 
-Styling lives in CSS classes. The segment's color is passed as a custom property
-on the overlay root, matching how the wheel already hands data-driven values to
-CSS. Under `prefers-reduced-motion` the overlay appears without a transition.
+Styling lives entirely in CSS classes, and the overlay is **not tinted by the
+segment's color**. Passing a per-segment color into an HTML overlay would take
+an inline custom property, and the wheel is no precedent for it — it colors arcs
+with the SVG `fill` attribute, not with CSS variables. A reveal that needs to
+look different is a CSS change, not a data-driven one.
+
+Under `prefers-reduced-motion` the overlay appears without a transition.
 
 ## `reveal` becomes morphable
 
@@ -132,10 +136,23 @@ and `color`. So the wedge that won wears another wedge's name while still
 holding its own `reveal`, and the overlay fires the wrong punchline under the
 right name — in the one trick most likely to have an authored reveal.
 
-`MorphKeyframe` gains `reveal?: Reveal`, picked at a keyframe and never
-interpolated, exactly as `label` and `media` already are. `swap` trades it
-alongside the other two, and `Write.property` gains `'reveal'` so the editor's
-conflict badge still catches two tricks writing it.
+`MorphKeyframe` gains `reveal?: Reveal | null`, picked at a keyframe and never
+interpolated, as `label` and `media` already are. `swap` trades it alongside the
+other two, and `Write.property` gains `'reveal'` so the editor's conflict badge
+still catches two tricks writing it.
+
+**The `null` is load-bearing.** If the wedge being traded with has no reveal,
+the winner must end up with none either — otherwise it wears another identity
+and still fires its own punchline, which is the bug this section exists to fix.
+An optional field cannot say that: the samplers skip `undefined` keyframes, so
+`reveal: undefined` reads as "this keyframe does not touch reveal" rather than
+"clear it". `null` is the explicit clear, and it is why `reveal` gets its own
+sampler instead of joining `label` and `media` in the shared discrete one, whose
+`NonNullable` filter would strip exactly the value that carries the meaning.
+
+An empty `{}` is *not* a clear. It is a reveal with no authored content, which
+renders as an overlay showing the segment's label — a legitimate thing to
+author, and the reason the clear needs a distinct value at all.
 
 This does not weaken the rule the swap spec established. That rule is **no
 winner-keyed *weight* writes** — weight moves the arcs, and a recipe that moves
