@@ -208,7 +208,7 @@ describe('useSpin', () => {
     const landed = landingSegments(SEGMENTS, MORPHS, DURATION_MS)
     expect(result.current.displaySegments).toEqual(landed)
     expect(result.current.displaySegments).not.toEqual(SEGMENTS)
-    expect(result.current.winnerId).toBe('beer')
+    expect(result.current.landing?.winner.id).toBe('beer')
   })
 
   it('starts the next spin from the angle the last one rested at', async () => {
@@ -449,7 +449,7 @@ describe('useSpin', () => {
       harness.animateCalls[0].finish()
     })
     // And the winner came from the override segments, which the props never had.
-    expect(result.current.winnerId).toBe('x')
+    expect(result.current.landing?.winner.id).toBe('x')
   })
 
   it('takes duration, easing, direction, revolutions, and morphs from the override config', () => {
@@ -553,7 +553,7 @@ describe('useSpin', () => {
 
     // The landed frame carries the late morph. Falling back to plan.landing
     // here would show the pre-swap labels at the one moment that matters.
-    expect(result.current.winnerId).toBe(seen[0])
+    expect(result.current.landing?.winner.id).toBe(seen[0])
     const landed = result.current.displaySegments.find((s) => s.id === seen[0])
     expect(landed?.label).toBe('after')
   })
@@ -594,5 +594,77 @@ describe('useSpin', () => {
       harness.animateCalls[0].finish()
     })
     expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
+  })
+})
+
+describe('landing', () => {
+  let harness: Harness
+  beforeEach(() => {
+    harness = installHarness()
+  })
+  afterEach(() => {
+    Reflect.deleteProperty(Element.prototype, 'animate')
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('is null while spinning and carries the winner once resolved', async () => {
+    const { result } = renderSpin(PLAIN)
+    act(() => {
+      result.current.spin()
+    })
+    expect(result.current.landing).toBeNull()
+
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    expect(result.current.landing?.winner.id).toBeDefined()
+  })
+
+  it('increments the landing id on every spin', async () => {
+    const { result } = renderSpin(PLAIN)
+    act(() => {
+      result.current.spin()
+    })
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    const first = result.current.landing?.id ?? 0
+
+    act(() => {
+      result.current.spin()
+    })
+    // Cleared the instant the next spin starts, so nothing downstream reads a
+    // stale winner over a turning wheel.
+    expect(result.current.landing).toBeNull()
+
+    await act(async () => {
+      harness.animateCalls[1].finish()
+    })
+    expect(result.current.landing?.id).toBe(first + 1)
+  })
+
+  it('carries the landed-frame segment, not the drawn one', async () => {
+    const { result } = renderSpin(PLAIN)
+    act(() => {
+      result.current.spin({
+        resolveLate: (winnerId) => [
+          {
+            segmentId: winnerId,
+            durationMs: DURATION_MS,
+            keyframes: [
+              { at: 0.95, label: 'before' },
+              { at: 0.95, label: 'after' },
+            ],
+          },
+        ],
+      })
+    })
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    // The whole reason Landing carries a Segment: with a swap in play the
+    // announced identity is the traded one.
+    expect(result.current.landing?.winner.label).toBe('after')
   })
 })

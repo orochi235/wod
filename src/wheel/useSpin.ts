@@ -26,20 +26,19 @@ export type SpinOverride = {
   resolveLate?: (winnerId: string) => Morph[]
 }
 
+/** A resolved spin. `id` is fresh per landing, so the same winner twice is two landings. */
+export type Landing = { id: number; winner: Segment }
+
 export type UseSpinResult = {
   /** Segments as they currently appear, with any in-flight morph applied. */
   displaySegments: Segment[]
   isSpinning: boolean
-  winnerId: string | null
+  landing: Landing | null
   spin: (override?: SpinOverride) => void
   rotorRef: RefObject<SVGGElement | null>
 }
 
-export function useSpin(
-  segments: Segment[],
-  config: SpinConfig,
-  onLanded?: (winnerId: string) => void,
-): UseSpinResult {
+export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult {
   const rotorRef = useRef<SVGGElement | null>(null)
   const frameRef = useRef<number | null>(null)
   const animationRef = useRef<Animation | null>(null)
@@ -51,11 +50,13 @@ export function useSpin(
   // Where the wheel came to rest, so the next spin continues from that angle
   // instead of teleporting back to zero before it starts turning.
   const rotationRef = useRef(0)
+  // Identity, not a winner id: the same segment winning twice must read as two
+  // landings, or a dismissed reveal never reopens.
+  const landingCountRef = useRef(0)
 
   const [displaySegments, setDisplaySegments] = useState(segments)
   const [isSpinning, setIsSpinning] = useState(false)
-  const [landed, setLanded] = useState(false)
-  const [winnerId, setWinnerId] = useState<string | null>(null)
+  const [landing, setLanding] = useState<Landing | null>(null)
 
   useEffect(() => {
     // Resync only when the caller actually swaps the array, and never while a
@@ -64,10 +65,10 @@ export function useSpin(
     // whole visual payoff when weights morph. Nothing is lost by dropping the
     // swap: the next spin takes ownership and draws from the live prop itself.
     if (lastSegmentsRef.current === segments) return
-    if (isSpinning || landed) return
+    if (isSpinning || landing !== null) return
     lastSegmentsRef.current = segments
     setDisplaySegments(segments)
-  }, [segments, isSpinning, landed])
+  }, [segments, isSpinning, landing])
 
   const stopTracks = useCallback(() => {
     if (frameRef.current !== null) {
@@ -103,15 +104,14 @@ export function useSpin(
       const morphs = lateMorphs ?? spinConfig.morphs
       // plan.landing was sampled from pass 1 and still shows the pre-swap
       // labels; landing on it would undo the trick as it fires.
-      const landing = lateMorphs
+      const landedFrame = lateMorphs
         ? landingSegments(spinSegments, lateMorphs, spinConfig.durationMs)
         : plan.landing
 
       stopTracks()
       spinningRef.current = true
       setIsSpinning(true)
-      setLanded(false)
-      setWinnerId(null)
+      setLanding(null)
       setDisplaySegments(spinSegments)
       // The spin, not the effect, is what resolves a swap that arrived while the
       // wheel was held. Mark the props synced here so a later idle render does
@@ -164,11 +164,13 @@ export function useSpin(
           // would start from a nonsense origin.
           rotationRef.current = ((track.to % 360) + 360) % 360
           spinningRef.current = false
-          setDisplaySegments(landing)
+          setDisplaySegments(landedFrame)
           setIsSpinning(false)
-          setWinnerId(plan.winnerId)
-          setLanded(true)
-          onLanded?.(plan.winnerId)
+          const winner = landedFrame.find((segment) => segment.id === plan.winnerId)
+          if (winner) {
+            landingCountRef.current += 1
+            setLanding({ id: landingCountRef.current, winner })
+          }
         })
         .catch(() => {
           // Cancelled — unmounted, or superseded by a newer spin.
@@ -177,8 +179,8 @@ export function useSpin(
           setIsSpinning(false)
         })
     },
-    [segments, config, onLanded, stopTracks],
+    [segments, config, stopTracks],
   )
 
-  return { displaySegments, isSpinning, winnerId, spin, rotorRef }
+  return { displaySegments, isSpinning, landing, spin, rotorRef }
 }

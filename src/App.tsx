@@ -57,7 +57,7 @@ export function App() {
     [preset.spin, resolved.morphs],
   )
 
-  const { displaySegments, isSpinning, winnerId, spin, rotorRef } = useSpin(
+  const { displaySegments, isSpinning, landing, spin, rotorRef } = useSpin(
     resolved.segments,
     config,
   )
@@ -82,9 +82,6 @@ export function App() {
     })
   }, [base, preset, spin])
 
-  // The landed frame: with a swap in play the announced name is the traded
-  // one, and the wheel and the announcement agree because they're the same frame.
-  const winner = displaySegments.find((segment) => segment.id === winnerId)
   // Nothing to land on. planSpin would return null and the click would quietly
   // do nothing, which reads as a broken button rather than an empty wheel. Read
   // the resolved roster, not displaySegments: the wheel holds a landed frame
@@ -111,7 +108,7 @@ export function App() {
       {isEmpty ? (
         <p className="app__empty">Nothing on the wheel yet — add some segments in the editor.</p>
       ) : (
-        <p className="app__result">{winner ? winner.label : ''}</p>
+        <p className="app__result">{landing ? landing.winner.label : ''}</p>
       )}
     </main>
   )
