@@ -5,6 +5,8 @@ import type { FeedItem } from './feed/types'
 import { spinConfigOf } from './preset/motion'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
+import { Reveal } from './reveal/Reveal'
+import { useReveal } from './reveal/useReveal'
 import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
 import { Wheel } from './wheel/Wheel'
@@ -62,6 +64,8 @@ export function App() {
     config,
   )
 
+  const { shown, dismiss } = useReveal(landing)
+
   const onSpin = useCallback(() => {
     const resolution = resolveScriptedSpin(
       base,
@@ -97,7 +101,7 @@ export function App() {
           className="app__button"
           type="button"
           onClick={onSpin}
-          disabled={isSpinning || isEmpty}
+          disabled={isSpinning || isEmpty || shown !== null}
         >
           Spin
         </button>
@@ -109,6 +113,9 @@ export function App() {
         <p className="app__empty">Nothing on the wheel yet — add some segments in the editor.</p>
       ) : (
         <p className="app__result">{landing ? landing.winner.label : ''}</p>
+      )}
+      {shown === null ? null : (
+        <Reveal segment={shown.segment} reveal={shown.reveal} onDismiss={dismiss} />
       )}
     </main>
   )

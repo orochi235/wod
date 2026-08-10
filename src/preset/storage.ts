@@ -6,7 +6,7 @@ import { getRecipe } from '../tricks/registry'
 import { isSelectorToken } from '../tricks/targets'
 import type { Trick, TrickParams } from '../tricks/types'
 import { DEFAULT_SETTLE_CURVE, isSettleCurve, parseCurve } from '../wheel/curve'
-import type { Curve, Segment, Settle } from '../wheel/types'
+import type { Curve, Media, Reveal, Segment, Settle } from '../wheel/types'
 import { DEFAULT_PRESET } from './defaults'
 import type {
   BranchAction,
@@ -23,6 +23,32 @@ export const PRESET_KEY = 'wod.preset.current'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function readMedia(value: unknown): Media | undefined {
+  if (!isRecord(value)) return undefined
+  if (value.kind !== 'emoji' && value.kind !== 'image' && value.kind !== 'gif') return undefined
+  if (typeof value.value !== 'string') return undefined
+  return { kind: value.kind, value: value.value }
+}
+
+/**
+ * An empty object survives: a reveal with nothing authored is an overlay showing
+ * the segment's label, which is distinct from having no reveal at all.
+ */
+function readReveal(value: unknown): Reveal | undefined {
+  if (!isRecord(value)) return undefined
+  const reveal: Reveal = {}
+  if (typeof value.headline === 'string') reveal.headline = value.headline
+  if (typeof value.body === 'string') reveal.body = value.body
+  const media = readMedia(value.media)
+  if (media !== undefined) reveal.media = media
+  if (typeof value.sound === 'string') reveal.sound = value.sound
+  if (value.effect !== undefined) reveal.effect = value.effect === 'confetti' ? 'confetti' : 'none'
+  if (typeof value.holdMs === 'number' && Number.isFinite(value.holdMs) && value.holdMs > 0) {
+    reveal.holdMs = value.holdMs
+  }
+  return reveal
 }
 
 function readSegments(value: unknown): Segment[] {
@@ -46,6 +72,10 @@ function readSegments(value: unknown): Segment[] {
 
     const segment: Segment = { id: entry.id, label: entry.label, weight }
     if (typeof entry.color === 'string') segment.color = entry.color
+    const media = readMedia(entry.media)
+    if (media !== undefined) segment.media = media
+    const reveal = readReveal(entry.reveal)
+    if (reveal !== undefined) segment.reveal = reveal
     segments.push(segment)
   }
   return segments
@@ -390,11 +420,6 @@ function readFeeds(value: unknown): FeedConfig[] {
   return feeds
 }
 
-/**
- * `media` and `reveal` are deliberately not read, matching readSegments: the
- * wheel renders neither yet, so parsing them would be dead code that has to be
- * kept correct. They stay on ItemOverride so the shape is ready when it ships.
- */
 function readOverrides(value: unknown): Record<string, ItemOverride> {
   if (!isRecord(value)) return {}
   const overrides: Record<string, ItemOverride> = {}
@@ -408,6 +433,10 @@ function readOverrides(value: unknown): Record<string, ItemOverride> {
       override.weight = Math.max(0, raw.weight)
     }
     if (typeof raw.color === 'string') override.color = raw.color
+    const media = readMedia(raw.media)
+    if (media !== undefined) override.media = media
+    const reveal = readReveal(raw.reveal)
+    if (reveal !== undefined) override.reveal = reveal
     // An override with nothing usable left is indistinguishable from no
     // override, and keeping it would show an empty row in the editor forever.
     if (Object.keys(override).length > 0) overrides[id] = override

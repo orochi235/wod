@@ -5,6 +5,7 @@ import { App } from './App'
 import { publishFeed, subscribeFeedRequests } from './feed/bus'
 import { DEFAULT_PRESET } from './preset/defaults'
 import { PRESET_KEY } from './preset/storage'
+import type { Reveal, Segment } from './wheel/types'
 
 describe('App', () => {
   beforeEach(() => {
@@ -412,6 +413,60 @@ describe('churn during a spin', () => {
       expect(onWheel('Yan')).toBeInTheDocument()
       expect(onWheel('Zoe')).not.toBeInTheDocument()
       expect(harness.calls.animate).toBe(2)
+    } finally {
+      harness.restore()
+    }
+  })
+})
+
+describe('App reveal', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  // One segment is always its own winner, so the landing needs no stubbed rng.
+  const seed = (reveal?: Reveal) => {
+    const segment: Segment = { id: 'solo', label: 'Solo', weight: 1 }
+    if (reveal !== undefined) segment.reveal = reveal
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({ ...DEFAULT_PRESET, segments: [segment], tricks: [], branches: [] }),
+    )
+  }
+
+  it('raises no overlay for a winner with no reveal', async () => {
+    const harness = installSpinHarness()
+    try {
+      seed()
+      const { container } = render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      // Landed, and still the quiet result line.
+      expect(container.querySelector('.app__result')).toHaveTextContent('Solo')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /spin/i })).toBeEnabled()
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('raises the overlay for an authored reveal, blocks spin, and dismisses on click', async () => {
+    const harness = installSpinHarness()
+    try {
+      seed({ headline: 'Free beer' })
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toHaveTextContent('Free beer')
+      // No spinning out from under a reveal that is still describing the winner.
+      expect(screen.getByRole('button', { name: /spin/i })).toBeDisabled()
+
+      await userEvent.click(dialog)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /spin/i })).toBeEnabled()
     } finally {
       harness.restore()
     }

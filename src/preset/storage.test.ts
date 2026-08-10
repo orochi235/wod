@@ -721,3 +721,80 @@ describe('v3 prototype-shaped keys', () => {
     expect(overrides.constructor).toEqual({ label: 'C' })
   })
 })
+
+describe('reveal and media', () => {
+  const parseSegments = (segments: unknown) =>
+    parsePreset(JSON.stringify({ version: 3, name: 'p', segments })).segments
+
+  it('round-trips a full reveal', () => {
+    const reveal = {
+      headline: 'Free beer',
+      body: 'on the house',
+      media: { kind: 'gif', value: 'https://example.test/x.gif' },
+      sound: 'airhorn',
+      effect: 'confetti',
+      holdMs: 2000,
+    }
+    const [segment] = parseSegments([{ id: 'a', label: 'A', weight: 1, reveal }])
+    expect(segment.reveal).toEqual(reveal)
+  })
+
+  it('keeps an empty reveal, which means an overlay showing the label', () => {
+    const [segment] = parseSegments([{ id: 'a', label: 'A', weight: 1, reveal: {} }])
+    expect(segment.reveal).toEqual({})
+  })
+
+  it('drops a reveal that is not an object', () => {
+    const [segment] = parseSegments([{ id: 'a', label: 'A', weight: 1, reveal: 'yes' }])
+    expect(segment.reveal).toBeUndefined()
+  })
+
+  it('reads segment media', () => {
+    const [segment] = parseSegments([
+      { id: 'a', label: 'A', weight: 1, media: { kind: 'emoji', value: '🍺' } },
+    ])
+    expect(segment.media).toEqual({ kind: 'emoji', value: '🍺' })
+  })
+
+  it.each([{ kind: 'video', value: 'x' }, { kind: 'emoji' }, { kind: 'emoji', value: 7 }, 'emoji'])(
+    'drops malformed media %p without losing the segment',
+    (media) => {
+      const [segment] = parseSegments([{ id: 'a', label: 'A', weight: 1, media }])
+      expect(segment).toMatchObject({ id: 'a', label: 'A' })
+      expect(segment.media).toBeUndefined()
+    },
+  )
+
+  it.each([0, -5, 'soon', Number.NaN])('drops a holdMs of %p', (holdMs) => {
+    const [segment] = parseSegments([
+      { id: 'a', label: 'A', weight: 1, reveal: { headline: 'H', holdMs } },
+    ])
+    expect(segment.reveal).toEqual({ headline: 'H' })
+  })
+
+  it('reads an unknown effect as none', () => {
+    const [segment] = parseSegments([
+      { id: 'a', label: 'A', weight: 1, reveal: { effect: 'fireworks' } },
+    ])
+    expect(segment.reveal).toEqual({ effect: 'none' })
+  })
+
+  it('round-trips reveal and media on an override', () => {
+    const parsed = parsePreset(
+      JSON.stringify({
+        version: 3,
+        name: 'p',
+        overrides: {
+          u1: {
+            media: { kind: 'image', value: 'https://example.test/u.png' },
+            reveal: { headline: 'Gotcha' },
+          },
+        },
+      }),
+    )
+    expect(parsed.overrides.u1).toEqual({
+      media: { kind: 'image', value: 'https://example.test/u.png' },
+      reveal: { headline: 'Gotcha' },
+    })
+  })
+})
