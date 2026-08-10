@@ -170,3 +170,47 @@ describe('landingSegments', () => {
     expect(landing.find((s) => s.id === 'dave')?.weight).toBe(0)
   })
 })
+
+describe('reveal morphs', () => {
+  const withReveal: Segment[] = [
+    { id: 'a', label: 'A', weight: 1, reveal: { headline: 'before' } },
+  ]
+
+  it('picks a reveal discretely at its keyframe rather than interpolating', () => {
+    const morphs: Morph[] = [
+      { segmentId: 'a', durationMs: 100, keyframes: [{ at: 0.5, reveal: { headline: 'after' } }] },
+    ]
+    expect(applyMorphs(withReveal, morphs, 40)[0].reveal).toEqual({ headline: 'before' })
+    expect(applyMorphs(withReveal, morphs, 60)[0].reveal).toEqual({ headline: 'after' })
+  })
+
+  it('clears the reveal when a keyframe holds null', () => {
+    const morphs: Morph[] = [
+      { segmentId: 'a', durationMs: 100, keyframes: [{ at: 0.5, reveal: null }] },
+    ]
+    expect(applyMorphs(withReveal, morphs, 40)[0].reveal).toEqual({ headline: 'before' })
+    const cleared = applyMorphs(withReveal, morphs, 60)[0]
+    expect(cleared.reveal).toBeUndefined()
+    expect('reveal' in cleared).toBe(false)
+  })
+
+  it('gives a reveal to a segment that started without one', () => {
+    const bare: Segment[] = [{ id: 'a', label: 'A', weight: 1 }]
+    const morphs: Morph[] = [
+      {
+        segmentId: 'a',
+        durationMs: 100,
+        keyframes: [{ at: 0.5, reveal: { headline: 'surprise' } }],
+      },
+    ]
+    expect(applyMorphs(bare, morphs, 40)[0].reveal).toBeUndefined()
+    expect(applyMorphs(bare, morphs, 60)[0].reveal).toEqual({ headline: 'surprise' })
+  })
+
+  it('leaves reveal alone when no keyframe mentions it', () => {
+    const morphs: Morph[] = [
+      { segmentId: 'a', durationMs: 100, keyframes: [{ at: 1, label: 'Z' }] },
+    ]
+    expect(applyMorphs(withReveal, morphs, 100)[0].reveal).toEqual({ headline: 'before' })
+  })
+})

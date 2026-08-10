@@ -7,7 +7,7 @@ export type TrickParams = Record<string, unknown>
 
 export type Write = {
   segmentId: string
-  property: 'weight' | 'color' | 'label' | 'media'
+  property: 'weight' | 'color' | 'label' | 'media' | 'reveal'
 }
 
 /** Declarative form spec. The editor renders these; recipes never import React. */

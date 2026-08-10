@@ -34,6 +34,8 @@ export type MorphKeyframe = {
   color?: string
   label?: string
   media?: Media
+  /** `null` clears the reveal. Absent means this keyframe does not touch it. */
+  reveal?: Reveal | null
 }
 
 export type Morph = {

@@ -1,4 +1,4 @@
-import type { EasingName, Media, Morph, MorphKeyframe, Segment } from './types'
+import type { EasingName, Media, Morph, MorphKeyframe, Reveal, Segment } from './types'
 
 export const EASINGS: Record<EasingName, (t: number) => number> = {
   linear: (t) => t,
@@ -130,6 +130,30 @@ function sampleStep<K extends 'label' | 'media'>(
   return value
 }
 
+type RevealKeyframe = MorphKeyframe & { reveal: Reveal | null }
+
+/**
+ * Discrete like label and media, but nullable, so a swap can trade a reveal away
+ * to a wedge that has none. `sampleStep` cannot express that: its `NonNullable`
+ * filter strips the null that carries the meaning.
+ */
+function sampleReveal(
+  keyframes: MorphKeyframe[],
+  p: number,
+  base: Reveal | undefined,
+): Reveal | null | undefined {
+  const declared = [...keyframes]
+    .sort((a, b) => a.at - b.at)
+    .filter((k): k is RevealKeyframe => k.reveal !== undefined)
+  if (declared.length === 0) return undefined
+  const points = declared[0].at > 0 ? [{ at: 0, reveal: base ?? null }, ...declared] : declared
+  let value = points[0].reveal
+  for (const point of points) {
+    if (point.at <= p) value = point.reveal
+  }
+  return value
+}
+
 export function applyMorphs(segments: Segment[], morphs: Morph[], elapsedMs: number): Segment[] {
   if (morphs.length === 0) return segments
   return segments.map((segment) => {
@@ -146,6 +170,9 @@ export function applyMorphs(segments: Segment[], morphs: Morph[], elapsedMs: num
       if (label !== undefined) out.label = label as string
       const media = sampleStep(morph.keyframes, 'media', p, out.media)
       if (media !== undefined) out.media = media as Media
+      const reveal = sampleReveal(morph.keyframes, p, out.reveal)
+      if (reveal === null) delete out.reveal
+      else if (reveal !== undefined) out.reveal = reveal
     }
     return out
   })
