@@ -83,6 +83,11 @@ A segment with no `reveal` gets a default takeover showing its label. New gag
 formats are added by extending `Reveal` and its renderer, never by touching
 wheel geometry, selection, or the composer.
 
+**Superseded (2026-08-09):** only a segment with an authored `reveal` raises an
+overlay; everything else keeps the quiet result line. A dismissal on every
+routine spin is a tax, and an overlay that always appears signals nothing. See
+`2026-08-09-post-landing-lifecycle-design.md`.
+
 ### 1. `wheel` — presentation core
 
 Renders and animates. Knows nothing about people, meetings, or who should win.

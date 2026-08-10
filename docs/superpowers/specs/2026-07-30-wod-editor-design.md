@@ -29,8 +29,9 @@ Meet source, or reveals.
   additional presets are purely additive later.
 - **Live-fired tricks.** Everything here is scheduled at launch. The rig channel
   and mid-spin firing remain step 5 of the parent spec.
-- **Editing reveals.** The reveal renderer is not built yet; tricks stop at the
-  landing.
+- ~~**Editing reveals.**~~ Shipped since. Reveals are authored per segment and
+  per override, and the overlay renders at the landing — see
+  `2026-08-09-post-landing-lifecycle-design.md`.
 - **A visual keyframe editor.** Recipes expose parameters, not raw keyframes.
 
 ## Core distinction: recipes and tricks
