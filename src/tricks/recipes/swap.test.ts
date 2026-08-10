@@ -160,8 +160,10 @@ describe('swap', () => {
       expect(swap.writes(params, ctx('ana'))).toEqual([
         { segmentId: 'ben', property: 'label' },
         { segmentId: 'ben', property: 'color' },
+        { segmentId: 'ben', property: 'reveal' },
         { segmentId: 'ana', property: 'label' },
         { segmentId: 'ana', property: 'color' },
+        { segmentId: 'ana', property: 'reveal' },
       ])
     })
 
@@ -171,6 +173,7 @@ describe('swap', () => {
       expect(swap.writes(params, ctx(null))).toEqual([
         { segmentId: 'ben', property: 'label' },
         { segmentId: 'ben', property: 'color' },
+        { segmentId: 'ben', property: 'reveal' },
       ])
     })
 
@@ -181,5 +184,53 @@ describe('swap', () => {
 
   it('provides no wedges', () => {
     expect(swap.provides({ otherWedgeId: 'ben' }, 'swap1')).toEqual([])
+  })
+})
+
+describe('swap reveal', () => {
+  const withReveals: Segment[] = [
+    { id: 'ana', label: 'Ana', weight: 1, color: '#ff0000', reveal: { headline: 'mine' } },
+    { id: 'ben', label: 'Ben', weight: 1, color: '#00ff00', reveal: { headline: 'theirs' } },
+  ]
+
+  const ctxFor = (segments: Segment[], winnerId: string | null): RecipeContext => ({
+    trickId: 'swap1',
+    segments,
+    origins: new Map(),
+    durationMs: DURATION_MS,
+    roll: 0,
+    winnerId,
+  })
+
+  it('trades the reveal along with the label', () => {
+    const morphs = swap.resolve(params, ctxFor(withReveals, 'ana'))
+    const landed = applyMorphs(withReveals, morphs, DURATION_MS)
+    expect(landed.find((s) => s.id === 'ana')?.reveal).toEqual({ headline: 'theirs' })
+    expect(landed.find((s) => s.id === 'ben')?.reveal).toEqual({ headline: 'mine' })
+  })
+
+  it('strips the winner reveal when the wedge it trades with has none', () => {
+    const oneSided: Segment[] = [
+      { id: 'ana', label: 'Ana', weight: 1, color: '#ff0000', reveal: { headline: 'mine' } },
+      { id: 'ben', label: 'Ben', weight: 1, color: '#00ff00' },
+    ]
+    const morphs = swap.resolve(params, ctxFor(oneSided, 'ana'))
+    const landed = applyMorphs(oneSided, morphs, DURATION_MS)
+    // Wearing another identity while still firing your own punchline is the bug
+    // this trade exists to prevent.
+    expect(landed.find((s) => s.id === 'ana')?.reveal).toBeUndefined()
+    expect(landed.find((s) => s.id === 'ben')?.reveal).toEqual({ headline: 'mine' })
+  })
+
+  it('holds each reveal until the trade fires', () => {
+    const morphs = swap.resolve(params, ctxFor(withReveals, 'ana'))
+    const before = applyMorphs(withReveals, morphs, DURATION_MS * 0.9)
+    expect(before.find((s) => s.id === 'ana')?.reveal).toEqual({ headline: 'mine' })
+  })
+
+  it('claims the reveal it writes', () => {
+    const claims = swap.writes(params, ctxFor(withReveals, 'ana'))
+    expect(claims).toContainEqual({ segmentId: 'ana', property: 'reveal' })
+    expect(claims).toContainEqual({ segmentId: 'ben', property: 'reveal' })
   })
 })

@@ -28,7 +28,7 @@ export const swap: Recipe = {
   id: 'swap',
   name: 'Two wedges trade identities',
   description:
-    'The winner and one other wedge exchange names and colors just before the wheel lands.',
+    'The winner and one other wedge exchange names, colors, and reveals just before the wheel lands.',
   defaults: { otherWedgeId: '', at: DEFAULT_AT },
   fields: [
     { key: 'otherWedgeId', label: 'Trades with', kind: 'segment' },
@@ -51,16 +51,16 @@ export const swap: Recipe = {
         segmentId: winner.id,
         durationMs: ctx.durationMs,
         keyframes: [
-          { at, label: winner.label, color: winnerColor },
-          { at, label: other.label, color: otherColor },
+          { at, label: winner.label, color: winnerColor, reveal: winner.reveal ?? null },
+          { at, label: other.label, color: otherColor, reveal: other.reveal ?? null },
         ],
       },
       {
         segmentId: other.id,
         durationMs: ctx.durationMs,
         keyframes: [
-          { at, label: other.label, color: otherColor },
-          { at, label: winner.label, color: winnerColor },
+          { at, label: other.label, color: otherColor, reveal: other.reveal ?? null },
+          { at, label: winner.label, color: winnerColor, reveal: winner.reveal ?? null },
         ],
       },
     ]
@@ -72,11 +72,13 @@ export const swap: Recipe = {
     const claims: Write[] = [
       { segmentId: otherId, property: 'label' },
       { segmentId: otherId, property: 'color' },
+      { segmentId: otherId, property: 'reveal' },
     ]
     if (ctx.winnerId !== null && ctx.winnerId !== otherId) {
       claims.push(
         { segmentId: ctx.winnerId, property: 'label' },
         { segmentId: ctx.winnerId, property: 'color' },
+        { segmentId: ctx.winnerId, property: 'reveal' },
       )
     }
     return claims
