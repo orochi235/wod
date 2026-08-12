@@ -215,6 +215,24 @@
   align-items: center;
 }
 
+/* The way out was a bare text link sitting among the import/export links, and
+   it read as one more of them rather than as the exit. */
+.editor__exit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.editor__exit:hover,
+.editor__exit:focus-visible {
+  background: rgb(0 0 0 / 8%);
+}
+
 .preset-io {
   display: inline-flex;
   align-items: center;

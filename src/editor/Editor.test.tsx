@@ -357,6 +357,16 @@ describe('Editor locked', () => {
     expect(screen.queryByRole('button', { name: /owned by slow burn/i })).not.toBeInTheDocument()
   })
 
+  it('offers no scrubber to replay the rig with', async () => {
+    await rigThenLock()
+
+    render(<Editor />)
+
+    // With a trick armed the morphs are real, so a scrubber here would let
+    // anyone drag the wheel through the whole takeover at their own pace.
+    expect(screen.queryByLabelText(/scrub/i)).not.toBeInTheDocument()
+  })
+
   it('still fires the trick it is hiding', async () => {
     await rigThenLock()
 

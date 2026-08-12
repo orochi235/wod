@@ -29,6 +29,7 @@ describe('Transport', () => {
         morphs={morphs}
         durationMs={1000}
         onSpin={vi.fn()}
+        showScrub={true}
         isSpinning={false}
       />,
     )
@@ -43,6 +44,7 @@ describe('Transport', () => {
         morphs={morphs}
         durationMs={1000}
         onSpin={vi.fn()}
+        showScrub={true}
         isSpinning={false}
         onScrub={(next) => scrubbed.push(next)}
       />,
@@ -64,6 +66,7 @@ describe('Transport', () => {
         morphs={morphs}
         durationMs={1000}
         onSpin={vi.fn()}
+        showScrub={true}
         isSpinning={false}
         onScrub={(next) => scrubbed.push(next)}
       />,
@@ -83,11 +86,68 @@ describe('Transport', () => {
         morphs={morphs}
         durationMs={1000}
         onSpin={onSpin}
+        showScrub={true}
         isSpinning={false}
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /spin/i }))
     expect(onSpin).toHaveBeenCalled()
+  })
+
+  it('hides the scrubber when no morph would move', () => {
+    // A slider that cannot move anything reads as broken, and in the locked
+    // editor — where no trick can be enabled — that is the only state it has.
+    render(
+      <Transport
+        segments={segments}
+        morphs={[]}
+        durationMs={1000}
+        onSpin={vi.fn()}
+        showScrub={true}
+        isSpinning={false}
+      />,
+    )
+    expect(screen.queryByLabelText(/scrub/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /spin/i })).toBeInTheDocument()
+  })
+
+  it('withholds the scrubber when the caller says so, armed morphs and all', () => {
+    // Dragging it replays the rig on demand, which gives away more than the
+    // panels the locked editor hides.
+    render(
+      <Transport
+        segments={segments}
+        morphs={morphs}
+        durationMs={1000}
+        onSpin={vi.fn()}
+        showScrub={false}
+        isSpinning={false}
+      />,
+    )
+    expect(screen.queryByLabelText(/scrub/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /spin/i })).toBeInTheDocument()
+  })
+
+  it('hands back unmorphed geometry when the last morph goes away', () => {
+    // Hiding the slider must not stop the reporting: the parent renders
+    // whatever it last heard, so a scrubbed frame would otherwise outlive the
+    // trick that produced it and freeze the wheel mid-morph.
+    const scrubbed: Segment[][] = []
+    const props = {
+      segments,
+      durationMs: 1000,
+      onSpin: vi.fn(),
+      showScrub: true,
+      isSpinning: false,
+      onScrub: (next: Segment[]) => scrubbed.push(next),
+    }
+    const { rerender } = render(<Transport {...props} morphs={morphs} />)
+    fireEvent.change(screen.getByLabelText(/scrub/i), { target: { value: '1' } })
+    expect(scrubbed.at(-1)).not.toEqual(segments)
+
+    rerender(<Transport {...props} morphs={[]} />)
+
+    expect(scrubbed.at(-1)).toEqual(segments)
   })
 
   it('disables the scrubber while a spin is running', () => {
@@ -97,6 +157,7 @@ describe('Transport', () => {
         morphs={morphs}
         durationMs={1000}
         onSpin={vi.fn()}
+        showScrub={true}
         isSpinning
       />,
     )

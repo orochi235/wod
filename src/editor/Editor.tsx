@@ -140,7 +140,9 @@ export function Editor() {
       title="wod editor"
       header={
         <>
-          <a href="#/">Show page</a>
+          <a className="editor__exit" href="#/">
+            ← Show page
+          </a>
           <PresetIo preset={preset} onImport={update} showExport={rigVisible} />
         </>
       }
@@ -179,6 +181,7 @@ export function Editor() {
             morphs={resolved.morphs}
             durationMs={preset.spin.motion.durationMs}
             isSpinning={isSpinning}
+            showScrub={rigVisible}
             onSpin={handleSpin}
             onScrub={handleScrub}
           />

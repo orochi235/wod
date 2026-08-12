@@ -61,6 +61,16 @@ only on a load that consumed a param, and that load re-mounts everything.
 | `.editor` grid | `--locked` modifier drops to two columns |
 | `SegmentList` ghost rows | Hidden via a new `showOwners` prop |
 | `PresetIo` Export | Hidden via a new `showExport` prop; Import stays |
+| `Transport` scrub | Hidden via a new `showScrub` prop; the spin button stays |
+
+The scrub replays the rigged geometry at whatever pace the dragger chooses,
+which shows more than any panel does. `Transport` hides it when locked and also
+whenever there is no morph to preview, since a slider that cannot move anything
+reads as broken.
+
+Hiding the slider must not stop the reporting effect behind it. The parent
+renders the last geometry it heard, so a scrubbed frame left behind by a trick
+that has since been switched off would freeze the wheel mid-morph.
 
 Two columns rather than an empty third: a conspicuous gap invites the question
 the flag exists to prevent.
@@ -80,3 +90,5 @@ spin path, so the longer label carried nothing for the operator.
   ghost rows, and Export; unlocked shows all four.
 - A rigged preset lands where the trick says with the flag off. This is the one
   that protects the requirement; the rest only check cosmetics.
+- The locked editor offers no scrubber even with a trick armed, and `Transport`
+  keeps reporting geometry once its last morph goes away.
