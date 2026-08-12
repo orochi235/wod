@@ -33,6 +33,7 @@ function ControlledSegmentList({
       segments={segments}
       base={baseOf(segments)}
       tricks={[]}
+      showOwners={true}
       selectedTrickId={null}
       onChange={(next) => {
         onChangeSpy(next)
@@ -65,6 +66,7 @@ describe('SegmentList', () => {
         segments={segments}
         base={base}
         tricks={[]}
+        showOwners={true}
         selectedTrickId={null}
         onChange={vi.fn()}
         onSelectTrick={vi.fn()}
@@ -81,6 +83,7 @@ describe('SegmentList', () => {
         segments={segments}
         base={base}
         tricks={[]}
+        showOwners={true}
         selectedTrickId={null}
         onChange={onChange}
         onSelectTrick={vi.fn()}
@@ -100,6 +103,7 @@ describe('SegmentList', () => {
         segments={segments}
         base={base}
         tricks={[]}
+        showOwners={true}
         selectedTrickId={null}
         onChange={onChange}
         onSelectTrick={vi.fn()}
@@ -136,6 +140,7 @@ describe('SegmentList', () => {
         segments={segments}
         base={base}
         tricks={[beerTrick]}
+        showOwners={true}
         selectedTrickId={null}
         onChange={vi.fn()}
         onSelectTrick={vi.fn()}
@@ -146,12 +151,31 @@ describe('SegmentList', () => {
     expect(screen.queryByRole('button', { name: /delete free beer/i })).not.toBeInTheDocument()
   })
 
+  it('withholds the ghost row, and the trick name on it, when owners are hidden', () => {
+    render(
+      <SegmentList
+        segments={segments}
+        base={base}
+        tricks={[beerTrick]}
+        showOwners={false}
+        selectedTrickId={null}
+        onChange={vi.fn()}
+        onSelectTrick={vi.fn()}
+      />,
+    )
+    expect(screen.queryByText('free beer')).not.toBeInTheDocument()
+    expect(screen.queryByText(/slow burn/)).not.toBeInTheDocument()
+    // The authored rows are not the trick's to hide.
+    expect(screen.getByLabelText(/label of ana/i)).toBeInTheDocument()
+  })
+
   it('marks the ghost row of the trick under edit', () => {
     const { container } = render(
       <SegmentList
         segments={segments}
         base={base}
         tricks={[beerTrick]}
+        showOwners={true}
         selectedTrickId="beer"
         onChange={vi.fn()}
         onSelectTrick={vi.fn()}
@@ -167,6 +191,7 @@ describe('SegmentList', () => {
         segments={segments}
         base={base}
         tricks={[beerTrick]}
+        showOwners={true}
         selectedTrickId={null}
         onChange={vi.fn()}
         onSelectTrick={onSelectTrick}
@@ -185,6 +210,7 @@ describe('SegmentList reordering', () => {
         segments={segments}
         base={base}
         tricks={[]}
+        showOwners={true}
         selectedTrickId={null}
         onChange={onChange}
         onSelectTrick={vi.fn()}
@@ -201,6 +227,7 @@ describe('SegmentList reordering', () => {
         segments={segments}
         base={base}
         tricks={[]}
+        showOwners={true}
         selectedTrickId={null}
         onChange={vi.fn()}
         onSelectTrick={vi.fn()}
@@ -225,6 +252,7 @@ describe('SegmentList reordering', () => {
         segments={segments}
         base={base}
         tricks={[unlabelled]}
+        showOwners={true}
         selectedTrickId={null}
         onChange={vi.fn()}
         onSelectTrick={vi.fn()}

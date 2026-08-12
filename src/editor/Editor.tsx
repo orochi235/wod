@@ -7,6 +7,7 @@ import type { FeedItem } from '../feed/types'
 import { spinConfigOf } from '../preset/motion'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
+import { isRigVisible } from '../rig/visibility'
 import { findConflicts } from '../tricks/conflicts'
 import { resolveTricks } from '../tricks/resolve'
 import { Wheel } from '../wheel/Wheel'
@@ -33,6 +34,9 @@ function itemsOf(items: Record<string, FeedItem[]>, feedId: string): FeedItem[] 
 
 export function Editor() {
   const [preset, setPreset] = useState<Preset>(loadPreset)
+  // Read once: the flag only changes on a load that consumed a `?rig=` param,
+  // and that load remounts this anyway.
+  const [rigVisible] = useState(isRigVisible)
   const [selectedTrickId, setSelectedTrickId] = useState<string | null>(null)
   // Who is in the simulated meeting. Component state, never preset state: the
   // preset stores how to get a roster, and a roster dies with the window.
@@ -137,16 +141,17 @@ export function Editor() {
       header={
         <>
           <a href="#/">Show page</a>
-          <PresetIo preset={preset} onImport={update} />
+          <PresetIo preset={preset} onImport={update} showExport={rigVisible} />
         </>
       }
     >
-      <div className="editor">
+      <div className={`editor${rigVisible ? '' : ' editor--locked'}`}>
         <section className="editor__column editor__column--left">
           <SegmentList
             segments={preset.segments}
             base={base}
             tricks={preset.tricks}
+            showOwners={rigVisible}
             selectedTrickId={selectedTrickId}
             onChange={(segments) => update({ ...preset, segments })}
             onSelectTrick={setSelectedTrickId}
@@ -182,21 +187,23 @@ export function Editor() {
             onChange={(motion) => update({ ...preset, spin: { ...preset.spin, motion } })}
           />
         </section>
-        <section className="editor__column editor__column--right">
-          <TrickLibrary
-            tricks={preset.tricks}
-            segments={resolved.segments}
-            conflicts={conflicts}
-            selectedId={selectedTrickId}
-            onChange={(tricks) => update({ ...preset, tricks })}
-            onSelect={setSelectedTrickId}
-          />
-          <OverridesPanel
-            items={feed ? itemsOf(items, feed.id) : []}
-            overrides={preset.overrides}
-            onChange={(overrides) => update({ ...preset, overrides })}
-          />
-        </section>
+        {rigVisible ? (
+          <section className="editor__column editor__column--right">
+            <TrickLibrary
+              tricks={preset.tricks}
+              segments={resolved.segments}
+              conflicts={conflicts}
+              selectedId={selectedTrickId}
+              onChange={(tricks) => update({ ...preset, tricks })}
+              onSelect={setSelectedTrickId}
+            />
+            <OverridesPanel
+              items={feed ? itemsOf(items, feed.id) : []}
+              overrides={preset.overrides}
+              onChange={(overrides) => update({ ...preset, overrides })}
+            />
+          </section>
+        ) : null}
       </div>
     </LabShell>
   )

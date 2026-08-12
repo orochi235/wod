@@ -13,6 +13,8 @@ export type SegmentListProps = {
       duplicate a wedge the composition already produced. */
   base: Composition
   tricks: Trick[]
+  /** Ghost rows name the trick that owns a wedge, which a locked editor withholds. */
+  showOwners: boolean
   /** Highlights the ghost row belonging to the trick under edit. */
   selectedTrickId: string | null
   onChange: (segments: Segment[]) => void
@@ -29,11 +31,12 @@ export function SegmentList({
   segments,
   base,
   tricks,
+  showOwners,
   selectedTrickId,
   onChange,
   onSelectTrick,
 }: SegmentListProps) {
-  const owners = wedgeOwners(base, tricks)
+  const owners = showOwners ? wedgeOwners(base, tricks) : new Map<string, Trick>()
 
   // Deletes keys the patch set to undefined, so removing a reveal leaves no
   // `reveal: undefined` behind for the serializer to carry.

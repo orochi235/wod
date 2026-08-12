@@ -6,15 +6,21 @@ import { PresetIo } from './PresetIo'
 
 describe('PresetIo', () => {
   it('offers a download link carrying the preset as JSON', () => {
-    render(<PresetIo preset={DEFAULT_PRESET} onImport={vi.fn()} />)
+    render(<PresetIo preset={DEFAULT_PRESET} onImport={vi.fn()} showExport={true} />)
     const link = screen.getByRole('link', { name: /export/i })
     expect(link).toHaveAttribute('download', 'wod-standup.json')
     expect(link.getAttribute('href')).toContain('application/json')
   })
 
+  it('drops the download link, but not import, when export is withheld', () => {
+    render(<PresetIo preset={DEFAULT_PRESET} onImport={vi.fn()} showExport={false} />)
+    expect(screen.queryByRole('link', { name: /export/i })).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/import/i)).toBeInTheDocument()
+  })
+
   it('imports a valid file through the defensive parser', async () => {
     const onImport = vi.fn()
-    render(<PresetIo preset={DEFAULT_PRESET} onImport={onImport} />)
+    render(<PresetIo preset={DEFAULT_PRESET} onImport={onImport} showExport={true} />)
     const file = new File([JSON.stringify({ ...DEFAULT_PRESET, name: 'beer' })], 'p.json', {
       type: 'application/json',
     })
@@ -25,7 +31,7 @@ describe('PresetIo', () => {
 
   it('falls back to the default rather than throwing on a malformed file', async () => {
     const onImport = vi.fn()
-    render(<PresetIo preset={DEFAULT_PRESET} onImport={onImport} />)
+    render(<PresetIo preset={DEFAULT_PRESET} onImport={onImport} showExport={true} />)
     const file = new File(['{not json'], 'p.json', { type: 'application/json' })
     await userEvent.upload(screen.getByLabelText(/import/i), file)
     await waitFor(() => expect(onImport).toHaveBeenCalledWith(DEFAULT_PRESET))

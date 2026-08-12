@@ -8,6 +8,12 @@
   padding: 1rem;
 }
 
+/* Two columns, not an empty third: a conspicuous gap invites the question the
+   locked editor exists to avoid. */
+.editor--locked {
+  grid-template-columns: minmax(14rem, 20rem) 1fr;
+}
+
 .editor__column {
   display: flex;
   flex-direction: column;

@@ -1,13 +1,23 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { requestFeeds, subscribeFeed } from '../feed/bus'
 import { PRESET_KEY, parsePreset } from '../preset/storage'
+import { RIG_KEY } from '../rig/visibility'
 import { Editor } from './Editor'
+
+/**
+ * The editor ships locked, so every test about the rigging has to say it is the
+ * operator looking. `Editor locked` is the one that does not.
+ */
+function resetUnlocked() {
+  window.localStorage.clear()
+  window.localStorage.setItem(RIG_KEY, '1')
+}
 
 describe('Editor', () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    resetUnlocked()
   })
 
   it('renders the three columns', () => {
@@ -25,7 +35,7 @@ describe('Editor', () => {
 
 describe('Editor integration', () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    resetUnlocked()
   })
 
   it('persists a segment edit to localStorage', async () => {
@@ -103,7 +113,7 @@ describe('Editor feed', () => {
   const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
   beforeEach(() => {
-    window.localStorage.clear()
+    resetUnlocked()
   })
 
   it('publishes the room whenever it changes', async () => {
@@ -163,7 +173,7 @@ describe('Editor feed', () => {
 
 describe('Editor overrides', () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    resetUnlocked()
   })
 
   it('keeps an override editable after its target leaves the room', async () => {
@@ -224,7 +234,7 @@ function installSpinHarness() {
 
 describe('Editor spin', () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    resetUnlocked()
   })
 
   it('keeps the landed wheel on screen after the spin ends', async () => {
@@ -232,7 +242,7 @@ describe('Editor spin', () => {
     try {
       render(<Editor />)
       await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
-      await userEvent.click(screen.getByRole('button', { name: /spin with these tricks/i }))
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
       await harness.land()
 
       // A full-share takeover drives every other wedge to zero, so the landed
@@ -267,7 +277,7 @@ describe('Editor spin', () => {
       await userEvent.click(
         screen.getByRole('checkbox', { name: /enable two wedges trade identities/i }),
       )
-      await userEvent.click(screen.getByRole('button', { name: /spin with these tricks/i }))
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
       await harness.land()
 
       // Ana (first wedge, the pinned winner) now carries Ben's name, and
@@ -288,12 +298,80 @@ describe('Editor spin', () => {
     try {
       render(<Editor />)
       fireEvent.change(screen.getByLabelText('Settle (ms)'), { target: { value: '700' } })
-      await userEvent.click(screen.getByRole('button', { name: /spin with these tricks/i }))
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
 
       // Three keyframes is the cruise-then-break track; two would mean the
       // panel wrote a settle nothing downstream reads.
       expect(harness.keyframes[0]).toHaveLength(3)
       expect(harness.keyframes[0][1].easing).toBe('cubic-bezier(0.33, 1, 0.68, 1)')
+    } finally {
+      harness.restore()
+    }
+  })
+})
+
+describe('Editor locked', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  /** Rigs the preset through the operator's editor, then locks it back up. */
+  async function rigThenLock() {
+    window.localStorage.setItem(RIG_KEY, '1')
+    render(<Editor />)
+    await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+    cleanup()
+    window.localStorage.removeItem(RIG_KEY)
+  }
+
+  it('hides the rigging without a flag', () => {
+    render(<Editor />)
+    expect(screen.queryByRole('heading', { name: /tricks/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /attendees/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /export/i })).not.toBeInTheDocument()
+  })
+
+  it('leaves the innocent panels alone', () => {
+    render(<Editor />)
+    expect(screen.getByRole('heading', { name: /segments/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /motion/i })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'wheel' })).toBeInTheDocument()
+    expect(screen.getByText(/import/i)).toBeInTheDocument()
+  })
+
+  it('shows all of it with the flag', () => {
+    window.localStorage.setItem(RIG_KEY, '1')
+    render(<Editor />)
+    expect(screen.getByRole('heading', { name: /tricks/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /attendees/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /export/i })).toBeInTheDocument()
+  })
+
+  it('hides the ghost row a rigged wedge would otherwise announce', async () => {
+    await rigThenLock()
+
+    render(<Editor />)
+
+    // The ghost row names its owning trick in the left column, so hiding the
+    // right one alone would still spell out the rig.
+    expect(screen.queryByRole('button', { name: /owned by slow burn/i })).not.toBeInTheDocument()
+  })
+
+  it('still fires the trick it is hiding', async () => {
+    await rigThenLock()
+
+    const harness = installSpinHarness()
+    try {
+      render(<Editor />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      // The whole constraint: the flag is cosmetic. A full-share takeover
+      // leaves one label on the landed wheel whether or not anyone can see
+      // the panel that authored it.
+      const wheel = screen.getByRole('img', { name: 'wheel' })
+      expect(within(wheel).getByText('free beer')).toBeInTheDocument()
+      expect(within(wheel).queryByText('Ana')).not.toBeInTheDocument()
     } finally {
       harness.restore()
     }

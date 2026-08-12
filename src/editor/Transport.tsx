@@ -44,7 +44,7 @@ export function Transport({
         <output>{t.toFixed(2)}</output>
       </label>
       <button type="button" onClick={onSpin} disabled={isSpinning}>
-        Spin with these tricks
+        Spin
       </button>
     </div>
   )
