@@ -24,6 +24,7 @@ export function MeetPanel({ config, items, onItems, onChange }: MeetPanelProps) 
   const [token, setToken] = useState<Token | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  const [now, setNow] = useState(() => Date.now())
   const id = clientId()
 
   const connect = async () => {
@@ -70,15 +71,22 @@ export function MeetPanel({ config, items, onItems, onChange }: MeetPanelProps) 
         if (cancelled) return
         // The roster on screen stays. A failed poll never empties the wheel.
         setError(failure instanceof Error ? failure.message : String(failure))
+        // A stale note next to a fresh error claims to know something the
+        // failed poll just took away.
+        setNote(null)
         // A dead token and a denied scope do not fix themselves, and retrying
         // either every few seconds only spends quota. Anything else — a blip, a
         // 500 — is worth another go.
         if (failure instanceof MeetApiError && (failure.status === 401 || failure.status === 403)) {
           if (failure.status === 401) setToken(null)
+          setNow(Date.now())
           return
         }
       }
-      if (!cancelled) timer = window.setTimeout(tick, period)
+      if (!cancelled) {
+        setNow(Date.now())
+        timer = window.setTimeout(tick, period)
+      }
     }
 
     void tick()
@@ -88,9 +96,7 @@ export function MeetPanel({ config, items, onItems, onChange }: MeetPanelProps) 
     }
   }, [value, period])
 
-  // Not reactive on its own: nothing re-renders when a token merely ages. The
-  // poll's own state changes drive this often enough to catch the threshold.
-  const connected = isUsable(token, Date.now())
+  const connected = isUsable(token, now)
 
   if (id === '') {
     return (
