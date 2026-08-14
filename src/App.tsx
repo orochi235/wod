@@ -95,7 +95,7 @@ export function App() {
 
   return (
     <main className="app">
-      <Wheel segments={displaySegments} rotorRef={rotorRef} />
+      <Wheel segments={displaySegments} rotorRef={rotorRef} transitions={preset.transitions} />
       <div className="app__controls">
         <button
           className="app__button"

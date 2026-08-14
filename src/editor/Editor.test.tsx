@@ -427,6 +427,12 @@ describe('Editor locked', () => {
     expect(screen.getByText(/import/i)).toBeInTheDocument()
   })
 
+  it('offers transitions even when locked, because they are not rigging', () => {
+    window.localStorage.removeItem(RIG_KEY)
+    render(<Editor />)
+    expect(screen.getByLabelText('Wedges arriving')).toBeInTheDocument()
+  })
+
   it('shows all of it with the flag', () => {
     window.localStorage.setItem(RIG_KEY, '1')
     render(<Editor />)

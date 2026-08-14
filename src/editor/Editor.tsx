@@ -21,6 +21,7 @@ import { MotionPanel } from './MotionPanel'
 import { OverridesPanel } from './OverridesPanel'
 import { PresetIo } from './PresetIo'
 import { SegmentList } from './SegmentList'
+import { TransitionPanel } from './TransitionPanel'
 import { Transport } from './Transport'
 import { TrickLibrary } from './TrickLibrary'
 
@@ -236,6 +237,10 @@ export function Editor() {
           <MotionPanel
             motion={preset.spin.motion}
             onChange={(motion) => update({ ...preset, spin: { ...preset.spin, motion } })}
+          />
+          <TransitionPanel
+            transitions={preset.transitions}
+            onChange={(transitions) => update({ ...preset, transitions })}
           />
         </section>
         {rigVisible ? (
