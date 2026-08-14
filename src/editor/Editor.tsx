@@ -4,6 +4,7 @@ import { composeBase } from '../compose/compose'
 import { publishFeed, subscribeFeedRequests } from '../feed/bus'
 import { itemsFor } from '../feed/simulated'
 import type { FeedConfig, FeedItem } from '../feed/types'
+import { DEFAULT_POLL_INTERVAL_MS } from '../meet/poll'
 import { spinConfigOf } from '../preset/motion'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
@@ -211,7 +212,7 @@ export function Editor() {
                       id: 'meet',
                       defaults: { weight: 1 },
                       conference: '',
-                      intervalMs: 5000,
+                      intervalMs: DEFAULT_POLL_INTERVAL_MS,
                     },
                   ],
                 })

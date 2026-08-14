@@ -2,7 +2,7 @@ import { inFeedNamespace, wedgeIndexOf } from '../compose/compose'
 import type { WedgeIndex } from '../compose/types'
 import { MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
-import { MIN_POLL_INTERVAL_MS } from '../meet/poll'
+import { DEFAULT_POLL_INTERVAL_MS, MIN_POLL_INTERVAL_MS } from '../meet/poll'
 import { getRecipe } from '../tricks/registry'
 import { isSelectorToken } from '../tricks/targets'
 import type { Trick, TrickParams } from '../tricks/types'
@@ -419,7 +419,10 @@ function readFeeds(value: unknown): FeedConfig[] {
         id: entry.id,
         defaults: readFeedDefaults(entry.defaults),
         conference: typeof entry.conference === 'string' ? entry.conference : '',
-        intervalMs: Math.max(MIN_POLL_INTERVAL_MS, readPositive(entry.intervalMs, 5000)),
+        intervalMs: Math.max(
+          MIN_POLL_INTERVAL_MS,
+          readPositive(entry.intervalMs, DEFAULT_POLL_INTERVAL_MS),
+        ),
       }
     } else {
       // Dropped rather than disabled as readTricks would: an unknown kind has

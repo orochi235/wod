@@ -5,3 +5,6 @@
  * that starts a clock has to honor it, and the parser is only one of them.
  */
 export const MIN_POLL_INTERVAL_MS = 2000
+
+/** What a new meet feed polls at. The floor above is the hard limit; this is the choice. */
+export const DEFAULT_POLL_INTERVAL_MS = 5000

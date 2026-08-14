@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MeetFeedConfig } from '../feed/types'
+import { DEFAULT_POLL_INTERVAL_MS } from '../meet/poll'
 import { MeetPanel } from './MeetPanel'
 
 const config: MeetFeedConfig = {
@@ -9,7 +10,7 @@ const config: MeetFeedConfig = {
   id: 'meet',
   defaults: { weight: 1 },
   conference: '',
-  intervalMs: 5000,
+  intervalMs: DEFAULT_POLL_INTERVAL_MS,
 }
 
 const noop = () => {}

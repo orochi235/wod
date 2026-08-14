@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { requestFeeds, subscribeFeed } from '../feed/bus'
+import { DEFAULT_POLL_INTERVAL_MS } from '../meet/poll'
 import { PRESET_KEY, parsePreset } from '../preset/storage'
 import { RIG_KEY } from '../rig/visibility'
 import { Editor } from './Editor'
@@ -31,7 +32,13 @@ function seedBothFeeds() {
           pool: ['Fay'],
           autochurn: { intervalMs: 2500, targetSize: 5, volatility: 0.25 },
         },
-        { kind: 'meet', id: 'meet', defaults: { weight: 1 }, conference: '', intervalMs: 5000 },
+        {
+          kind: 'meet',
+          id: 'meet',
+          defaults: { weight: 1 },
+          conference: '',
+          intervalMs: DEFAULT_POLL_INTERVAL_MS,
+        },
       ],
       overrides: {},
       tricks: [],
