@@ -108,7 +108,7 @@ export function TrickLibrary({
                     />
                   </label>
                   <RecipeForm
-                    recipe={recipe}
+                    fields={recipe.fields}
                     params={trick.params}
                     segments={segments}
                     onChange={(params) => replace(trick.id, { params })}

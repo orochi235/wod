@@ -8,8 +8,9 @@ import {
   SliderRow,
   TextRow,
 } from '@weasel-js/labkit'
+import type { Field } from '../form/fields'
 import { SELECTOR_TOKENS, type SelectorToken } from '../tricks/targets'
-import type { Recipe, RecipeField, TrickParams } from '../tricks/types'
+import type { TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 
 /**
@@ -29,16 +30,16 @@ const SELECTOR_LABELS: Record<SelectorToken, string> = {
 }
 
 export type RecipeFormProps = {
-  recipe: Recipe
+  fields: Field[]
   params: TrickParams
   segments: Segment[]
   onChange: (params: TrickParams) => void
 }
 
-export function RecipeForm({ recipe, params, segments, onChange }: RecipeFormProps) {
+export function RecipeForm({ fields, params, segments, onChange }: RecipeFormProps) {
   const set = (key: string, value: unknown) => onChange({ ...params, [key]: value })
 
-  const row = (field: RecipeField) => {
+  const row = (field: Field) => {
     const value = params[field.key]
 
     switch (field.kind) {
@@ -155,5 +156,5 @@ export function RecipeForm({ recipe, params, segments, onChange }: RecipeFormPro
     }
   }
 
-  return <PropertyList pack="pairs">{recipe.fields.map(row)}</PropertyList>
+  return <PropertyList pack="pairs">{fields.map(row)}</PropertyList>
 }
