@@ -2,6 +2,7 @@ import { inFeedNamespace, wedgeIndexOf } from '../compose/compose'
 import type { WedgeIndex } from '../compose/types'
 import { MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
+import { MIN_POLL_INTERVAL_MS } from '../meet/poll'
 import { getRecipe } from '../tricks/registry'
 import { isSelectorToken } from '../tricks/targets'
 import type { Trick, TrickParams } from '../tricks/types'
@@ -387,33 +388,46 @@ function readFeeds(value: unknown): FeedConfig[] {
   const feeds: FeedConfig[] = []
   for (const entry of value) {
     if (!isRecord(entry)) continue
-    // Dropped, not disabled as readTricks would: FeedConfig is a union of one,
-    // so an unknown kind has nothing to fall back to. A build that ships the
-    // Meet adapter bumps the version, and the gate above rejects older data
-    // wholesale rather than leaving a kind this parser cannot construct.
-    if (entry.kind !== 'simulated' || typeof entry.id !== 'string') continue
     // Live items are keyed by feed id downstream. App builds that record with a
     // computed key, which would store this id as an ordinary entry, so the
     // guard is not rescuing the consumer that exists — it is refusing to make
     // that consumer's construction style load-bearing, and it matches the
     // sibling guard on the same data in feed/bus.ts.
+    if (typeof entry.id !== 'string') continue
     if (entry.id === PROTO_KEY) continue
     if (feeds.some((feed) => feed.id === entry.id)) continue
 
-    const autochurn = isRecord(entry.autochurn) ? entry.autochurn : {}
-    const feed: FeedConfig = {
-      kind: 'simulated',
-      id: entry.id,
-      defaults: readFeedDefaults(entry.defaults),
-      pool: Array.isArray(entry.pool)
-        ? entry.pool.filter((name): name is string => typeof name === 'string')
-        : [],
-      autochurn: {
-        intervalMs: Math.max(MIN_CHURN_INTERVAL_MS, readPositive(autochurn.intervalMs, 2000)),
-        targetSize: readCount(autochurn.targetSize, 6),
-        volatility: readUnitValue(autochurn.volatility, 0.3),
-      },
+    let feed: FeedConfig
+    if (entry.kind === 'simulated') {
+      const autochurn = isRecord(entry.autochurn) ? entry.autochurn : {}
+      feed = {
+        kind: 'simulated',
+        id: entry.id,
+        defaults: readFeedDefaults(entry.defaults),
+        pool: Array.isArray(entry.pool)
+          ? entry.pool.filter((name): name is string => typeof name === 'string')
+          : [],
+        autochurn: {
+          intervalMs: Math.max(MIN_CHURN_INTERVAL_MS, readPositive(autochurn.intervalMs, 2000)),
+          targetSize: readCount(autochurn.targetSize, 6),
+          volatility: readUnitValue(autochurn.volatility, 0.3),
+        },
+      }
+    } else if (entry.kind === 'meet') {
+      feed = {
+        kind: 'meet',
+        id: entry.id,
+        defaults: readFeedDefaults(entry.defaults),
+        conference: typeof entry.conference === 'string' ? entry.conference : '',
+        intervalMs: Math.max(MIN_POLL_INTERVAL_MS, readPositive(entry.intervalMs, 5000)),
+      }
+    } else {
+      // Dropped rather than disabled as readTricks would: an unknown kind has
+      // no shape this parser can construct. A build that adds one bumps the
+      // version, and the gate in parsePreset rejects newer data wholesale.
+      continue
     }
+
     if (typeof entry.insertAfter === 'string') feed.insertAfter = entry.insertAfter
     feeds.push(feed)
   }
@@ -455,7 +469,9 @@ export function parsePreset(raw: string | null): Preset {
   }
 
   if (!isRecord(data)) return DEFAULT_PRESET
-  if (data.version !== 1 && data.version !== 2 && data.version !== 3) return DEFAULT_PRESET
+  if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4) {
+    return DEFAULT_PRESET
+  }
 
   const segments = readSegments(data.segments)
   const spin =
@@ -470,7 +486,7 @@ export function parsePreset(raw: string | null): Preset {
   const feeds = readFeeds(data.feeds)
 
   return {
-    version: 3,
+    version: 4,
     name: typeof data.name === 'string' ? data.name : DEFAULT_PRESET.name,
     segments,
     feeds,

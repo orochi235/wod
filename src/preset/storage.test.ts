@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import type { SimulatedFeedConfig } from '../feed/types'
+import { MIN_POLL_INTERVAL_MS } from '../meet/poll'
 import { DEFAULT_PRESET } from './defaults'
 import { PRESET_KEY, loadPreset, parsePreset, savePreset } from './storage'
 
@@ -119,7 +121,7 @@ describe('parsePreset', () => {
     expect(parsed.segments[0].weight).toBe(0)
   })
 
-  it('migrates a v1 preset to v3', () => {
+  it('migrates a v1 preset to v4', () => {
     const v1 = {
       version: 1,
       name: 'standup',
@@ -136,7 +138,7 @@ describe('parsePreset', () => {
       spin: { durationMs: 4500, fullSpins: 6, easing: 'linear' },
     }
     const parsed = parsePreset(JSON.stringify(v1))
-    expect(parsed.version).toBe(3)
+    expect(parsed.version).toBe(4)
     // The migration's most user-visible failure mode is a silently emptied
     // wheel, since readTricks depends on segments — pin both surviving intact.
     expect(parsed.segments).toEqual([{ id: 'ana', label: 'Ana', weight: 1 }])
@@ -574,13 +576,13 @@ describe('v3 feeds and overrides', () => {
         branches: [],
         feeds: [{ kind: 'simulated', id: 'sim', ...feed }],
       }),
-    ).feeds[0]
+    ).feeds[0] as SimulatedFeedConfig
 
   it('migrates a v2 preset by adding empty feeds and overrides', () => {
     const preset = parsePreset(
       JSON.stringify({ version: 2, name: 'old', segments: [], tricks: [], branches: [] }),
     )
-    expect(preset.version).toBe(3)
+    expect(preset.version).toBe(4)
     expect(preset.feeds).toEqual([])
     expect(preset.overrides).toEqual({})
   })
@@ -617,6 +619,96 @@ describe('v3 feeds and overrides', () => {
     ])
   })
 
+  it('reads a meet feed', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 4,
+        feeds: [
+          {
+            kind: 'meet',
+            id: 'meet',
+            defaults: { weight: 2 },
+            conference: 'abc',
+            intervalMs: 8000,
+          },
+        ],
+      }),
+    )
+    expect(preset.feeds).toEqual([
+      { kind: 'meet', id: 'meet', defaults: { weight: 2 }, conference: 'abc', intervalMs: 8000 },
+    ])
+  })
+
+  it('floors a meet feed interval', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 4,
+        feeds: [{ kind: 'meet', id: 'meet', conference: '', intervalMs: 100 }],
+      }),
+    )
+    expect(preset.feeds[0]).toMatchObject({ intervalMs: MIN_POLL_INTERVAL_MS })
+  })
+
+  it('defaults a missing conference to the sole one in progress', () => {
+    const preset = parsePreset(
+      JSON.stringify({ version: 4, feeds: [{ kind: 'meet', id: 'meet' }] }),
+    )
+    expect(preset.feeds[0]).toMatchObject({ conference: '', intervalMs: 5000 })
+  })
+
+  it('still drops a kind it does not know', () => {
+    const preset = parsePreset(JSON.stringify({ version: 4, feeds: [{ kind: 'zoom', id: 'z' }] }))
+    expect(preset.feeds).toEqual([])
+  })
+
+  it('keeps both feeds when a preset has one of each', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 4,
+        feeds: [
+          { kind: 'simulated', id: 'sim', pool: ['Fay'] },
+          { kind: 'meet', id: 'meet' },
+        ],
+      }),
+    )
+    expect(preset.feeds.map((feed) => feed.kind)).toEqual(['simulated', 'meet'])
+  })
+
+  it('drops a meet feed whose id could never key its published items', () => {
+    const preset = parsePreset(
+      JSON.stringify({ version: 4, feeds: [{ kind: 'meet', id: '__proto__' }] }),
+    )
+    expect(preset.feeds).toEqual([])
+  })
+
+  it('keeps the first feed when a meet feed reuses an id already taken', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 4,
+        feeds: [
+          { kind: 'simulated', id: 'dup', pool: [] },
+          { kind: 'meet', id: 'dup' },
+        ],
+      }),
+    )
+    expect(preset.feeds).toHaveLength(1)
+    expect(preset.feeds[0].kind).toBe('simulated')
+  })
+
+  it('falls back to the default interval for a negative meet interval', () => {
+    const preset = parsePreset(
+      JSON.stringify({ version: 4, feeds: [{ kind: 'meet', id: 'meet', intervalMs: -500 }] }),
+    )
+    expect(preset.feeds[0]).toMatchObject({ intervalMs: 5000 })
+  })
+
+  it('falls back to the default interval for a non-numeric meet interval', () => {
+    const preset = parsePreset(
+      JSON.stringify({ version: 4, feeds: [{ kind: 'meet', id: 'meet', intervalMs: 'soon' }] }),
+    )
+    expect(preset.feeds[0]).toMatchObject({ intervalMs: 5000 })
+  })
+
   it('defaults a malformed feed rather than dropping the preset', () => {
     const preset = parsePreset(
       JSON.stringify({
@@ -634,9 +726,10 @@ describe('v3 feeds and overrides', () => {
       }),
     )
     expect(preset.feeds).toHaveLength(1)
-    expect(preset.feeds[0].defaults.weight).toBe(1)
-    expect(preset.feeds[0].pool).toEqual([])
-    expect(preset.feeds[0].autochurn).toEqual({
+    const feed = preset.feeds[0] as SimulatedFeedConfig
+    expect(feed.defaults.weight).toBe(1)
+    expect(feed.pool).toEqual([])
+    expect(feed.autochurn).toEqual({
       intervalMs: 2000,
       targetSize: 6,
       volatility: 0.3,

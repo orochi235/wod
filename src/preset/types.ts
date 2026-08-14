@@ -51,7 +51,7 @@ export type BranchNode = {
 }
 
 export type Preset = {
-  version: 3
+  version: 4
   name: string
   /** Statics. Feed items and trick wedges join these at compose time. */
   segments: Segment[]

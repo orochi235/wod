@@ -6,7 +6,7 @@ import type { Preset } from './types'
  * grows a sixth wedge out of nothing.
  */
 export const DEFAULT_PRESET: Preset = {
-  version: 3,
+  version: 4,
   name: 'standup',
   segments: [
     { id: 'ana', label: 'Ana', weight: 1 },
