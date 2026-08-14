@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
-import { ProbeError, activeParticipants, liveConferences, pickConference } from './api'
+import { MeetApiError, activeParticipants, liveConferences, pickConference } from '../meet/api'
 import { type Person, personOf, rosterDiff } from './diff'
 import { consumeTokenFromHash } from './launch'
 import './probe.css'
@@ -187,7 +187,7 @@ export function Probe({ initialToken }: ProbeProps) {
         if (cancelled) return
         const message = error instanceof Error ? error.message : String(error)
         push({ kind: 'error', at: Date.now(), message })
-        if (error instanceof ProbeError && error.status === 401) {
+        if (error instanceof MeetApiError && error.status === 401) {
           push({
             kind: 'note',
             at: Date.now(),

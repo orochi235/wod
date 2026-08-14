@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Participant } from './api'
+import type { Participant } from '../meet/api'
 import { personOf, rosterDiff } from './diff'
 
 const participant = (name: string, patch: Partial<Participant> = {}): Participant => ({

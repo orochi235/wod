@@ -1,4 +1,4 @@
-import type { Participant } from './api'
+import type { Participant } from '../meet/api'
 
 /** How the API identified someone. Only `signedin` reliably carries a name. */
 export type PersonKind = 'signedin' | 'anonymous' | 'phone' | 'unknown'

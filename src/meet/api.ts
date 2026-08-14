@@ -16,7 +16,7 @@ export type Participant = {
   latestEndTime?: string
 }
 
-export class ProbeError extends Error {
+export class MeetApiError extends Error {
   readonly status: number
 
   constructor(message: string, status: number) {
@@ -31,7 +31,7 @@ async function get<T>(path: string, token: string): Promise<T> {
   })
   if (!response.ok) {
     const body = await response.text()
-    throw new ProbeError(`${response.status} — ${body.slice(0, 300)}`, response.status)
+    throw new MeetApiError(`${response.status} — ${body.slice(0, 300)}`, response.status)
   }
   return (await response.json()) as T
 }
@@ -49,6 +49,16 @@ export async function liveConferences(token: string): Promise<ConferenceRecord[]
   return data.conferenceRecords ?? []
 }
 
+export function normalizePin(pin: string): string {
+  return pin.trim().replace(/^conferenceRecords\//, '')
+}
+
+/** Whether a conference satisfies the pin. An empty pin is satisfied by any. */
+export function matchesPin(name: string, pin: string): boolean {
+  const wanted = normalizePin(pin)
+  return wanted === '' || name === `conferenceRecords/${wanted}`
+}
+
 /**
  * Which conference to watch. A pin may be the full resource name or just the id;
  * without one, the sole in-progress conference — never a guess between several,
@@ -56,9 +66,8 @@ export async function liveConferences(token: string): Promise<ConferenceRecord[]
  * about other people.
  */
 export function pickConference(records: ConferenceRecord[], pin: string): ConferenceRecord | null {
-  const wanted = pin.trim().replace(/^conferenceRecords\//, '')
-  if (wanted !== '') {
-    return records.find((record) => record.name === `conferenceRecords/${wanted}`) ?? null
+  if (normalizePin(pin) !== '') {
+    return records.find((record) => matchesPin(record.name, pin)) ?? null
   }
   return records.length === 1 ? records[0] : null
 }
