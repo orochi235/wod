@@ -6,14 +6,13 @@ export type FeedItem = { id: string; label: string }
 export type Unsubscribe = () => void
 
 /**
- * The shape the deferred Google Meet adapter is expected to implement: a source
- * that owns its own subscription because it is fed by something outside this
- * app. Nothing implements it today, and nothing imports it.
+ * Inactive. Nothing implements this and nothing imports it.
  *
- * The simulated feed deliberately does not. The design moved the clock into the
- * editor and the transport onto the bus, so `simulated.ts` exports plain
- * functions (`churn`, `itemsFor`) with no subscription of their own — a
- * simulation of a meeting has nothing to subscribe to.
+ * It was held open for the Meet adapter, which does not implement it either:
+ * the clock lives in the editor and the transport on the bus, so a `subscribe`
+ * would be called once by a `useEffect` that already handles its own teardown,
+ * and a token that expires mid-meeting cannot reach a closure made at
+ * subscribe time.
  */
 export type Feed = {
   id: string
@@ -41,8 +40,14 @@ export type SimulatedFeedConfig = FeedConfigBase & {
   autochurn: { intervalMs: number; targetSize: number; volatility: number }
 }
 
-/** A union of one. The second member is the Meet adapter, deliberately not built yet. */
-export type FeedConfig = SimulatedFeedConfig
+export type MeetFeedConfig = FeedConfigBase & {
+  kind: 'meet'
+  /** Blank means the sole conference in progress. A pin is a conferenceRecords id. */
+  conference: string
+  intervalMs: number
+}
+
+export type FeedConfig = SimulatedFeedConfig | MeetFeedConfig
 
 /**
  * Sparse overlay on an external item, keyed by FeedItem.id. An absent field
