@@ -1084,8 +1084,10 @@ export function useEnter(
   segments: Segment[],
   instance: TransitionInstance | undefined,
   radius: number,
-  wedges: Map<string, SVGGElement>,
-): void {
+): (id: string) => (element: SVGGElement | null) => void {
+  // The hook owns the element map and hands out a stable callback per id, the
+  // way useSpin owns its rotorRef. An inline callback in Wheel would detach and
+  // reattach every wedge on every render, including each frame of a spin.
   const seen = useRef<Set<string> | null>(null)
 
   useEffect(() => {
@@ -1157,8 +1159,7 @@ export type WheelProps = {
 Inside the component, before the return:
 
 ```tsx
-  const wedges = useRef(new Map<string, SVGGElement>()).current
-  useEnter(segments, transitions?.enter, radius, wedges)
+  const wedgeRef = useEnter(segments, transitions?.enter, radius)
 ```
 
 and on the wedge group:
@@ -1168,10 +1169,7 @@ and on the wedge group:
               className="wheel__wedge"
               data-segment-id={segment.id}
               key={segment.id}
-              ref={(element) => {
-                if (element) wedges.set(segment.id, element)
-                else wedges.delete(segment.id)
-              }}
+              ref={wedgeRef(segment.id)}
             >
 ```
 
