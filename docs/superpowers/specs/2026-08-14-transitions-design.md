@@ -160,7 +160,7 @@ transitions?: {
 type TransitionInstance = { id: TransitionId; params: TransitionParams }
 ```
 
-Optional, so the version stays at 3: an absent field means today's behavior
+Optional, so it needs no version bump of its own: an absent field means today's behavior
 exactly. `parsePreset` drops an instance naming an unknown transition rather than
 rejecting the preset, matching how it treats an unknown recipe.
 
