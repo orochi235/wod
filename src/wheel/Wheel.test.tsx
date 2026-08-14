@@ -69,4 +69,23 @@ describe('Wheel', () => {
     expect(flipped.length).toBeGreaterThan(0)
     expect(flipped.length).toBeLessThan(transforms.length)
   })
+
+  it('tags each wedge with its segment id, so a transition can find it', () => {
+    const { container } = render(
+      <Wheel
+        segments={[
+          { id: 'ana', label: 'Ana', weight: 1 },
+          { id: 'ben', label: 'Ben', weight: 1 },
+        ]}
+      />,
+    )
+    expect(container.querySelector('[data-segment-id="ana"]')).not.toBeNull()
+    expect(container.querySelector('[data-segment-id="ben"]')).not.toBeNull()
+  })
+
+  it('wraps the rotor in a stage, so a wheel-scope transform never fights the rotation', () => {
+    const { container } = render(<Wheel segments={[{ id: 'ana', label: 'Ana', weight: 1 }]} />)
+    const stage = container.querySelector('.wheel__stage')
+    expect(stage?.querySelector('.wheel__rotor')).not.toBeNull()
+  })
 })

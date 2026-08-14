@@ -27,7 +27,7 @@ function ControlledRecipeForm({
   const [params, setParams] = useState(initialParams)
   return (
     <RecipeForm
-      recipe={takeover}
+      fields={takeover.fields}
       params={params}
       segments={segments}
       onChange={(next) => {
@@ -42,7 +42,7 @@ describe('RecipeForm', () => {
   it('renders a control per recipe field', () => {
     render(
       <RecipeForm
-        recipe={takeover}
+        fields={takeover.fields}
         params={takeover.defaults}
         segments={segments}
         onChange={vi.fn()}
@@ -66,7 +66,7 @@ describe('RecipeForm', () => {
     const onChange = vi.fn()
     render(
       <RecipeForm
-        recipe={takeover}
+        fields={takeover.fields}
         params={takeover.defaults}
         segments={segments}
         onChange={onChange}
@@ -86,7 +86,7 @@ describe('RecipeForm', () => {
   it('lists the current segments in a segments field', () => {
     render(
       <RecipeForm
-        recipe={recolor}
+        fields={recolor.fields}
         params={recolor.defaults}
         segments={segments}
         onChange={vi.fn()}
@@ -100,7 +100,7 @@ describe('RecipeForm', () => {
     // would otherwise be indistinguishable from the selector of that name.
     render(
       <RecipeForm
-        recipe={recolor}
+        fields={recolor.fields}
         params={recolor.defaults}
         segments={segments}
         onChange={vi.fn()}
@@ -117,7 +117,14 @@ describe('RecipeForm', () => {
     // "no wedge chosen" whatever the operator picked.
     const onChange = vi.fn()
     const params = { ...takeover.defaults, wedgeMode: 'existing' }
-    render(<RecipeForm recipe={takeover} params={params} segments={segments} onChange={onChange} />)
+    render(
+      <RecipeForm
+        fields={takeover.fields}
+        params={params}
+        segments={segments}
+        onChange={onChange}
+      />,
+    )
     await userEvent.selectOptions(screen.getByLabelText('Existing wedge'), 'ana')
 
     const next = onChange.mock.calls.at(-1)?.[0]
@@ -130,12 +137,25 @@ describe('RecipeForm', () => {
     // and an operator who switched to 'existing' has not chosen yet.
     render(
       <RecipeForm
-        recipe={takeover}
+        fields={takeover.fields}
         params={{ ...takeover.defaults, wedgeMode: 'existing' }}
         segments={segments}
         onChange={vi.fn()}
       />,
     )
     expect(screen.getByLabelText('Existing wedge')).toHaveValue('')
+  })
+
+  it('renders from a bare field list, with no recipe in sight', () => {
+    const onChange = vi.fn()
+    render(
+      <RecipeForm
+        fields={[{ key: 'staggerMs', label: 'Stagger (ms)', kind: 'number', min: 0 }]}
+        params={{ staggerMs: 40 }}
+        segments={[]}
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByLabelText('Stagger (ms)')).toHaveValue(40)
   })
 })

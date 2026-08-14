@@ -7,7 +7,7 @@ import { cryptoRng, weightedRandom } from './selection'
 import { planSpin } from './spin'
 import type { Morph, Segment, SpinConfig } from './types'
 
-const REDUCED_MOTION_MS = 300
+export const REDUCED_MOTION_MS = 300
 
 /**
  * Per-spin overrides. A resolved scripted spin supplies its own segments,

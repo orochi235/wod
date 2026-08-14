@@ -3,6 +3,8 @@ import type { WedgeIndex } from '../compose/types'
 import { MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { DEFAULT_POLL_INTERVAL_MS, MIN_POLL_INTERVAL_MS } from '../meet/poll'
+import { getTransition } from '../transition/registry'
+import type { Moment, Transitions } from '../transition/types'
 import { getRecipe } from '../tricks/registry'
 import { isSelectorToken } from '../tricks/targets'
 import type { Trick, TrickParams } from '../tricks/types'
@@ -461,6 +463,28 @@ function readOverrides(value: unknown): Record<string, ItemOverride> {
   return overrides
 }
 
+const MOMENTS: Moment[] = ['enter', 'exit', 'spin', 'reveal']
+
+function readTransitions(value: unknown): Transitions | undefined {
+  if (!isRecord(value)) return undefined
+
+  const transitions: Transitions = {}
+  for (const moment of MOMENTS) {
+    const entry = value[moment]
+    if (!isRecord(entry) || typeof entry.id !== 'string') continue
+    const transition = getTransition(entry.id)
+    if (!transition) continue
+    transitions[moment] = {
+      id: transition.id,
+      params: isRecord(entry.params) ? entry.params : {},
+    }
+  }
+
+  // Absent rather than empty: an empty object and no object mean the same
+  // thing, and only one of them survives a round trip unchanged.
+  return Object.keys(transitions).length === 0 ? undefined : transitions
+}
+
 export function parsePreset(raw: string | null): Preset {
   if (raw === null) return DEFAULT_PRESET
 
@@ -497,6 +521,7 @@ export function parsePreset(raw: string | null): Preset {
     tricks: readTricks(data.tricks, segments, feeds),
     spin,
     branches: readBranches(data.branches),
+    transitions: readTransitions(data.transitions),
   }
 }
 

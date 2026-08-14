@@ -1,4 +1,5 @@
 import type { FeedConfig, ItemOverride } from '../feed/types'
+import type { Transitions } from '../transition/types'
 import type { Trick } from '../tricks/types'
 import type { Curve, Direction, Segment, Settle } from '../wheel/types'
 
@@ -61,4 +62,6 @@ export type Preset = {
   tricks: Trick[]
   spin: ScriptedSpin
   branches: BranchNode[]
+  /** Absent means no transition at that moment, which is the behavior that predates them. */
+  transitions?: Transitions
 }
