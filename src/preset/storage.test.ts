@@ -893,3 +893,42 @@ describe('reveal and media', () => {
     })
   })
 })
+
+describe('transitions', () => {
+  it('reads a transition instance', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        version: 3,
+        transitions: { enter: { id: 'fly', params: { distance: 2 } } },
+      }),
+    )
+    expect(preset.transitions?.enter).toEqual({ id: 'fly', params: { distance: 2 } })
+  })
+
+  it('is absent when the file says nothing, which is today behavior', () => {
+    expect(parsePreset(JSON.stringify({ version: 3 })).transitions).toBeUndefined()
+  })
+
+  // Same posture as an unknown recipe: drop the instance, keep the preset.
+  it('drops an unknown transition rather than rejecting the preset', () => {
+    const preset = parsePreset(
+      JSON.stringify({ version: 3, name: 'kept', transitions: { enter: { id: 'nope' } } }),
+    )
+    expect(preset.transitions?.enter).toBeUndefined()
+    expect(preset.name).toBe('kept')
+  })
+
+  it('drops a moment that is not one', () => {
+    const preset = parsePreset(
+      JSON.stringify({ version: 3, transitions: { whenever: { id: 'fade' } } }),
+    )
+    expect(preset.transitions).toBeUndefined()
+  })
+
+  it('defaults absent params to an empty object', () => {
+    const preset = parsePreset(
+      JSON.stringify({ version: 3, transitions: { enter: { id: 'fade' } } }),
+    )
+    expect(preset.transitions?.enter).toEqual({ id: 'fade', params: {} })
+  })
+})
