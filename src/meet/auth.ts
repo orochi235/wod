@@ -61,7 +61,16 @@ export function loadGis(): Promise<void> {
     const script = document.createElement('script')
     script.src = GIS_SRC
     script.async = true
-    script.onload = () => resolve()
+    script.onload = () => {
+      // A blocked script reaches onload like any other load, and a resolved
+      // promise cached here would make every retry a no-op until a reload.
+      if (!window.google?.accounts?.oauth2) {
+        loading = null
+        reject(new Error('Google sign-in did not load'))
+        return
+      }
+      resolve()
+    }
     script.onerror = () => {
       loading = null
       reject(new Error('could not load Google sign-in'))
