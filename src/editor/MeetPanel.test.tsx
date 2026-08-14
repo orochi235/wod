@@ -104,6 +104,32 @@ describe('MeetPanel', () => {
     }
   })
 
+  // A 403 never clears the token, so `value` never changes and the effect's
+  // own cleanup — which happens to stop the 401 case too — never runs here.
+  // The explicit `return` is the only thing that stops this loop.
+  it('stops polling and offers Connect again after a 403', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.stubEnv('VITE_MEET_CLIENT_ID', 'client.apps.googleusercontent.com')
+      stubGoogleSignIn('ya29.x')
+      const fetchSpy = vi.fn(async () => ({ ok: false, status: 403, text: async () => 'denied' }))
+      vi.stubGlobal('fetch', fetchSpy)
+      render(<MeetPanel config={config} items={[]} onItems={noop} onChange={noop} />)
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /connect/i }))
+      })
+      expect(screen.getByText(/403/)).toBeInTheDocument()
+      const after = fetchSpy.mock.calls.length
+
+      await act(() => vi.advanceTimersByTimeAsync(config.intervalMs))
+
+      expect(fetchSpy.mock.calls.length).toBe(after)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('clears a stale note once a later poll fails', async () => {
     vi.useFakeTimers()
     try {

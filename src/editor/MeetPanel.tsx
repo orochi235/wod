@@ -80,6 +80,7 @@ export function MeetPanel({ config, items, onItems, onChange }: MeetPanelProps) 
         if (failure instanceof MeetApiError && (failure.status === 401 || failure.status === 403)) {
           if (failure.status === 401) setToken(null)
           setNow(Date.now())
+          // A 403 changes no state, so nothing else cancels the pending tick.
           return
         }
       }
