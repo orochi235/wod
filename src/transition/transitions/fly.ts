@@ -6,7 +6,8 @@ const STAGGER_MS = 60
 
 /**
  * Deterministic in the wedge's position, never Math.random: a re-render must
- * not send a wedge that is already in flight off in a new direction.
+ * not send a wedge that is already in flight off in a new direction. 137.508
+ * is the golden angle, which spreads a small roster (3-8 wedges) evenly.
  */
 function scatter(index: number): number {
   return (index * 137.508) % 360

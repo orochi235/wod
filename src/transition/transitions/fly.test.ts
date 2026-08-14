@@ -49,4 +49,21 @@ describe('fly', () => {
     expect(frames[0].rotate).toBe(360)
     expect(frames[frames.length - 1].rotate).toBe(0)
   })
+
+  it('staggers by position, like every wedge-scope transition', () => {
+    expect(fly.frames({ staggerMs: 30 }, ctx({ index: 0 })).delayMs).toBe(0)
+    expect(fly.frames({ staggerMs: 30 }, ctx({ index: 4 })).delayMs).toBe(120)
+  })
+
+  it('treats an unrecognized direction as its own side', () => {
+    for (const from of ['diagonal', 7, null]) {
+      expect(fly.frames({ from }, ctx()).keyframes[0].offsetAngle).toBeUndefined()
+    }
+  })
+
+  it('falls back rather than emitting NaN', () => {
+    const [first] = fly.frames({ distance: 'far', tumbleDeg: {} }, ctx()).keyframes
+    expect(first.offset).toBe(1.6)
+    expect(first.rotate).toBe(0)
+  })
 })
