@@ -21,3 +21,12 @@
 .wheel__pointer {
   fill: var(--wheel-pointer-color, #11111a);
 }
+
+/* CSS transforms on SVG default to a bounding-box origin, which would make
+   every wedge rotate about its own middle rather than about the hub. The
+   transforms `css.ts` emits are written in the wheel's coordinate system. */
+.wheel__stage,
+.wheel__wedge {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
