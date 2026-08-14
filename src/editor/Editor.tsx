@@ -88,7 +88,8 @@ export function Editor() {
   const published = useRef<Record<string, FeedItem[]>>({})
   useEffect(() => {
     for (const [feedId, current] of Object.entries(items)) {
-      if (sameItems(itemsOf(published.current, feedId), current)) continue
+      const sent = Object.hasOwn(published.current, feedId) ? published.current[feedId] : null
+      if (sent !== null && sameItems(sent, current)) continue
       published.current = { ...published.current, [feedId]: current }
       publishFeed({ feedId, items: current })
     }

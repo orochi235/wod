@@ -150,6 +150,34 @@ describe('Editor feed', () => {
     expect(screen.getByText('Google Meet')).toBeInTheDocument()
   })
 
+  it('publishes an empty roster on mount, before anyone has joined', async () => {
+    const seen = vi.fn()
+    const stop = subscribeFeed(seen)
+    try {
+      render(<Editor />)
+      await flush()
+      expect(seen).toHaveBeenCalledWith({ feedId: 'sim', items: [] })
+    } finally {
+      stop()
+    }
+  })
+
+  it('answers a show window that arrives before anyone has joined', async () => {
+    const seen = vi.fn()
+    const stop = subscribeFeed(seen)
+    try {
+      render(<Editor />)
+      await flush()
+      seen.mockClear()
+
+      requestFeeds()
+
+      await waitFor(() => expect(seen).toHaveBeenLastCalledWith({ feedId: 'sim', items: [] }))
+    } finally {
+      stop()
+    }
+  })
+
   it('publishes the room whenever it changes', async () => {
     const seen = vi.fn()
     const stop = subscribeFeed(seen)
