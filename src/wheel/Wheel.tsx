@@ -1,4 +1,7 @@
 import type { Ref } from 'react'
+import { useRef } from 'react'
+import type { Transitions } from '../transition/types'
+import { useEnter } from '../transition/useEnter'
 import { arcPath, arcs } from './geometry'
 import { fitLabel } from './label'
 import { paletteColor } from './palette'
@@ -10,6 +13,7 @@ export type WheelProps = {
   radius?: number
   rotationDeg?: number
   rotorRef?: Ref<SVGGElement>
+  transitions?: Transitions
 }
 
 /**
@@ -25,10 +29,19 @@ const POINTER_BASE = POINTER_LENGTH - POINTER_BITE
 // Two extra units so the base is not sitting exactly on the clip edge.
 const VIEWBOX_PAD = POINTER_BASE + 2
 
-export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: WheelProps) {
+export function Wheel({
+  segments,
+  radius = 200,
+  rotationDeg = 0,
+  rotorRef,
+  transitions,
+}: WheelProps) {
   const layout = arcs(segments)
   const half = radius + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
+
+  const wedges = useRef(new Map<string, SVGGElement>()).current
+  useEnter(segments, transitions?.enter, radius, wedges)
 
   return (
     <svg className="wheel" viewBox={viewBox} role="img" aria-label="wheel">
@@ -50,7 +63,15 @@ export function Wheel({ segments, radius = 200, rotationDeg = 0, rotorRef }: Whe
             const flipped = Math.cos(((midDeg + 90) * Math.PI) / 180) < 0
 
             return (
-              <g key={segment.id} className="wheel__wedge" data-segment-id={segment.id}>
+              <g
+                key={segment.id}
+                className="wheel__wedge"
+                data-segment-id={segment.id}
+                ref={(element) => {
+                  if (element) wedges.set(segment.id, element)
+                  else wedges.delete(segment.id)
+                }}
+              >
                 <path className="wheel__segment" d={d} fill={color} />
                 {fitted && (
                   <text
