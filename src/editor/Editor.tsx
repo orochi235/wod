@@ -158,7 +158,8 @@ export function Editor() {
             onChange={(segments) => update({ ...preset, segments })}
             onSelectTrick={setSelectedTrickId}
           />
-          {feed ? (
+          {/* One simulated feed, until the editor learns to render a panel per feed. */}
+          {feed?.kind === 'simulated' ? (
             <FeedPanel
               config={feed}
               present={present}
