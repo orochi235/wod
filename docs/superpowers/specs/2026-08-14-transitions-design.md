@@ -10,8 +10,14 @@ Audience: anyone working on the wheel's rendering, or adding a transition.
 
 ## The boundary
 
-A transition may set opacity, scale, radial offset, rotation, and aperture. It
-may never touch weight or arc layout.
+A transition may set opacity, scale, radial offset, rotation, and aperture — all
+of which compile to a CSS transform and a `clip-path` on the element being
+animated. It may never touch weight or arc layout.
+
+Aperture is a circular clip rather than an arc-edge one because no animatable
+CSS clips an arc: at wheel scope the whole wheel irises down to the hub, and at
+wedge scope each wedge irises into its own center, which staggered reads as
+blades closing one at a time.
 
 Geometry decides outcomes here. A wedge at zero weight cannot win, a wedge that
 swallows the circle must win, and `planSpin` aims at the distribution the pointer
@@ -43,9 +49,13 @@ export type PresentationKeyframe = {
   scale?: number
   /** Radial, in wheel radii: 1 is one radius out from the hub. */
   offset?: number
+  /** Which way `offset` points, in degrees clockwise from 12 o'clock. Defaults
+      to the wedge's own angle, which is what makes a wedge fly in from its own
+      side rather than from a fixed direction. */
+  offsetAngle?: number
   /** Degrees, about the wedge's arc midpoint or about the hub. */
   rotate?: number
-  /** 0..1 of the arc, closing from both edges. */
+  /** 0..1 visible extent, as a circle centered on the animated element. */
   aperture?: number
 }
 
