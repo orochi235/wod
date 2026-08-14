@@ -11,6 +11,9 @@ export type EmitTarget = {
 /**
  * Half the diagonal of a unit box, as a percentage: the radius at which a
  * centered circle covers the whole element, so aperture 1 clips nothing.
+ * Correct only because clip-path on a layout-less SVG element (a `<g>` or
+ * `<path>`) resolves its reference box to fill-box; on an element with a
+ * layout box the reference box is border-box and this constant is wrong.
  */
 const FULL_APERTURE = 70.711
 
@@ -26,13 +29,13 @@ export function transformOf(frame: PresentationKeyframe, target: EmitTarget): st
   if (frame.offset !== undefined && frame.offset !== 0) {
     const angle = frame.offsetAngle ?? target.angle
     parts.push(
-      `rotate(${round(angle)}) translate(0 ${round(-frame.offset * target.radius)}) rotate(${round(-angle)})`,
+      `rotate(${round(angle)}deg) translate(0px, ${round(-frame.offset * target.radius)}px) rotate(${round(-angle)}deg)`,
     )
   }
 
   if (frame.rotate !== undefined && frame.rotate !== 0) {
     parts.push(
-      `rotate(${round(target.angle)}) translate(0 ${round(-target.pivot)}) rotate(${round(frame.rotate)}) translate(0 ${round(target.pivot)}) rotate(${round(-target.angle)})`,
+      `rotate(${round(target.angle)}deg) translate(0px, ${round(-target.pivot)}px) rotate(${round(frame.rotate)}deg) translate(0px, ${round(target.pivot)}px) rotate(${round(-target.angle)}deg)`,
     )
   }
 

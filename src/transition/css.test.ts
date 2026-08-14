@@ -11,19 +11,19 @@ describe('transformOf', () => {
   // Out along the wedge's own angle: rotate into its frame, move, rotate back.
   it('pushes a wedge out along its own angle', () => {
     expect(transformOf({ at: 0, offset: 1.5 }, target)).toBe(
-      'rotate(90) translate(0 -300) rotate(-90)',
+      'rotate(90deg) translate(0px, -300px) rotate(-90deg)',
     )
   })
 
   it('honors an explicit direction over the wedge angle', () => {
     expect(transformOf({ at: 0, offset: 1, offsetAngle: 0 }, target)).toBe(
-      'rotate(0) translate(0 -200) rotate(0)',
+      'rotate(0deg) translate(0px, -200px) rotate(0deg)',
     )
   })
 
   it('tumbles about the wedge centroid, not the hub', () => {
     expect(transformOf({ at: 0, rotate: 45 }, target)).toBe(
-      'rotate(90) translate(0 -120) rotate(45) translate(0 120) rotate(-90)',
+      'rotate(90deg) translate(0px, -120px) rotate(45deg) translate(0px, 120px) rotate(-90deg)',
     )
   })
 
@@ -33,15 +33,25 @@ describe('transformOf', () => {
 
   it('composes offset, tumble, and scale in that order', () => {
     expect(transformOf({ at: 0, offset: 1, rotate: 90, scale: 2 }, target)).toBe(
-      'rotate(90) translate(0 -200) rotate(-90) rotate(90) translate(0 -120) rotate(90) translate(0 120) rotate(-90) scale(2)',
+      'rotate(90deg) translate(0px, -200px) rotate(-90deg) rotate(90deg) translate(0px, -120px) rotate(90deg) translate(0px, 120px) rotate(-90deg) scale(2)',
     )
   })
 
   // A pivot of zero is the wheel scope: there is no centroid but the hub.
   it('tumbles about the hub at wheel scope', () => {
     expect(transformOf({ at: 0, rotate: 30 }, { angle: 0, radius: 200, pivot: 0 })).toBe(
-      'rotate(0) translate(0 0) rotate(30) translate(0 0) rotate(0)',
+      'rotate(0deg) translate(0px, 0px) rotate(30deg) translate(0px, 0px) rotate(0deg)',
     )
+  })
+
+  it('emits css units, without which the browser drops the whole transform', () => {
+    const css = transformOf({ at: 0, offset: 1, rotate: 45, scale: 2 }, target)
+    for (const [, angle] of css.matchAll(/rotate\(([^)]*)\)/g)) {
+      expect(angle).toMatch(/^-?[\d.]+deg$/)
+    }
+    for (const [, move] of css.matchAll(/translate\(([^)]*)\)/g)) {
+      expect(move).toMatch(/^-?[\d.]+px, -?[\d.]+px$/)
+    }
   })
 })
 
