@@ -233,6 +233,25 @@
   background: rgb(0 0 0 / 8%);
 }
 
+.editor__add-feed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+}
+
+.editor__add-feed:hover,
+.editor__add-feed:focus-visible {
+  background: rgb(0 0 0 / 8%);
+}
+
 .preset-io {
   display: inline-flex;
   align-items: center;

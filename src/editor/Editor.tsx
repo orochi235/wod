@@ -197,6 +197,29 @@ export function Editor() {
               />
             ),
           )}
+          {preset.feeds.some((feed) => feed.kind === 'meet') ? null : (
+            <button
+              type="button"
+              className="editor__add-feed"
+              onClick={() =>
+                update({
+                  ...preset,
+                  feeds: [
+                    ...preset.feeds,
+                    {
+                      kind: 'meet',
+                      id: 'meet',
+                      defaults: { weight: 1 },
+                      conference: '',
+                      intervalMs: 5000,
+                    },
+                  ],
+                })
+              }
+            >
+              Add Google Meet
+            </button>
+          )}
         </section>
         <section className="editor__column editor__column--center">
           <Wheel segments={shown} rotorRef={rotorRef} />

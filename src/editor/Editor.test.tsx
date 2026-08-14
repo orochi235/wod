@@ -233,6 +233,25 @@ describe('Editor feed', () => {
   })
 })
 
+describe('Editor add feed', () => {
+  beforeEach(() => {
+    resetUnlocked()
+  })
+
+  it('adds a meet feed, and offers it only once', async () => {
+    vi.stubEnv('VITE_MEET_CLIENT_ID', 'client.apps.googleusercontent.com')
+    // DEFAULT_PRESET has the simulated feed and no meet feed.
+    render(<Editor />)
+    expect(screen.queryByText('Google Meet')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /add google meet/i }))
+
+    expect(screen.getByText('Google Meet')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /add google meet/i })).not.toBeInTheDocument()
+    expect(parsePreset(window.localStorage.getItem(PRESET_KEY)).feeds).toHaveLength(2)
+  })
+})
+
 describe('Editor overrides', () => {
   beforeEach(() => {
     resetUnlocked()
