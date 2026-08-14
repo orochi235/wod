@@ -1,4 +1,5 @@
 import type { Rng } from '../wheel/selection'
+import { slugify, withUniqueIds } from './identity'
 import type { FeedItem, SimulatedFeedConfig } from './types'
 
 /**
@@ -59,60 +60,14 @@ export function churn(config: SimulatedFeedConfig, present: string[], rng: Rng):
 }
 
 /**
- * Keeps any Unicode letter, number, or combining mark verbatim (after
- * composing to NFKC, so the same name typed in two normalization forms still
- * slugifies the same way) and collapses everything else to a hyphen. Marks
- * matter as much as letters here: several scripts spell vowels with a
- * combining mark rather than a base letter (Hindi 'नमस्ते', Hebrew 'שָׁלוֹם',
- * Arabic 'مُحَمَّد'), so a letters-only class would silently drop those sounds
- * and fragment the name into several hyphenated pieces. A stricter ASCII-only
- * class would go further and fold every non-Latin name to the empty-id
- * fallback: two attendees named '李雷' and '王芳' would both become
- * 'item'/'item-2', ids assigned by list position rather than by name — which
- * breaks the promise that an id follows a person across a leave and rejoin.
- * It also never emits ':', which matters because this id becomes half of a
- * wedge id (`${feedId}:${itemId}`); a colon here would make that string
- * ambiguous to split back apart.
- *
- * A name made entirely of marks with no base letter or number (vanishingly
- * unlikely, but possible) slugifies to a dangling mark rather than falling
- * back to 'item' — the fallback only fires on a truly empty result. That id
- * is still stable and unique, just visually odd in a debugger.
- */
-function slugify(name: string): string {
-  const slug = name
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\p{M}]+/gu, '-')
-    .replace(/^-+|-+$/g, '')
-  // An id is the override key, so it can never be empty — two unnameable
-  // people would otherwise share one override.
-  return slug === '' ? 'item' : slug
-}
-
-/**
  * Ids derive from the name rather than from a counter, so leaving and rejoining
  * returns the same id and whatever override was saved against it.
  *
- * That derivation is name-based, not person-based, so it has a real bound:
- * with two identically-named people plus a third whose own name collides with
- * the suffixed form (['Ana', 'Ana', 'Ana 2']), the second 'Ana' takes the
- * '-2' id ahead of 'Ana 2', and 'Ana 2' is bumped to '-3' — its saved override
- * silently follows whoever slugifies to '-2' first, and that pick depends on
- * list order. Fixing this needs a real participant id, which is out of scope
- * until the Meet adapter supplies one.
+ * Two people with the same name still share one id, and a third whose own name
+ * collides with the suffixed form takes it in list order. A simulated meeting
+ * has no identity to key on but the name; the Meet feed keys on the account id
+ * and does not have this problem.
  */
 export function itemsFor(present: string[]): FeedItem[] {
-  const items: FeedItem[] = []
-  for (const name of present) {
-    const base = slugify(name)
-    let id = base
-    let n = 2
-    while (items.some((item) => item.id === id)) {
-      id = `${base}-${n}`
-      n += 1
-    }
-    items.push({ id, label: name })
-  }
-  return items
+  return withUniqueIds(present.map((name) => ({ id: slugify(name), label: name })))
 }
