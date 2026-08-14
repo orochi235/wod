@@ -557,19 +557,19 @@ describe('transformOf', () => {
   // Out along the wedge's own angle: rotate into its frame, move, rotate back.
   it('pushes a wedge out along its own angle', () => {
     expect(transformOf({ at: 0, offset: 1.5 }, target)).toBe(
-      'rotate(90) translate(0 -300) rotate(-90)',
+      'rotate(90deg) translate(0px, -300px) rotate(-90deg)',
     )
   })
 
   it('honors an explicit direction over the wedge angle', () => {
     expect(transformOf({ at: 0, offset: 1, offsetAngle: 0 }, target)).toBe(
-      'rotate(0) translate(0 -200) rotate(0)',
+      'rotate(0deg) translate(0px, -200px) rotate(0deg)',
     )
   })
 
   it('tumbles about the wedge centroid, not the hub', () => {
     expect(transformOf({ at: 0, rotate: 45 }, target)).toBe(
-      'rotate(90) translate(0 -120) rotate(45) translate(0 120) rotate(-90)',
+      'rotate(90deg) translate(0px, -120px) rotate(45deg) translate(0px, 120px) rotate(-90deg)',
     )
   })
 
@@ -579,14 +579,14 @@ describe('transformOf', () => {
 
   it('composes offset, tumble, and scale in that order', () => {
     expect(transformOf({ at: 0, offset: 1, rotate: 90, scale: 2 }, target)).toBe(
-      'rotate(90) translate(0 -200) rotate(-90) rotate(90) translate(0 -120) rotate(90) translate(0 120) rotate(-90) scale(2)',
+      'rotate(90deg) translate(0px, -200px) rotate(-90deg) rotate(90deg) translate(0px, -120px) rotate(90deg) translate(0px, 120px) rotate(-90deg) scale(2)',
     )
   })
 
   // A pivot of zero is the wheel scope: there is no centroid but the hub.
   it('tumbles about the hub at wheel scope', () => {
     expect(transformOf({ at: 0, rotate: 30 }, { angle: 0, radius: 200, pivot: 0 })).toBe(
-      'rotate(0) translate(0 0) rotate(30) translate(0 0) rotate(0)',
+      'rotate(0deg) translate(0px, 0px) rotate(30deg) translate(0px, 0px) rotate(0deg)',
     )
   })
 })
@@ -610,6 +610,16 @@ describe('toKeyframes', () => {
     const frames = toKeyframes([{ at: 0, aperture: 0 }, { at: 1 }], target)
     expect(frames[0].clipPath).toBe('circle(0% at 50% 50%)')
     expect(frames[1].clipPath).toBe('circle(70.711% at 50% 50%)')
+  })
+
+  it('emits css units, without which the browser drops the whole transform', () => {
+    const css = transformOf({ at: 0, offset: 1, rotate: 45, scale: 2 }, target)
+    for (const [, angle] of css.matchAll(/rotate\(([^)]*)\)/g)) {
+      expect(angle).toMatch(/^-?[\d.]+deg$/)
+    }
+    for (const [, move] of css.matchAll(/translate\(([^)]*)\)/g)) {
+      expect(move).toMatch(/^-?[\d.]+px, -?[\d.]+px$/)
+    }
   })
 
   it('always emits a transform, so no keyframe interpolates from the layout', () => {
@@ -642,7 +652,9 @@ export type EmitTarget = {
 
 /**
  * Half the diagonal of a unit box, as a percentage: the radius at which a
- * centered circle covers the whole element, so aperture 1 clips nothing.
+ * centered circle covers the whole element, so aperture 1 clips nothing. Correct
+ * only while the target is an SVG element with no CSS layout box, whose
+ * clip-path reference box is `fill-box`.
  */
 const FULL_APERTURE = 70.711
 
@@ -652,19 +664,24 @@ function round(value: number): string {
   return `${Number(value.toFixed(3))}`
 }
 
+/**
+ * CSS, not the SVG transform attribute: these strings become WAAPI keyframes,
+ * and CSS silently drops a whole transform whose angles lack `deg` or whose
+ * lengths lack `px`.
+ */
 export function transformOf(frame: PresentationKeyframe, target: EmitTarget): string {
   const parts: string[] = []
 
   if (frame.offset !== undefined && frame.offset !== 0) {
     const angle = frame.offsetAngle ?? target.angle
     parts.push(
-      `rotate(${round(angle)}) translate(0 ${round(-frame.offset * target.radius)}) rotate(${round(-angle)})`,
+      `rotate(${round(angle)}deg) translate(0px, ${round(-frame.offset * target.radius)}px) rotate(${round(-angle)}deg)`,
     )
   }
 
   if (frame.rotate !== undefined && frame.rotate !== 0) {
     parts.push(
-      `rotate(${round(target.angle)}) translate(0 ${round(-target.pivot)}) rotate(${round(frame.rotate)}) translate(0 ${round(target.pivot)}) rotate(${round(-target.angle)})`,
+      `rotate(${round(target.angle)}deg) translate(0px, ${round(-target.pivot)}px) rotate(${round(frame.rotate)}deg) translate(0px, ${round(target.pivot)}px) rotate(${round(-target.angle)}deg)`,
     )
   }
 
@@ -707,7 +724,7 @@ export function toKeyframes(
 - [ ] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run src/transition/css.test.ts`
-Expected: PASS, 11 tests.
+Expected: PASS, 12 tests.
 
 - [ ] **Step 5: Commit**
 

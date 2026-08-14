@@ -23,6 +23,11 @@ function round(value: number): string {
   return `${Number(value.toFixed(3))}`
 }
 
+/**
+ * CSS, not the SVG transform attribute: these strings become WAAPI keyframes,
+ * and CSS drops the whole transform, silently, if an angle lacks `deg` or a
+ * length lacks `px`.
+ */
 export function transformOf(frame: PresentationKeyframe, target: EmitTarget): string {
   const parts: string[] = []
 
