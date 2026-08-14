@@ -291,9 +291,17 @@ Presets export and import as JSON so jokes can be shared and backed up.
 
 ## Auth and permission scoping
 
-Google OAuth 2.0 with PKCE, browser-only, no client secret — keeps the app a
-static page. The Workspace account running it must have the standing to read the
-conference's participant list.
+Google OAuth 2.0, browser-only, no client secret — keeps the app a static page.
+The Workspace account running it must have the standing to read the conference's
+participant list.
+
+**Corrected (2026-08-14): the flow is not PKCE.** This said "with PKCE," which
+Google does not offer here: its token endpoint requires `client_secret` for Web
+application clients, and PKCE does not substitute for it. The client types that
+allow PKCE without a secret accept only loopback and custom-scheme redirects,
+which a page served over HTTPS cannot use. The supported browser-only path is
+Google Identity Services' token model — the implicit grant, which Google both
+ships and calls insecure for single-page apps. See the Meet feed adapter design.
 
 Requested permissions are kept as narrow as possible, because this has to be an
 easy sell to a Workspace admin. The governing rule: **request the single
