@@ -1,0 +1,91 @@
+.probe {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1rem;
+  color: #e6e6e6;
+  background: #14161a;
+  min-height: 100vh;
+}
+
+.probe h1 {
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+}
+
+.probe__row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.probe__row label {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.probe input[type="password"],
+.probe input[type="text"] {
+  flex: 1 1 20rem;
+}
+
+.probe input,
+.probe button {
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  background: #1e2126;
+  color: inherit;
+  border: 1px solid #3a3f47;
+  border-radius: 3px;
+}
+
+.probe button {
+  cursor: pointer;
+}
+
+.probe button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.probe__status {
+  margin: 0.5rem 0;
+  color: #9aa4b2;
+}
+
+.probe__log {
+  margin-top: 0.75rem;
+  border-top: 1px solid #3a3f47;
+  padding-top: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.probe__entry--join {
+  color: #7fd18b;
+}
+
+.probe__entry--leave {
+  color: #e8a06a;
+}
+
+.probe__entry--mark {
+  color: #8fb8f0;
+  font-weight: bold;
+}
+
+.probe__entry--error {
+  color: #f08a8a;
+}
+
+.probe__entry--poll {
+  color: #7d8794;
+}
+
+.probe__flap {
+  color: #f0d98a;
+}
