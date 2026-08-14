@@ -1,31 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Participant } from '../meet/api'
-import { personOf, rosterDiff } from './diff'
-
-const participant = (name: string, patch: Partial<Participant> = {}): Participant => ({
-  name,
-  ...patch,
-})
-
-describe('personOf', () => {
-  it('names a signed-in user', () => {
-    expect(
-      personOf(participant('p1', { signedinUser: { user: 'users/1', displayName: 'Ada' } })),
-    ).toEqual({ id: 'p1', label: 'Ada', kind: 'signedin' })
-  })
-
-  it('keeps the kind when a display name is missing, rather than dropping the person', () => {
-    expect(personOf(participant('p2', { phoneUser: {} }))).toEqual({
-      id: 'p2',
-      label: '(no display name)',
-      kind: 'phone',
-    })
-  })
-
-  it('falls back to unknown for a shape the API adds later', () => {
-    expect(personOf(participant('p3')).kind).toBe('unknown')
-  })
-})
+import { rosterDiff } from './diff'
 
 describe('rosterDiff', () => {
   const ada = { id: 'p1', label: 'Ada', kind: 'signedin' as const }
@@ -43,8 +17,8 @@ describe('rosterDiff', () => {
     expect(rosterDiff([ada, bob], [bob, ada])).toEqual({ joined: [], left: [] })
   })
 
-  // Identity is the participant resource name: a rename mid-meeting must not
-  // read as one person leaving and another arriving.
+  // Identity is the person id: a rename mid-meeting must not read as one
+  // person leaving and another arriving.
   it('does not treat a relabel as a join and a leave', () => {
     expect(rosterDiff([ada], [{ ...ada, label: 'Ada L.' }])).toEqual({ joined: [], left: [] })
   })

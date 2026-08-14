@@ -1,22 +1,4 @@
-import type { Participant } from '../meet/api'
-
-/** How the API identified someone. Only `signedin` reliably carries a name. */
-export type PersonKind = 'signedin' | 'anonymous' | 'phone' | 'unknown'
-
-export type Person = { id: string; label: string; kind: PersonKind }
-
-export function personOf(participant: Participant): Person {
-  const { signedinUser, anonymousUser, phoneUser } = participant
-  const [kind, displayName]: [PersonKind, string | undefined] = signedinUser
-    ? ['signedin', signedinUser.displayName]
-    : anonymousUser
-      ? ['anonymous', anonymousUser.displayName]
-      : phoneUser
-        ? ['phone', phoneUser.displayName]
-        : ['unknown', undefined]
-
-  return { id: participant.name, label: displayName ?? '(no display name)', kind }
-}
+import type { Person } from '../meet/identity'
 
 export type RosterDiff = { joined: Person[]; left: Person[] }
 

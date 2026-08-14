@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { MeetApiError, activeParticipants, liveConferences, pickConference } from '../meet/api'
-import { type Person, personOf, rosterDiff } from './diff'
+import { type Person, personOf } from '../meet/identity'
+import { rosterDiff } from './diff'
 import { consumeTokenFromHash } from './launch'
 import './probe.css'
 
