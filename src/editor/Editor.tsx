@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { composeBase } from '../compose/compose'
 import { publishFeed, subscribeFeedRequests } from '../feed/bus'
 import { itemsFor } from '../feed/simulated'
-import type { FeedItem } from '../feed/types'
+import type { FeedConfig, FeedItem } from '../feed/types'
 import { spinConfigOf } from '../preset/motion'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
@@ -15,6 +15,7 @@ import type { Segment, SpinConfig } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
 import { FeedPanel } from './FeedPanel'
+import { MeetPanel } from './MeetPanel'
 import { MotionPanel } from './MotionPanel'
 import { OverridesPanel } from './OverridesPanel'
 import { PresetIo } from './PresetIo'
@@ -32,15 +33,33 @@ function itemsOf(items: Record<string, FeedItem[]>, feedId: string): FeedItem[] 
   return Array.isArray(published) ? published : []
 }
 
+function namesOf(present: Record<string, string[]>, feedId: string): string[] {
+  const names = present[feedId]
+  return Array.isArray(names) ? names : []
+}
+
+function sameItems(a: FeedItem[], b: FeedItem[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((item, index) => item.id === b[index].id && item.label === b[index].label)
+  )
+}
+
+function replaceFeed(feeds: FeedConfig[], next: FeedConfig): FeedConfig[] {
+  return feeds.map((existing) => (existing.id === next.id ? next : existing))
+}
+
 export function Editor() {
   const [preset, setPreset] = useState<Preset>(loadPreset)
   // Read once: the flag only changes on a load that consumed a `?rig=` param,
   // and that load remounts this anyway.
   const [rigVisible] = useState(isRigVisible)
   const [selectedTrickId, setSelectedTrickId] = useState<string | null>(null)
-  // Who is in the simulated meeting. Component state, never preset state: the
-  // preset stores how to get a roster, and a roster dies with the window.
-  const [present, setPresent] = useState<string[]>([])
+  // Who is in each simulated meeting, and who each meet feed last reported.
+  // Component state, never preset state: the preset stores how to get a
+  // roster, and a roster dies with the window.
+  const [present, setPresent] = useState<Record<string, string[]>>({})
+  const [live, setLive] = useState<Record<string, FeedItem[]>>({})
 
   // Every edit persists immediately; an open show window picks it up through
   // the storage event, so there is nothing to "apply".
@@ -49,41 +68,41 @@ export function Editor() {
     savePreset(next)
   }, [])
 
-  const feed = preset.feeds[0]
-  // Keyed on the id, never the feed object: every edit to the feed's config
-  // hands back a new object, and memoizing on that would rebuild identical
-  // items and republish them on each keystroke — a full recompose and wheel
-  // re-render for a roster that did not change.
-  const feedId = feed?.id
-
   // Items are derived, never stored: the preset keeps how to get a roster, not
   // who is in it.
-  const items = useMemo(() => (feedId ? { [feedId]: itemsFor(present) } : {}), [feedId, present])
+  const items = useMemo(() => {
+    const record: Record<string, FeedItem[]> = {}
+    for (const feed of preset.feeds) {
+      record[feed.id] =
+        feed.kind === 'simulated' ? itemsFor(namesOf(present, feed.id)) : itemsOf(live, feed.id)
+    }
+    return record
+  }, [preset.feeds, present, live])
 
   // The editor window owns the clock, so it is the window that publishes. With
   // no editor open the show window's roster freezes at whatever last arrived,
   // which is a comprehensible failure rather than two windows both churning.
+  // `preset.feeds` is a new array on every preset edit, so this memo recomputes
+  // on any keystroke; the guard below keeps that from republishing an
+  // equal-but-not-identical roster and re-rendering the show window for nothing.
+  const published = useRef<Record<string, FeedItem[]>>({})
   useEffect(() => {
-    if (!feedId) return
-    publishFeed({ feedId, items: itemsOf(items, feedId) })
-  }, [feedId, items])
-
-  // What the last publish said, for answering a window that missed it. A ref
-  // rather than a dependency: subscribing on every roster change would open and
-  // close a channel on each churn tick, and the answer only ever needs the
-  // latest roster.
-  const published = useRef<FeedItem[]>([])
-  published.current = feedId ? itemsOf(items, feedId) : []
+    for (const [feedId, current] of Object.entries(items)) {
+      if (sameItems(itemsOf(published.current, feedId), current)) continue
+      published.current = { ...published.current, [feedId]: current }
+      publishFeed({ feedId, items: current })
+    }
+  }, [items])
 
   // Publishing on change alone leaves a show window opened later showing
-  // statics, until a change it happens to be present for. It announces itself
-  // instead, and this answers.
+  // statics. It announces itself instead, and this answers for every feed.
   useEffect(() => {
-    if (!feedId) return
     return subscribeFeedRequests(() => {
-      publishFeed({ feedId, items: published.current })
+      for (const [feedId, current] of Object.entries(published.current)) {
+        publishFeed({ feedId, items: current })
+      }
     })
-  }, [feedId])
+  }, [])
 
   const base = useMemo(
     () =>
@@ -158,22 +177,25 @@ export function Editor() {
             onChange={(segments) => update({ ...preset, segments })}
             onSelectTrick={setSelectedTrickId}
           />
-          {/* One simulated feed, until the editor learns to render a panel per feed. */}
-          {feed?.kind === 'simulated' ? (
-            <FeedPanel
-              config={feed}
-              present={present}
-              onPresent={setPresent}
-              onChange={(next) =>
-                update({
-                  ...preset,
-                  feeds: preset.feeds.map((existing) =>
-                    existing.id === next.id ? next : existing,
-                  ),
-                })
-              }
-            />
-          ) : null}
+          {preset.feeds.map((feed) =>
+            feed.kind === 'simulated' ? (
+              <FeedPanel
+                key={feed.id}
+                config={feed}
+                present={namesOf(present, feed.id)}
+                onPresent={(names) => setPresent((current) => ({ ...current, [feed.id]: names }))}
+                onChange={(next) => update({ ...preset, feeds: replaceFeed(preset.feeds, next) })}
+              />
+            ) : (
+              <MeetPanel
+                key={feed.id}
+                config={feed}
+                items={itemsOf(live, feed.id)}
+                onItems={(next) => setLive((current) => ({ ...current, [feed.id]: next }))}
+                onChange={(next) => update({ ...preset, feeds: replaceFeed(preset.feeds, next) })}
+              />
+            ),
+          )}
         </section>
         <section className="editor__column editor__column--center">
           <Wheel segments={shown} rotorRef={rotorRef} />
@@ -202,7 +224,7 @@ export function Editor() {
               onSelect={setSelectedTrickId}
             />
             <OverridesPanel
-              items={feed ? itemsOf(items, feed.id) : []}
+              items={Object.values(items).flat()}
               overrides={preset.overrides}
               onChange={(overrides) => update({ ...preset, overrides })}
             />

@@ -15,6 +15,32 @@ function resetUnlocked() {
   window.localStorage.setItem(RIG_KEY, '1')
 }
 
+/** Seeds storage with a preset holding one feed of each kind. */
+function seedBothFeeds() {
+  window.localStorage.setItem(
+    PRESET_KEY,
+    JSON.stringify({
+      version: 4,
+      name: 'standup',
+      segments: [{ id: 'ana', label: 'Ana', weight: 1 }],
+      feeds: [
+        {
+          kind: 'simulated',
+          id: 'sim',
+          defaults: { weight: 1 },
+          pool: ['Fay'],
+          autochurn: { intervalMs: 2500, targetSize: 5, volatility: 0.25 },
+        },
+        { kind: 'meet', id: 'meet', defaults: { weight: 1 }, conference: '', intervalMs: 5000 },
+      ],
+      overrides: {},
+      tricks: [],
+      spin: { target: { kind: 'fair' }, motion: { durationMs: 4500, turns: 6, direction: 'cw' } },
+      branches: [],
+    }),
+  )
+}
+
 describe('Editor', () => {
   beforeEach(() => {
     resetUnlocked()
@@ -114,6 +140,14 @@ describe('Editor feed', () => {
 
   beforeEach(() => {
     resetUnlocked()
+  })
+
+  it('renders a panel for each feed', () => {
+    seedBothFeeds()
+    vi.stubEnv('VITE_MEET_CLIENT_ID', 'client.apps.googleusercontent.com')
+    render(<Editor />)
+    expect(screen.getByText('Simulated meeting')).toBeInTheDocument()
+    expect(screen.getByText('Google Meet')).toBeInTheDocument()
   })
 
   it('publishes the room whenever it changes', async () => {
