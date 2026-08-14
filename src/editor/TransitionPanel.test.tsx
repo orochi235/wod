@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { TransitionPanel } from './TransitionPanel'
@@ -32,5 +32,37 @@ describe('TransitionPanel', () => {
     )
     await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), '')
     expect(onChange).toHaveBeenCalledWith(undefined)
+  })
+
+  it('keeps another moment when arming a different transition', async () => {
+    const onChange = vi.fn()
+    const transitions = {
+      enter: { id: 'fade' as const, params: {} },
+      spin: { id: 'fly' as const, params: {} },
+    }
+    render(<TransitionPanel transitions={transitions} onChange={onChange} />)
+    await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), 'fly')
+    expect(onChange).toHaveBeenCalledWith({
+      spin: { id: 'fly', params: {} },
+      enter: { id: 'fly', params: expect.objectContaining({ distance: 1.6 }) },
+    })
+  })
+
+  it('keeps another moment when disarming, but drops to undefined when nothing is left', async () => {
+    const onChange = vi.fn()
+    const transitions = {
+      enter: { id: 'fade' as const, params: {} },
+      spin: { id: 'fly' as const, params: {} },
+    }
+    render(<TransitionPanel transitions={transitions} onChange={onChange} />)
+    await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), '')
+    expect(onChange).toHaveBeenCalledWith({ spin: { id: 'fly', params: {} } })
+    cleanup()
+
+    render(
+      <TransitionPanel transitions={{ enter: { id: 'fade', params: {} } }} onChange={onChange} />,
+    )
+    await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), '')
+    expect(onChange).toHaveBeenLastCalledWith(undefined)
   })
 })

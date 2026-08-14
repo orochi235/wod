@@ -10,23 +10,28 @@ export type TransitionPanelProps = {
 
 const NONE = ''
 
+function withoutEnter(transitions: Transitions | undefined): Transitions | undefined {
+  const { enter, ...rest } = transitions ?? {}
+  return Object.keys(rest).length === 0 ? undefined : rest
+}
+
 export function TransitionPanel({ transitions, onChange }: TransitionPanelProps) {
   const enter = transitions?.enter
   const transition = enter ? getTransition(enter.id) : null
 
   const arm = (value: string) => {
     if (value === NONE) {
-      onChange(undefined)
+      onChange(withoutEnter(transitions))
       return
     }
     const chosen = getTransition(value)
     if (!chosen) return
-    onChange({ enter: { id: chosen.id, params: { ...chosen.defaults } } })
+    onChange({ ...transitions, enter: { id: chosen.id, params: { ...chosen.defaults } } })
   }
 
   const edit = (params: TransitionParams) => {
     if (!enter) return
-    onChange({ enter: { ...enter, params } })
+    onChange({ ...transitions, enter: { ...enter, params } })
   }
 
   return (
