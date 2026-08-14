@@ -1,5 +1,4 @@
 import type { Ref } from 'react'
-import { useRef } from 'react'
 import type { Transitions } from '../transition/types'
 import { useEnter } from '../transition/useEnter'
 import { arcPath, arcs } from './geometry'
@@ -40,8 +39,7 @@ export function Wheel({
   const half = radius + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
 
-  const wedges = useRef(new Map<string, SVGGElement>()).current
-  useEnter(segments, transitions?.enter, radius, wedges)
+  const wedgeRef = useEnter(segments, transitions?.enter, radius)
 
   return (
     <svg className="wheel" viewBox={viewBox} role="img" aria-label="wheel">
@@ -67,10 +65,7 @@ export function Wheel({
                 key={segment.id}
                 className="wheel__wedge"
                 data-segment-id={segment.id}
-                ref={(element) => {
-                  if (element) wedges.set(segment.id, element)
-                  else wedges.delete(segment.id)
-                }}
+                ref={wedgeRef(segment.id)}
               >
                 <path className="wheel__segment" d={d} fill={color} />
                 {fitted && (

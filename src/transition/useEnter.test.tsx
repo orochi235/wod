@@ -72,6 +72,27 @@ describe('enter transitions', () => {
     expect(calls).toHaveLength(0)
   })
 
+  it("emits a transform that reflects each wedge's own arc midpoint, not its start", () => {
+    render(
+      <Wheel
+        segments={[segment('ana'), segment('ben')]}
+        transitions={{ enter: { id: 'fly', params: { staggerMs: 0, distance: 1 } } }}
+      />,
+    )
+    expect(calls).toHaveLength(2)
+    // Two equal-weight wedges: ana spans 0..0.5 turn (midpoint 90deg), ben spans
+    // 0.5..1 turn (midpoint 270deg) — opposite sides of the hub. A transform built
+    // from the arc's start (0deg, 180deg) or a sign-flipped angle would not match.
+    const rotateDegOf = (transform: string): number => {
+      const match = transform.match(/^rotate\((-?[\d.]+)deg\)/)
+      if (!match) throw new Error(`no leading rotate() in ${transform}`)
+      return Number(match[1])
+    }
+    const [ana, ben] = calls.map((call) => (call.keyframes as Keyframe[])[0].transform as string)
+    expect(rotateDegOf(ana)).toBe(90)
+    expect(rotateDegOf(ben)).toBe(270)
+  })
+
   it('collapses to a fade with no stagger under reduced motion', () => {
     matchMedia(true)
     render(

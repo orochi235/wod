@@ -21,9 +21,10 @@ export function useEnter(
   segments: Segment[],
   instance: TransitionInstance | undefined,
   radius: number,
-  wedges: Map<string, SVGGElement>,
-): void {
+): (id: string) => (element: SVGGElement | null) => void {
   const seen = useRef<Set<string> | null>(null)
+  const wedges = useRef(new Map<string, SVGGElement>()).current
+  const wedgeRefs = useRef(new Map<string, (element: SVGGElement | null) => void>()).current
 
   useEffect(() => {
     const ids = new Set(segments.map((segment) => segment.id))
@@ -64,6 +65,8 @@ export function useEnter(
         durationMs,
       })
 
+      // Nothing cancels this yet: a spin starting mid-enter should snap the wedge
+      // to rest, but that belongs to the spin moment, a later step in this plan.
       element.animate(toKeyframes(keyframes, { angle, radius, pivot: radius * 0.6 }), {
         duration: durationMs,
         delay: delayMs,
@@ -72,4 +75,16 @@ export function useEnter(
       })
     }
   }, [segments, instance, radius, wedges])
+
+  return (id: string) => {
+    let ref = wedgeRefs.get(id)
+    if (!ref) {
+      ref = (element) => {
+        if (element) wedges.set(id, element)
+        else wedges.delete(id)
+      }
+      wedgeRefs.set(id, ref)
+    }
+    return ref
+  }
 }
