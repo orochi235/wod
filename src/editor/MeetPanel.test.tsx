@@ -102,4 +102,88 @@ describe('MeetPanel', () => {
       expect.objectContaining({ conference: expect.any(String) }),
     )
   })
+
+  describe('conference notes', () => {
+    function stubGoogleSignIn() {
+      vi.stubGlobal('google', {
+        accounts: {
+          oauth2: {
+            initTokenClient: ({ callback }: { callback: (r: unknown) => void }) => ({
+              requestAccessToken: () => callback({ access_token: 'ya29.note', expires_in: 3600 }),
+            }),
+          },
+        },
+      })
+    }
+
+    /** Answers the conference list call; nothing here resolves a conference to poll. */
+    function stubConferences(names: string[]) {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string) => {
+          if (url.includes('conferenceRecords?')) {
+            return {
+              ok: true,
+              json: async () => ({ conferenceRecords: names.map((name) => ({ name })) }),
+            } as Response
+          }
+          throw new Error(`unexpected fetch: ${url}`)
+        }),
+      )
+    }
+
+    it('reports several conferences in progress when nothing is pinned', async () => {
+      vi.stubEnv('VITE_MEET_CLIENT_ID', 'client.apps.googleusercontent.com')
+      stubGoogleSignIn()
+      stubConferences(['conferenceRecords/a', 'conferenceRecords/b'])
+      render(<MeetPanel config={config} items={[]} onItems={noop} onChange={noop} />)
+      await userEvent.click(screen.getByRole('button', { name: /connect/i }))
+
+      await screen.findByText(/2 conferences in progress — pin one/)
+    })
+
+    it('reports nothing in progress when unpinned and none are live', async () => {
+      vi.stubEnv('VITE_MEET_CLIENT_ID', 'client.apps.googleusercontent.com')
+      stubGoogleSignIn()
+      stubConferences([])
+      render(<MeetPanel config={config} items={[]} onItems={noop} onChange={noop} />)
+      await userEvent.click(screen.getByRole('button', { name: /connect/i }))
+
+      await screen.findByText(/nothing in progress/)
+    })
+
+    it('reports the pinned conference is not in progress when others are live', async () => {
+      vi.stubEnv('VITE_MEET_CLIENT_ID', 'client.apps.googleusercontent.com')
+      stubGoogleSignIn()
+      stubConferences(['conferenceRecords/other'])
+      render(
+        <MeetPanel
+          config={{ ...config, conference: 'zzz' }}
+          items={[]}
+          onItems={noop}
+          onChange={noop}
+        />,
+      )
+      await userEvent.click(screen.getByRole('button', { name: /connect/i }))
+
+      await screen.findByText(/pinned conference is not in progress \(1 live\)/)
+    })
+
+    it('reports nothing in progress when pinned and none are live', async () => {
+      vi.stubEnv('VITE_MEET_CLIENT_ID', 'client.apps.googleusercontent.com')
+      stubGoogleSignIn()
+      stubConferences([])
+      render(
+        <MeetPanel
+          config={{ ...config, conference: 'zzz' }}
+          items={[]}
+          onItems={noop}
+          onChange={noop}
+        />,
+      )
+      await userEvent.click(screen.getByRole('button', { name: /connect/i }))
+
+      await screen.findByText(/nothing in progress/)
+    })
+  })
 })
