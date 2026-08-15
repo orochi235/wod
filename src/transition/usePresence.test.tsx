@@ -193,6 +193,31 @@ describe('the presence clock', () => {
     expect(before).toBeTruthy()
   })
 
+  it('gives a newcomer a color no wedge on the wheel is already using', () => {
+    // Once a departure finishes its color is released, so the count of assigned
+    // colors no longer tracks the palette index — picking by count would hand a
+    // newcomer a color a survivor still holds.
+    const roster = [segment('ana'), segment('ben'), segment('cy')]
+    const { container, rerender } = render(<Wheel segments={roster} transitions={transitions} />)
+    clock.advance(401)
+
+    rerender(<Wheel segments={[segment('ana'), segment('cy')]} transitions={transitions} />)
+    clock.advance(401)
+    clock.advance(1)
+
+    rerender(
+      <Wheel
+        segments={[segment('ana'), segment('cy'), segment('dan')]}
+        transitions={transitions}
+      />,
+    )
+    const fills = [...container.querySelectorAll('.wheel__segment')].map((node) =>
+      node.getAttribute('fill'),
+    )
+    expect(fills).toHaveLength(3)
+    expect(new Set(fills).size).toBe(3)
+  })
+
   it('keeps every wedge painted while something else owns the wheel', () => {
     // A held wheel is on screen for the whole of every spin. Resolving colors
     // only on the animating path would leave each wedge with no fill at all.
