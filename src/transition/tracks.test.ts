@@ -403,6 +403,21 @@ describe('sampleTrack', () => {
     expect(ana && sampleTrack(ana, 100).opacity).toBeCloseTo(0.4375)
   })
 
+  it('runs the curve the transition declared instead', () => {
+    const symmetric: Track = {
+      ...restingFor('ana'),
+      phase: 'entering',
+      frames: [
+        { at: 0, opacity: 0 },
+        { at: 1, opacity: 1 },
+      ],
+      durationMs: 400,
+      easing: 'easeInOut',
+    }
+    expect(sampleTrack(symmetric, 200).opacity).toBeCloseTo(0.5)
+    expect(sampleTrack(symmetric, 100).opacity).toBeCloseTo(0.125)
+  })
+
   it('hands back the shared resting presence for a settled wedge', () => {
     // By identity, which is what freezing RESTING protects.
     expect(sampleTrack(restingFor('ana'), 500)).toBe(RESTING)

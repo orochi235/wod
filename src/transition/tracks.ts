@@ -1,7 +1,7 @@
 import { EASINGS } from '../keyframes/easing'
 import { readNumber } from '../tricks/params'
 import { type Arc, arcs as layoutArcs } from '../wheel/geometry'
-import type { Segment } from '../wheel/types'
+import type { EasingName, Segment } from '../wheel/types'
 import { REDUCED_MOTION_MS } from '../wheel/useSpin'
 import { getTransition } from './registry'
 import { RESTING, declaresHold, samplePresence } from './sample'
@@ -21,6 +21,8 @@ export type Track = {
   startedAt: number
   delayMs: number
   durationMs: number
+  /** Absent means `easeOut`, as it does on the frames the transition returned. */
+  easing?: EasingName
   declaresHold: boolean
   /** Where it sat when it left the layout, for drawing it once it holds no arc. */
   ghostArc: Arc | null
@@ -57,7 +59,7 @@ export function sampleTrack(track: Track, now: number): Presence {
   if (track.phase === 'present') return RESTING
   // Eased here because nothing in a keyframe list carries easing, and the WAAPI
   // path this replaced passed `ease-out` to animate().
-  const p = EASINGS.easeOut(progressOf(track, now))
+  const p = EASINGS[track.easing ?? 'easeOut'](progressOf(track, now))
   // A wedge waiting out its stagger delay sits at p 0, which is its interrupted
   // sample once a zero frame has been dropped and its declared start otherwise.
   const presence = samplePresence(track.frames, p, track.base)
@@ -70,7 +72,12 @@ function withoutZeroFrame(frames: PresentationKeyframe[]): PresentationKeyframe[
   return frames.filter((frame) => frame.at > 0)
 }
 
-type Plan = { frames: PresentationKeyframe[]; delayMs: number; durationMs: number }
+type Plan = {
+  frames: PresentationKeyframe[]
+  delayMs: number
+  durationMs: number
+  easing?: EasingName
+}
 
 function planTrack(
   transitions: Transitions | undefined,
@@ -94,14 +101,14 @@ function planTrack(
     ? REDUCED_MOTION_MS
     : readNumber(instance.params, 'durationMs', readNumber(transition.defaults, 'durationMs', 400))
 
-  const { keyframes, delayMs } = transition.frames(params, {
+  const { keyframes, delayMs, easing } = transition.frames(params, {
     index,
     count,
     angle,
     durationMs,
     moment,
   })
-  return { frames: keyframes, delayMs, durationMs }
+  return { frames: keyframes, delayMs, durationMs, easing }
 }
 
 function angleOf(arc: Arc | undefined): number {
@@ -211,6 +218,7 @@ export function advance(input: AdvanceInput): Map<string, Track> {
       startedAt: now,
       delayMs: plan.delayMs,
       durationMs: plan.durationMs,
+      easing: plan.easing,
       declaresHold: declaresHold(frames),
       // A reversal keeps the arc its exit froze: it may still be at hold 0, and
       // a wedge holding no arc has nowhere to be drawn without one.
@@ -251,6 +259,7 @@ export function advance(input: AdvanceInput): Map<string, Track> {
       startedAt: now,
       delayMs: plan.delayMs,
       durationMs: plan.durationMs,
+      easing: plan.easing,
       declaresHold: declaresHold(frames),
       ghostArc: arcs.get(id) ?? null,
     })

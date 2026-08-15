@@ -1,4 +1,5 @@
 import type { Field } from '../form/fields'
+import type { EasingName } from '../wheel/types'
 
 export type TransitionId = 'fade' | 'fly'
 
@@ -36,6 +37,8 @@ export type TransitionContext = {
 export type TransitionFrames = {
   keyframes: PresentationKeyframe[]
   delayMs: number
+  /** Absent means `easeOut`, the curve the entrance path has always run on. */
+  easing?: EasingName
 }
 
 export type Transition = {
