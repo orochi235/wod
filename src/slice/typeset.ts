@@ -1,5 +1,5 @@
 import type { Media } from '../wheel/types'
-import { runAlongRadius } from './glyphRun'
+import { runAlongArc, runAlongRadius } from './glyphRun'
 import { applyTransform } from './ladder'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
 import type { PartContent, SliceContext, SliceElement, SlicePart } from './types'
@@ -95,6 +95,7 @@ export function typeset(part: SlicePart, ctx: SliceContext): SliceElement[] {
 
   if (resolved.text.length === 0) return []
   if (isFitted(part)) return fitted(part, ctx, resolved.text)
-  const glyphs = runAlongRadius(part, ctx, resolved.text)
+  const run = part.orientation === 'archedRim' ? runAlongArc : runAlongRadius
+  const glyphs = run(part, ctx, resolved.text)
   return glyphs.length > 0 ? [{ kind: 'glyphRun', glyphs }] : []
 }

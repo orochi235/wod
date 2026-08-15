@@ -1,5 +1,5 @@
 import { pointAt } from '../wheel/geometry'
-import { chord } from './fit'
+import { arcLength, chord } from './fit'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
 import type { Glyph, SliceContext, SlicePart } from './types'
 
@@ -20,6 +20,10 @@ const MIN_ADVANCE = 0.3
  * One value for every face until a font registry supplies a real one.
  */
 const CAP_HEIGHT = 0.72
+const TAU = Math.PI * 2
+/** How much of the wedge's arc a run may claim, matching the curved budget. */
+const ARC_FILL = 0.85
+const LINE_HEIGHT = 1.2
 
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n))
 
@@ -113,5 +117,33 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
       rotate: round(mid * 360 + (stacked ? 0 : -90)),
       scale: stacked ? [factor, 1] : [1, factor],
     }
+  })
+}
+
+/** `archedRim`: a baseline on an arc, so nothing narrows and nothing tapers. */
+export function runAlongArc(part: SlicePart, ctx: SliceContext, text: string): Glyph[] {
+  const chars = [...text]
+  const width = ctx.arc.end - ctx.arc.start
+  const mid = ctx.arc.start + width / 2
+  const [inner, outer] = part.band
+  const baseline = ((inner + outer) / 2) * ctx.radius
+  const advances = chars.map((char) => Math.max(ctx.measure(char, 1), MIN_ADVANCE))
+  const demand = advances.reduce((sum, advance) => sum + advance + TRACKING, 0)
+
+  const run = arcLength(width, baseline) * ARC_FILL
+  const thickness = ((outer - inner) * ctx.radius) / LINE_HEIGHT
+  const maxSize = part.maxSize ?? DEFAULT_MAX_SIZE
+  const size = Math.max(MIN_SIZE, Math.min(maxSize, thickness, demand > 0 ? run / demand : 0))
+
+  const factor =
+    typeof part.stretch === 'number' ? clamp(part.stretch, 1 / MAX_STRETCH, MAX_STRETCH) : 1
+
+  let along = -(size * demand) / 2
+  return chars.map((char, i) => {
+    const step = size * (advances[i] + TRACKING)
+    const turn = mid + (along + step / 2) / (TAU * baseline)
+    along += step
+    const [x, y] = pointAt(turn, baseline)
+    return { char, x, y, size: round(size), rotate: round(turn * 360), scale: [factor, 1] }
   })
 }

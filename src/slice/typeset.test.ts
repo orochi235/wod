@@ -310,3 +310,63 @@ describe('stretch', () => {
     expect(glyphs[0].scale[0]).toBe(3)
   })
 })
+
+describe('the arched rim run', () => {
+  const wide = () => context({ arc: { start: 0, end: 0.25 } })
+  const arched = (overrides: Partial<SlicePart> = {}, ctx: SliceContext = wide()): Glyph[] =>
+    glyphsOf({ orientation: 'archedRim', band: [0.8, 0.94], ...overrides }, ctx)
+
+  it('sets every glyph at one size on one radius', () => {
+    const glyphs = arched({ content: { from: 'text', value: 'WHEEL' } })
+    expect(new Set(glyphs.map((glyph) => glyph.size)).size).toBe(1)
+    const radii = glyphs.map(radiusOf)
+    expect(Math.max(...radii) - Math.min(...radii)).toBeLessThan(0.02)
+  })
+
+  it('centres the run on the wedge and runs it clockwise', () => {
+    const glyphs = arched({ content: { from: 'text', value: 'WHEEL' } })
+    expect(glyphs[0].rotate).toBeLessThan(45)
+    expect(glyphs[glyphs.length - 1].rotate).toBeGreaterThan(45)
+  })
+
+  it('turns each glyph square to its own point on the arc', () => {
+    for (const glyph of arched({ content: { from: 'text', value: 'WHEEL' } })) {
+      const turnDeg = (Math.atan2(glyph.x, -glyph.y) * 180) / Math.PI
+      expect(glyph.rotate).toBeCloseTo(turnDeg, 0)
+    }
+  })
+
+  it('gives a wide letter a wider slot than a narrow one', () => {
+    const glyphs = arched({ content: { from: 'text', value: 'IIW' } })
+    const gap = (a: number, b: number) =>
+      Math.hypot(glyphs[a].x - glyphs[b].x, glyphs[a].y - glyphs[b].y)
+    expect(gap(1, 2)).toBeGreaterThan(gap(0, 1) * 1.5)
+  })
+
+  it('caps the size on the thickness of its band', () => {
+    const thin = arched({ content: { from: 'text', value: 'AB' }, band: [0.9, 0.94] })
+    const thick = arched({ content: { from: 'text', value: 'AB' }, band: [0.6, 0.94] })
+    expect(thin[0].size).toBeLessThan(thick[0].size)
+  })
+
+  it('shrinks a long word to the floor rather than dropping letters', () => {
+    const value = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const glyphs = arched(
+      { content: { from: 'text', value } },
+      context({ arc: { start: 0, end: 0.02 } }),
+    )
+    expect(glyphs).toHaveLength(value.length)
+    expect(glyphs[0].size).toBe(9)
+  })
+
+  it('leaves a fill alone, having no narrowing room to fill', () => {
+    for (const glyph of arched({ content: { from: 'text', value: 'AB' }, stretch: 'fill' })) {
+      expect(glyph.scale).toEqual([1, 1])
+    }
+  })
+
+  it('honours an authored stretch on the glyph x axis', () => {
+    const glyphs = arched({ content: { from: 'text', value: 'AB' }, stretch: 1.5 })
+    expect(glyphs[0].scale).toEqual([1.5, 1])
+  })
+})
