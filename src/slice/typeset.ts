@@ -3,6 +3,7 @@ import { resolveFamily } from './fonts/registry'
 import { placeAlongArc, placeAlongRadius, toGlyphs } from './glyphRun'
 import { applyTransform } from './ladder'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
+import { outline } from './outline'
 import type { PartContent, SliceContext, SliceElement, SlicePart } from './types'
 
 type Resolved = { kind: 'text'; text: string } | { kind: 'image'; href: string }
@@ -110,5 +111,13 @@ export function typeset(part: SlicePart, ctx: SliceContext): SliceElement[] {
   const place = part.orientation === 'archedRim' ? placeAlongArc : placeAlongRadius
   const run = place(part, ctx, text, family)
   if (run.glyphs.length === 0) return []
+
+  // The same solve either way. A face still on its way, or one missing a
+  // character, draws as glyphs until it is not.
+  if (part.shape === 'outline') {
+    const source = ctx.outlines?.(part.font ?? ctx.font)
+    const d = source ? outline(run, source) : null
+    if (d !== null) return [{ kind: 'path', d, frame: part.frame }]
+  }
   return [{ kind: 'glyphRun', glyphs: toGlyphs(run), family }]
 }

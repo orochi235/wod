@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createFit } from './fit'
 import { DEFAULT_FAMILY } from './fonts/registry'
+import type { GlyphSource } from './types'
 import type { Glyph, Measure, SliceContext, SlicePart } from './types'
 import { typeset } from './typeset'
 
@@ -635,5 +636,81 @@ describe('which face a part is set in', () => {
     }
     typeset(part({ font: 'anton' }), context({ measure: spy, fit: createFit(spy) }))
     expect(new Set(seen)).toEqual(new Set(['Anton']))
+  })
+})
+
+describe('the shape a run is drawn as', () => {
+  // A 1em square per character, so the shape is a shape and not a face.
+  const source: GlyphSource = {
+    centre: 0.5,
+    advance: () => 1,
+    contours: (char) =>
+      char === '\u{1F600}'
+        ? null
+        : [
+            [
+              [0, 0],
+              [1, 0],
+              [1, -1],
+              [0, -1],
+            ],
+          ],
+  }
+
+  it('warps the run into one shape when the face is there', () => {
+    const [element] = typeset(part({ shape: 'outline' }), context({ outlines: () => source }))
+    expect(element).toMatchObject({ kind: 'path' })
+    expect((element as { d: string }).d.startsWith('M')).toBe(true)
+  })
+
+  // Parsing is async and the face is asked for when the look resolves, so the
+  // one swap lands at load rather than mid-spin.
+  it('draws as glyphs until the face is parsed', () => {
+    const [element] = typeset(part({ shape: 'outline' }), context({ outlines: () => null }))
+    expect(element).toMatchObject({ kind: 'glyphRun' })
+  })
+
+  it('draws as glyphs when nothing offers a face at all', () => {
+    const [element] = typeset(part({ shape: 'outline' }), context())
+    expect(element).toMatchObject({ kind: 'glyphRun' })
+  })
+
+  // One missing character never leaves a half-warped word.
+  it('drops the whole part to glyphs for a character the face lacks', () => {
+    const [element] = typeset(
+      part({ shape: 'outline', content: { from: 'text', value: 'OK\u{1F600}' } }),
+      context({ outlines: () => source }),
+    )
+    expect(element).toMatchObject({ kind: 'glyphRun' })
+  })
+
+  // Switching shape must not reflow: it is the same solve, drawn twice.
+  it('lays a run out identically whichever shape draws it', () => {
+    const [glyphs] = typeset(part(), context({ outlines: () => source }))
+    const [warped] = typeset(part({ shape: 'outline' }), context({ outlines: () => source }))
+
+    expect(glyphs).toMatchObject({ kind: 'glyphRun' })
+    expect(warped).toMatchObject({ kind: 'path' })
+
+    const run = (glyphs as { glyphs: { size: number; x: number; y: number }[] }).glyphs
+    const solved = typeset(part(), context({ outlines: () => null }))[0] as {
+      glyphs: { size: number; x: number; y: number }[]
+    }
+    expect(run).toEqual(solved.glyphs)
+  })
+
+  it("reads the face a part names rather than the look's, when it warps", () => {
+    const asked: (string | undefined)[] = []
+    typeset(
+      part({ shape: 'outline', font: 'anton' }),
+      context({
+        font: 'rye',
+        outlines: (id) => {
+          asked.push(id)
+          return source
+        },
+      }),
+    )
+    expect(asked).toEqual(['anton'])
   })
 })

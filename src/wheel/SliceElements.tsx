@@ -29,8 +29,16 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
         if (element.kind === 'raw') return <g key={key}>{element.node}</g>
 
         if (element.kind === 'path') {
+          // A path with no fill of its own is a label — outline mode's warped
+          // run — and takes the label's color rather than disappearing.
           return (
-            <path key={key} d={element.d} fill={element.fill ?? 'none'} opacity={element.opacity} />
+            <path
+              key={key}
+              className={element.fill ? undefined : 'wheel__label'}
+              d={element.d}
+              fill={element.fill}
+              opacity={element.opacity}
+            />
           )
         }
 
