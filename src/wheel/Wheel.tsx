@@ -263,10 +263,12 @@ export function Wheel({
       </g>
       {/* Apex inward: the tip is the thing that names a winner, so it points at
           the wedge rather than away from it, dipping just past the rim. */}
-      <polygon
-        className="wheel__pointer"
-        points={`0,${-radius + POINTER_BITE} ${-POINTER_HALF_WIDTH},${-radius - POINTER_BASE} ${POINTER_HALF_WIDTH},${-radius - POINTER_BASE}`}
-      />
+      {partOn(theme, 'pointer') && (
+        <polygon
+          className="wheel__pointer"
+          points={`0,${-radius + POINTER_BITE} ${-POINTER_HALF_WIDTH},${-radius - POINTER_BASE} ${POINTER_HALF_WIDTH},${-radius - POINTER_BASE}`}
+        />
+      )}
       {hasFlapper && (
         <g
           className="wheel__flapper"

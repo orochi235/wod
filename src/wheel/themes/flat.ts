@@ -16,6 +16,7 @@ export const flat: Theme = {
     sheen: false,
     peg: false,
     hub: false,
+    pointer: true,
     flapper: false,
   },
   metrics: FLAT_METRICS,

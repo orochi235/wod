@@ -31,9 +31,11 @@ describe('partOn', () => {
 
 describe('the flat look', () => {
   // Absent means flat, and flat has to be indistinguishable from no theme at
-  // all: every part it could add is one the wheel does not draw today.
-  it('adds no part', () => {
-    expect(Object.values(flat.parts).every((on) => on === false)).toBe(true)
+  // all. The pointer is the one part the wheel already drew before themes, so
+  // flat keeps it and adds nothing else.
+  it('adds no part beyond the pointer it already drew', () => {
+    expect(flat.parts.pointer).toBe(true)
+    expect(Object.values({ ...flat.parts, pointer: false }).every((on) => on === false)).toBe(true)
   })
 
   it('asks for no pegs and a silent flapper', () => {

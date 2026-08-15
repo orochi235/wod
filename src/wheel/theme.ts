@@ -15,6 +15,7 @@ export type WheelPart =
   | 'sheen'
   | 'peg'
   | 'hub'
+  | 'pointer'
   | 'flapper'
 
 export type FlapperMode = 'silent' | 'click' | 'catch'
