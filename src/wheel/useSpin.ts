@@ -112,12 +112,12 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
       restingDegs.set(id, restingDeg)
       let ref = levelRefs.get(id)
       if (!ref) {
+        // The angle deliberately outlives the element. React detaches a ref
+        // after the render that re-registered it, so deleting here would drop
+        // an angle a remount had just written, and only `levels` is read.
         ref = (element) => {
           if (element) levels.set(id, element)
-          else {
-            levels.delete(id)
-            restingDegs.delete(id)
-          }
+          else levels.delete(id)
         }
         levelRefs.set(id, ref)
       }

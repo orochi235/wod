@@ -938,6 +938,19 @@ reader does not re-litigate them:
   stage exists so a wheel-scope transform never fights the rotation, and the
   wheel-scope transitions that will use it are the next plan's work.
 
+Task 4 turned up two of its own:
+
+- **The angle map does not delete on unmount.** Deleting it there loses a race:
+  React detaches a ref *after* the render that re-registered it, so an id that
+  unmounts and remounts in one commit — reachable, since `SliceElements` keys a
+  level group `` `${id}-${index}` `` and a reordered element list remounts it —
+  would leave `levels` holding an id whose angle had just been dropped. Only
+  `levels` is ever iterated, so a lingering angle is inert. The `?? 0` in the
+  spin loop stays as a defensive default rather than a path anything takes.
+- **A slice with two `frame: 'level'` elements registers one ref for both**, so
+  the second overwrites the first and only one is counter-animated. Pre-existing
+  and untouched here; it needs a per-element key, not a per-segment one.
+
 Task 3's review added one worth carrying: **the prune's safety borrows an
 invariant from another module.** It can only over-retain because a departing id,
 once dropped from `tracks`, never returns — so a discarded render cannot delete
