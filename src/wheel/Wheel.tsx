@@ -211,15 +211,16 @@ export function Wheel({
                   })}
                 >
                   <path className="wheel__segment" d={d} fill={segment.color} />
-                  {partOn(theme, 'divider') && (
-                    <line
-                      className="wheel__divider"
-                      x1={0}
-                      y1={0}
-                      x2={pointAt(presenceArc.start, radius)[0]}
-                      y2={pointAt(presenceArc.start, radius)[1]}
-                    />
-                  )}
+                  {partOn(theme, 'divider') &&
+                    // Both edges, not just the start: a wedge's fill covers half
+                    // of any stroke already on the seam it shares, so each seam
+                    // needs the stroke that comes after both of its fills.
+                    [presenceArc.start, presenceArc.end].map((edge) => {
+                      const [x2, y2] = pointAt(edge, radius)
+                      return (
+                        <line key={edge} className="wheel__divider" x1={0} y1={0} x2={x2} y2={y2} />
+                      )
+                    })}
                   {partOn(theme, 'panel') &&
                     (() => {
                       const panel = panelPath(

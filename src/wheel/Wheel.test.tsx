@@ -351,6 +351,25 @@ describe('parts', () => {
     expect(wedge?.querySelector('.wheel__divider')).not.toBeNull()
   })
 
+  it('strokes every seam after both of the wedges it separates', () => {
+    const three = [...segments, { id: 'cy', label: 'Cy', weight: 1 }]
+    const { container } = render(<Wheel segments={three} theme={wof} />)
+    const painted = [...container.querySelectorAll('.wheel__segment, .wheel__divider')]
+    const lastIndexOf = (matches: (node: Element) => boolean): number =>
+      painted.reduce((found, node, index) => (matches(node) ? index : found), -1)
+
+    const lastFill = lastIndexOf((node) => node.classList.contains('wheel__segment'))
+    // Twelve o'clock is the seam the paint order can lose: the wedge that
+    // strokes it is drawn first and the wedge on its other side last, so a
+    // stroke laid before that fill comes out at half width.
+    const atTwelve = lastIndexOf(
+      (node) =>
+        node.classList.contains('wheel__divider') &&
+        Math.abs(Number(node.getAttribute('x2'))) < 1e-6,
+    )
+    expect(atTwelve).toBeGreaterThan(lastFill)
+  })
+
   it('draws neither under the flat look', () => {
     const { container } = render(<Wheel segments={segments} theme={flat} />)
     expect(container.querySelector('.wheel__panel')).toBeNull()
