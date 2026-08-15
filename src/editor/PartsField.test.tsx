@@ -89,6 +89,22 @@ describe('PartsField', () => {
     expect(spy).toHaveBeenCalledWith([two[0], { ...two[1], orientation: 'taperedRadial' }])
   })
 
+  it('closes the gap when a filled slot is emptied', async () => {
+    const spy = vi.fn()
+    const two: SlicePart[] = [
+      ...onePart,
+      { content: { from: 'label' }, orientation: 'archedRim', band: [0.8, 0.94] },
+    ]
+    render(<Controlled initial={two} spy={spy} />)
+
+    await userEvent.selectOptions(screen.getAllByLabelText('Content')[0], '')
+
+    // The stored list is dense: a part's place on the wedge is its band, not its
+    // slot, so there is nothing for a hole to mean.
+    expect(spy).toHaveBeenCalledWith([two[1]])
+    expect(screen.getAllByLabelText('Orientation')).toHaveLength(1)
+  })
+
   it('keeps the band ordered when one edge is dragged past the other', () => {
     const spy = vi.fn()
     render(<Controlled initial={onePart} spy={spy} />)
