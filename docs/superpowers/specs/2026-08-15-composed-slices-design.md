@@ -83,6 +83,14 @@ what a wedge says, which is worse than small type. The existing content ladder �
 first name, initials — remains the author's tool for names that are too long to read,
 not something the fit applies on its own.
 
+**A run gives up its tracking, then its fan, before the floor pushes it out of its band.**
+At the floor the sizes stop answering the band, so the run keeps going past it — into the
+band of whatever part is next, which the rule above did not anticipate. The fan is the
+usual cause: it solves the innermost letters smallest, and every one the floor lifts is
+one the band did not budget for. So the two are given up in that order, cheapest first,
+and only a run that fits none of them overflows. Parts still do not negotiate for space;
+this only stops one from spilling into a neighbour it could have avoided.
+
 **Stretch is measured in wedge space, not glyph space.** A quarter-turned letter has
 swapped its axes, so the stretch applies to the other one and "the room" means its height
 rather than its advance. Backwards, the type smears along the radius instead of across
