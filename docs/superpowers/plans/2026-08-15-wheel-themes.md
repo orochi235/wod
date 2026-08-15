@@ -2488,6 +2488,33 @@ git commit -m "feat(editor): pick which look the wheel wears"
 
 ---
 
+## What the browser pass showed
+
+Picked "Wheel of Fortune" in the editor's Look panel, then spun the show page.
+No defect, and nothing in the console.
+
+Under the wof look the wheel draws a gold rim, a chrome peg on each of the five
+boundaries, a lit panel and a divider per wedge, a hub, a sheen, and the flapper;
+`--wheel-rim-fill` reaches the root as `url(#wheel-gold)`. The flat look adds
+none of them.
+
+The flapper rides the pegs. Over one spin it took 195 writes, 160 of them
+deflected, peaking at 21.8° against a 22° maximum, and the last ten decayed
+smoothly to rest as the wheel settled. At rest the arm sits at 0: the edge inset
+keeps a landing clear of the boundary pegs, which is also why a `bounds` peg can
+never trigger the catch — the inset is wider than the arm's reach on any arc
+worth landing in.
+
+The announced winner was the wedge under the pointer (pointer turn 0.924, fifth
+of five equal arcs, "Jeff Karrillo").
+
+Two things this pass could not settle: the click makes no audible sound to check
+here, and pegs following a growing roster was left to its unit test rather than
+driven through a live feed.
+
+Unrelated and pre-existing: curved labels on the lower half read upside down,
+which comes from `main` untouched.
+
 ## Notes for whoever executes this
 
 - **The catch is inside `planSpin`, not after it.** `planSpin` chooses a winner
