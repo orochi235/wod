@@ -811,6 +811,8 @@ Open `#/` in a second window, with the editor still open in the first. Delete a 
 
 This is the one the spec calls out and no assertion can reach. A curved label is a `<textPath>` on a path built from the presence arc, so a label fit for the full arc has more text than the path can hold once the wedge closes. Watch what an overflowing `textPath` actually does: clip at the end, or drop out entirely. Either is survivable at the opacity the wedge has by then — but if the label blinks off while the wedge is still clearly visible, that is a finding, and Step 6 is where it goes.
 
+Watch an **arrival** for the same thing, which is the worse direction: a wedge entering with `shrink` is fitted for its final width and drawn on a sliver, so the overflow is at its largest exactly when the wedge is becoming visible rather than leaving. Confirm the opacity ramp covers it.
+
 - [ ] **Step 5: Screenshot the result**
 
 Capture the wheel mid-departure and open the image so it lands on screen.
@@ -851,6 +853,67 @@ Expected: all clean, from `/Users/mike/src/wod-meet`.
 The worktree and the branch are the user's to keep or discard. Report that the merge has landed and let them choose.
 
 ---
+
+### Task 6b: One home for a rationale
+
+The merge put both branches' documentation in one call graph, so three prop/field
+pairs now say the same thing twice with nothing keeping them in sync. Rationale
+belongs on the prop, which is the public surface; the hook's field says what it
+produces.
+
+**Files:**
+- Modify: `src/wheel/useSpin.ts`
+
+- [ ] **Step 1: Cut the duplicated halves**
+
+In `src/wheel/useSpin.ts`, on the `UseSpinResult` type:
+
+- `layoutSegments` — `Wheel`'s `layoutFrom` prop carries the morph rationale. Leave one line here: `/** The roster layouts resolve against, which a morph holds still. */`
+- `levelRef` — the comment is verbatim on `Wheel`'s prop. Leave one line: `/** Registers a level group so a spin can counter-rotate it. */`
+- `held` — the four-line explanation belongs on `Wheel`'s prop, where it already is. Leave one line: `/** A landed frame is being held until the next spin. */`
+
+Do not touch the comments on `Wheel`'s props: they are the surviving copy.
+
+- [ ] **Step 2: Verify nothing else moved**
+
+Run: `npm test && npm run build && npx biome check .`
+Expected: all clean. This task changes only comments; a failure means something else was edited.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/wheel/useSpin.ts
+git commit -m "docs(wheel): keep each rationale on the surface that owns it"
+```
+
+---
+
+## Review findings folded in
+
+Task 1's code quality review raised seven items. Their dispositions, so a later
+reader does not re-litigate them:
+
+- **The `restingDeg` staleness** is Task 4, which the review reached
+  independently. It adds one detail the plan did not have: a wedge first mounts
+  on the frame its hold crosses zero, so with the presence angle it captures its
+  sliver angle rather than its resting one, and every neighbor's angle shifts as
+  the newcomer opens with no update either.
+- **An exiting wedge re-walking its ladder** is Task 3.
+- **A label fitted for one arc and drawn along another** is Task 7, extended to
+  cover arrivals as well as departures.
+- **Duplicated prop/field comments** are Task 6b.
+- **`index` and `count` come from the draw list while `arc` comes from the layout
+  roster.** Left as is. The review would source all three from the layout roster;
+  that needs a fallback for a departed wedge, which has no layout index, and no
+  registered layout reads either field. The pair being internally consistent —
+  an index always within its count — is the property worth keeping.
+- **`midDeg` is a third copy of one formula**, alongside `SliceElements`'s
+  rounded version and `tracks.ts`'s `angleOf`. Left as is: the three want
+  different things (DOM rounding, an `undefined` guard, neither), so a shared
+  helper would carry all three concerns. Worth revisiting if a fourth appears.
+- **`.wheel__stage`'s transform rules are inert.** Confirmed intentional. The
+  stage exists so a wheel-scope transform never fights the rotation, and the
+  wheel-scope transitions that will use it are the next plan's work.
 
 ## Notes for whoever executes this
 
