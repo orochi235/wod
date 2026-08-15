@@ -77,4 +77,27 @@ describe('SliceElements', () => {
     const container = draw([{ kind: 'glyphRun', glyphs: [] }])
     expect(container.querySelector('text')).toBeNull()
   })
+
+  // The size on the element was measured in that face; painting it in the
+  // class's family instead is a wrong size nothing at runtime would report.
+  it('paints an element in the face it was measured in', () => {
+    const container = draw([
+      {
+        kind: 'text',
+        text: 'Todd Bonzalez',
+        along: 'radial',
+        anchor: 0.6,
+        size: 16,
+        family: 'Rye',
+      },
+    ])
+    expect(container.querySelector('text')?.getAttribute('font-family')).toContain('Rye')
+  })
+
+  it('leaves the family to the stylesheet when the element names none', () => {
+    const container = draw([
+      { kind: 'text', text: 'Todd Bonzalez', along: 'radial', anchor: 0.6, size: 16 },
+    ])
+    expect(container.querySelector('text')?.getAttribute('font-family')).toBeNull()
+  })
 })

@@ -92,7 +92,7 @@ export function createFit(measure: Measure): (spec: FitSpec) => Placement | null
   return (spec) => {
     if (spec.text.length === 0) return null
 
-    const unit = measure(spec.text, 1)
+    const unit = measure(spec.text, 1, spec.family)
     if (!(unit > 0)) return null
 
     let size: number

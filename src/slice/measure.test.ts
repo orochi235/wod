@@ -33,6 +33,29 @@ describe('createMeasure', () => {
     vi.restoreAllMocks()
   })
 
+  it('measures the same string apart in two faces', () => {
+    const widths: Record<string, number> = { Anton: 300, Rye: 500 }
+    const context = {
+      font: '',
+      measureText: vi.fn(function measureText(this: { font: string }) {
+        const family = Object.keys(widths).find((name) => this.font.includes(name))
+        return { width: family ? widths[family] : 100 }
+      }),
+    }
+    // `this` has to be the context for the font string to be readable.
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      context as unknown as CanvasRenderingContext2D,
+    )
+
+    const measure = createMeasure()
+    expect(measure('Willie Dustice', 10, 'Anton')).toBeCloseTo(30)
+    expect(measure('Willie Dustice', 10, 'Rye')).toBeCloseTo(50)
+    expect(measure('Willie Dustice', 10, 'Anton')).toBeCloseTo(30)
+    expect(context.measureText).toHaveBeenCalledTimes(2)
+
+    vi.restoreAllMocks()
+  })
+
   it('survives a canvas that throws', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
       throw new Error('no canvas')

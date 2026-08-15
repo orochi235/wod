@@ -161,7 +161,12 @@ const spanOf = (sizes: number[], steps: number[]): number =>
   sizes.reduce((sum, size, i) => sum + size * steps[i], 0)
 
 /** `stacked` and `taperedRadial`: a run set along the radius. */
-export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string): Glyph[] {
+export function runAlongRadius(
+  part: SlicePart,
+  ctx: SliceContext,
+  text: string,
+  family?: string,
+): Glyph[] {
   const chars = [...text]
   const width = ctx.arc.end - ctx.arc.start
   const mid = ctx.arc.start + width / 2
@@ -170,7 +175,7 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
   const maxSize = part.maxSize ?? DEFAULT_MAX_SIZE
   const fanned = part.fan ?? true
   const length = (part.band[1] - part.band[0]) * ctx.radius
-  const advances = chars.map((char) => Math.max(ctx.measure(char, 1), MIN_ADVANCE))
+  const advances = chars.map((char) => Math.max(ctx.measure(char, 1, family), MIN_ADVANCE))
 
   // What already spans the wedge, per unit of size — the axis stretch works on.
   const across = chars.map((_, i) => (stacked ? advances[i] : GLYPH_EXTENT))
@@ -205,14 +210,19 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
 }
 
 /** `archedRim`: a baseline on an arc, so nothing narrows and nothing tapers. */
-export function runAlongArc(part: SlicePart, ctx: SliceContext, text: string): Glyph[] {
+export function runAlongArc(
+  part: SlicePart,
+  ctx: SliceContext,
+  text: string,
+  family?: string,
+): Glyph[] {
   const chars = [...text]
   const width = ctx.arc.end - ctx.arc.start
   const mid = ctx.arc.start + width / 2
   const [inner, outer] = part.band
   // The only radius used as a divisor: at zero, every coordinate becomes NaN.
   const baseline = Math.max(((inner + outer) / 2) * ctx.radius, 1)
-  const advances = chars.map((char) => Math.max(ctx.measure(char, 1), MIN_ADVANCE))
+  const advances = chars.map((char) => Math.max(ctx.measure(char, 1, family), MIN_ADVANCE))
 
   const run = arcLength(width, baseline) * ARC_FILL
   const thickness = ((outer - inner) * ctx.radius) / LINE_HEIGHT

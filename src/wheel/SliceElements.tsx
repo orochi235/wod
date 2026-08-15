@@ -1,3 +1,4 @@
+import { familyStack } from '../slice/measure'
 import type { SliceElement } from '../slice/types'
 import { concentricPath } from './geometry'
 
@@ -21,6 +22,9 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
     <>
       {elements.map((element, index) => {
         const key = `${id}-${index}`
+        // Every size on this element was measured in this face. Painting it in
+        // the class's family instead would be a silently wrong size.
+        const fontFamily = element.family ? familyStack(element.family) : undefined
 
         if (element.kind === 'raw') return <g key={key}>{element.node}</g>
 
@@ -39,7 +43,12 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
                 d={concentricPath(arc.start, arc.end, radius * element.anchor)}
                 fill="none"
               />
-              <text className="wheel__label" fontSize={element.size} textAnchor="middle">
+              <text
+                className="wheel__label"
+                fontFamily={fontFamily}
+                fontSize={element.size}
+                textAnchor="middle"
+              >
                 <textPath href={`#${pathId}`} startOffset="50%">
                   {element.text}
                 </textPath>
@@ -57,6 +66,7 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
                   // biome-ignore lint/suspicious/noArrayIndexKey: a glyph is its position.
                   key={`${key}-${glyphIndex}`}
                   className="wheel__label"
+                  fontFamily={fontFamily}
                   fontSize={glyph.size}
                   textAnchor="middle"
                   dominantBaseline="central"
@@ -88,6 +98,7 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
                 ) : (
                   <text
                     className="wheel__label"
+                    fontFamily={fontFamily}
                     fontSize={element.size}
                     textAnchor="middle"
                     dominantBaseline="middle"
@@ -121,6 +132,7 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
           <text
             key={key}
             className="wheel__label"
+            fontFamily={fontFamily}
             fontSize={element.size}
             textAnchor="middle"
             dominantBaseline="middle"

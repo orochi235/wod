@@ -1,4 +1,5 @@
 import type { Media } from '../wheel/types'
+import { resolveFamily } from './fonts/registry'
 import { runAlongArc, runAlongRadius } from './glyphRun'
 import { applyTransform } from './ladder'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
@@ -42,7 +43,7 @@ const isFitted = (part: SlicePart): part is FittedPart =>
   part.orientation === 'curved'
 
 /** The three orientations that predate parts, drawn exactly as they were. */
-function fitted(part: FittedPart, ctx: SliceContext, text: string): SliceElement[] {
+function fitted(part: FittedPart, ctx: SliceContext, text: string, family: string): SliceElement[] {
   const frame = part.frame ?? 'wheel'
   const [inner, outer] = part.band
   const placed = ctx.fit({
@@ -54,6 +55,7 @@ function fitted(part: FittedPart, ctx: SliceContext, text: string): SliceElement
     anchor: (inner + outer) / 2,
     maxSize: part.maxSize ?? DEFAULT_MAX_SIZE,
     minSize: MIN_SIZE,
+    family,
   })
   if (!placed) return []
 
@@ -61,7 +63,14 @@ function fitted(part: FittedPart, ctx: SliceContext, text: string): SliceElement
   // honor and always lays out as a straight line.
   if (frame === 'wheel' && part.orientation === 'curved') {
     return [
-      { kind: 'curvedText', text: placed.text, anchor: placed.anchor, size: placed.size, frame },
+      {
+        kind: 'curvedText',
+        text: placed.text,
+        anchor: placed.anchor,
+        size: placed.size,
+        frame,
+        family,
+      },
     ]
   }
   return [
@@ -72,6 +81,7 @@ function fitted(part: FittedPart, ctx: SliceContext, text: string): SliceElement
       anchor: placed.anchor,
       size: placed.size,
       frame,
+      family,
     },
   ]
 }
@@ -95,8 +105,9 @@ export function typeset(part: SlicePart, ctx: SliceContext): SliceElement[] {
 
   const text = part.caps ? resolved.text.toUpperCase() : resolved.text
   if (text.length === 0) return []
-  if (isFitted(part)) return fitted(part, ctx, text)
+  const family = resolveFamily(part.font, ctx.font)
+  if (isFitted(part)) return fitted(part, ctx, text, family)
   const run = part.orientation === 'archedRim' ? runAlongArc : runAlongRadius
-  const glyphs = run(part, ctx, text)
-  return glyphs.length > 0 ? [{ kind: 'glyphRun', glyphs }] : []
+  const glyphs = run(part, ctx, text, family)
+  return glyphs.length > 0 ? [{ kind: 'glyphRun', glyphs, family }] : []
 }

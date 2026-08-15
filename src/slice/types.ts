@@ -23,8 +23,12 @@ export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'compo
 
 export type SliceParams = Record<string, unknown>
 
-/** Advance width of `text` at `size`, in user units. Linear in `size`. */
-export type Measure = (text: string, size: number) => number
+/**
+ * Advance width of `text` at `size`, in user units. Linear in `size`. The family
+ * is a CSS family name, not a registry id: the measurer measures what the face
+ * paints, and a part in one face measures nothing like the same string in another.
+ */
+export type Measure = (text: string, size: number, family?: string) => number
 
 export type FitSpec = {
   text: string
@@ -37,6 +41,8 @@ export type FitSpec = {
   anchor: number
   maxSize: number
   minSize: number
+  /** The CSS family the text is set in. Absent measures the default face. */
+  family?: string
 }
 
 export type Placement = {
@@ -73,8 +79,11 @@ type Drawn =
  * `frame` overrides the layout's own, so a portrait can ride while its caption
  * stays level. A level element must be centered on its own origin: the
  * counter-rotation resolves its origin from the element's bounding box.
+ *
+ * `family` is a CSS family, already resolved, and painting an element in
+ * anything else mis-sizes it: every size on it was measured in that face.
  */
-export type SliceElement = Drawn & { frame?: Frame }
+export type SliceElement = Drawn & { frame?: Frame; family?: string }
 
 export type SliceContext = {
   segment: Segment
@@ -85,6 +94,8 @@ export type SliceContext = {
   count: number
   measure: Measure
   fit: (spec: FitSpec) => Placement | null
+  /** The look's default face. A part's own `font` overrides it. */
+  font?: FontId
 }
 
 export type SliceLayout = {
@@ -102,9 +113,8 @@ export type SliceInstance = { id: SliceLayoutId; params: SliceParams }
 
 /**
  * A validated string, never a union: a couple of dozen ids in a union type is a
- * merge conflict waiting to happen, and an unknown id resolves to a default
- * rather than failing to compile. The registry that validates it is a later
- * plan's; nothing reads this field yet.
+ * merge conflict waiting to happen, and an unknown id resolves to the default
+ * face rather than failing to compile. `slice/fonts/registry.ts` validates it.
  */
 export type FontId = string
 
@@ -131,7 +141,7 @@ export type SlicePart = {
   caps?: boolean
   /** How the run is drawn. Default 'glyphs'. Only 'glyphs' is implemented. */
   shape?: 'glyphs' | 'outline'
-  /** A registry id. Absent means the theme's default face. Not yet read. */
+  /** A registry id. Absent means the theme's default face. */
   font?: FontId
   maxSize?: number
   frame?: Frame
