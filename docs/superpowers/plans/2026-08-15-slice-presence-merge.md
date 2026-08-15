@@ -844,6 +844,25 @@ Capture the wheel mid-departure and open the image so it lands on screen.
 
 If Steps 3-4 revealed a defect, fix it with a test first, then commit. If they did not, there is nothing to commit.
 
+**What the pass found.** No defect. Six curved wedges, one leaving over four seconds:
+the label held size 26 for the whole exit while its arc closed 60° → 0.2°, never
+re-fitted, never flipped orientation, and its `textPath` travelled with the wedge
+(its start point walked 121,70 → 82,113). The text was still in the DOM at
+opacity 0.003, so nothing blinks off at the drop.
+
+The overflow is real and degrades gracefully. A label fitted for 60° needs 78% of
+its path at rest, 107% at opacity 0.69, 120% at 0.61, and 321% at 0.21. An
+overflowing `<textPath>` drops the glyphs that fall off each end rather than
+vanishing whole: at 321% "Calbrook" renders as "albro", centred and faint. The
+worst of it sits below opacity 0.7, and the erosion is symmetric, so it reads as
+a label fading in rather than as a broken one. Fixing it would mean fitting
+against the presence arc — the popping this design exists to prevent — so it
+stays.
+
+Unrelated and pre-existing: curved labels on the lower half of the wheel read
+upside down, because a concentric path there runs right to left. It comes from
+`main` untouched and is not this merge's to fix.
+
 ---
 
 ### Task 8: Land it on main
