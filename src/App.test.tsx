@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
@@ -8,14 +8,24 @@ import { PRESET_KEY } from './preset/storage'
 import type { Reveal, Segment } from './wheel/types'
 
 /**
- * Rendered wedge labels with any ellipsis stripped. A name that outruns its arc
- * is drawn truncated, so an exact match against the roster is a coin flip on
- * whichever names the default preset happened to draw.
+ * What each wedge spells, with any ellipsis stripped. Two reasons this is not a
+ * text query: the default layout sets a name glyph by glyph, so no single node
+ * carries the word, and a name that outruns its arc is drawn truncated — an
+ * exact match against the roster would be a coin flip on the names drawn.
  */
 const wheelLabels = (container: HTMLElement): string[] =>
-  [...container.querySelectorAll('.wheel__label')].map((node) =>
+  [...container.querySelectorAll('.wheel__wedge')].map((node) =>
     (node.textContent ?? '').replace(/…$/, ''),
   )
+
+/** Letters only: the default layout splits a name across parts and capitalises one. */
+const letters = (text: string): string => text.replace(/\s+/g, '').toUpperCase()
+
+/** Whether the wheel is drawing a wedge that spells `label`. */
+const wheelHas = (label: string): boolean =>
+  wheelLabels(screen.getByRole('img', { name: 'wheel' }) as unknown as HTMLElement)
+    .map(letters)
+    .includes(letters(label))
 
 describe('App', () => {
   beforeEach(() => {
@@ -27,7 +37,8 @@ describe('App', () => {
     const drawn = wheelLabels(container)
     expect(drawn).toHaveLength(DEFAULT_PRESET.segments.length)
     DEFAULT_PRESET.segments.forEach((segment, index) => {
-      expect(segment.label.startsWith(drawn[index])).toBe(true)
+      // A prefix, not an equality: a name that outruns its arc is drawn cut.
+      expect(letters(segment.label).startsWith(letters(drawn[index]))).toBe(true)
     })
   })
 
@@ -60,10 +71,10 @@ describe('App', () => {
 
     render(<App />)
 
-    expect(screen.getByText('Zebediah')).toBeInTheDocument()
-    expect(screen.getByText('Quorra')).toBeInTheDocument()
+    expect(wheelHas('Zebediah')).toBe(true)
+    expect(wheelHas('Quorra')).toBe(true)
     for (const segment of DEFAULT_PRESET.segments) {
-      expect(screen.queryByText(segment.label)).not.toBeInTheDocument()
+      expect(wheelHas(segment.label)).toBe(false)
     }
   })
 
@@ -109,7 +120,7 @@ describe('App', () => {
     // an already-open show window learns about an edit without a reload.
     const { container } = render(<App />)
     const [first] = DEFAULT_PRESET.segments
-    expect(first.label.startsWith(wheelLabels(container)[0])).toBe(true)
+    expect(letters(first.label).startsWith(letters(wheelLabels(container)[0]))).toBe(true)
 
     const edited = {
       ...DEFAULT_PRESET,
@@ -121,8 +132,8 @@ describe('App', () => {
       )
     })
 
-    expect(screen.getByText('Wilhelmina')).toBeInTheDocument()
-    expect(screen.queryByText(first.label)).not.toBeInTheDocument()
+    expect(wheelHas('Wilhelmina')).toBe(true)
+    expect(wheelHas(first.label)).toBe(false)
   })
 })
 
@@ -263,8 +274,7 @@ describe('App spin', () => {
 
       // And the wheel agrees: the announcement and the wheel are drawn from
       // the same landed frame, so the traded name sits on the wheel too.
-      const wheel = screen.getByRole('img', { name: 'wheel' })
-      expect(within(wheel).getByText(announced as string)).toBeInTheDocument()
+      expect(wheelHas(announced as string)).toBe(true)
     } finally {
       harness.restore()
       vi.restoreAllMocks()
@@ -323,17 +333,17 @@ describe('feed', () => {
 
     await publish([{ id: 'zoe', label: 'Zoe' }])
 
-    await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
+    await waitFor(() => expect(wheelHas('Zoe')).toBe(true))
   })
 
   it('drops someone who leaves', async () => {
     render(<App />)
 
     await publish([{ id: 'zoe', label: 'Zoe' }])
-    await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
+    await waitFor(() => expect(wheelHas('Zoe')).toBe(true))
 
     await publish([])
-    await waitFor(() => expect(screen.queryByText('Zoe')).not.toBeInTheDocument())
+    await waitFor(() => expect(wheelHas('Zoe')).toBe(false))
   })
 
   it('asks for a roster on arrival instead of waiting for the next change', async () => {
@@ -349,7 +359,7 @@ describe('feed', () => {
         await new Promise((resolve) => setTimeout(resolve, 0))
       })
 
-      await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
+      await waitFor(() => expect(wheelHas('Zoe')).toBe(true))
     } finally {
       stop()
     }
@@ -370,17 +380,17 @@ describe('feed', () => {
       render(<App />)
 
       await publish([{ id: 'zoe', label: 'Zoe' }])
-      await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
+      await waitFor(() => expect(wheelHas('Zoe')).toBe(true))
 
       await publish([])
       // Still drawn: the shrink has barely started. Without this the test would
       // pass for the trivial reason that she was already gone.
-      expect(screen.getByText('Zoe')).toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(true)
 
       await userEvent.click(screen.getByRole('button', { name: /spin/i }))
 
       // Settled to the roster the spin planned against, mid-departure or not.
-      expect(screen.queryByText('Zoe')).not.toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(false)
     } finally {
       harness.restore()
     }
@@ -428,10 +438,6 @@ describe('churn during a spin', () => {
     window.localStorage.clear()
   })
 
-  /** Labels the wheel is actually drawing, ignoring the announced-winner line. */
-  const onWheel = (label: string) =>
-    within(screen.getByRole('img', { name: 'wheel' })).queryByText(label)
-
   it('holds a roster change that arrives mid-spin until the next spin releases it', async () => {
     // A feed-only preset, deliberately: the empty state is the one thing derived
     // from the live roster that stays visible while the wheel holds its
@@ -453,7 +459,7 @@ describe('churn during a spin', () => {
       render(<App />)
 
       await publish([{ id: 'zoe', label: 'Zoe' }])
-      await waitFor(() => expect(onWheel('Zoe')).toBeInTheDocument())
+      await waitFor(() => expect(wheelHas('Zoe')).toBe(true))
 
       await userEvent.click(screen.getByRole('button', { name: /spin/i }))
       expect(harness.calls.animate).toBe(1)
@@ -465,7 +471,7 @@ describe('churn during a spin', () => {
       expect(screen.getByText(/nothing on the wheel yet/i)).toBeInTheDocument()
       // …while the wheel keeps the geometry it launched with, on the same
       // animation — no reindex under the pointer, no restart.
-      expect(onWheel('Zoe')).toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(true)
       expect(harness.calls.animate).toBe(1)
       expect(harness.calls.cancel).toBe(0)
 
@@ -473,7 +479,7 @@ describe('churn during a spin', () => {
 
       // Still held at rest. The hold lifts on the next spin, not on landing:
       // releasing here would wipe the landed frame the spin just drew.
-      expect(onWheel('Zoe')).toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(true)
       expect(harness.calls.animate).toBe(1)
       expect(harness.calls.cancel).toBe(0)
       // Nothing left to spin, so the button that would release it is off — the
@@ -482,15 +488,15 @@ describe('churn during a spin', () => {
 
       // Someone new joins, which re-arms the button. The wheel is still held.
       await publish([{ id: 'yan', label: 'Yan' }])
-      expect(onWheel('Zoe')).toBeInTheDocument()
-      expect(onWheel('Yan')).not.toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(true)
+      expect(wheelHas('Yan')).toBe(false)
 
       await userEvent.click(screen.getByRole('button', { name: /spin/i }))
 
       // The next spin draws from the live roster, so every change that landed
       // while the wheel was held was queued rather than dropped.
-      expect(onWheel('Yan')).toBeInTheDocument()
-      expect(onWheel('Zoe')).not.toBeInTheDocument()
+      expect(wheelHas('Yan')).toBe(true)
+      expect(wheelHas('Zoe')).toBe(false)
       expect(harness.calls.animate).toBe(2)
     } finally {
       harness.restore()
@@ -562,9 +568,6 @@ describe('App landed wheel', () => {
     window.localStorage.clear()
   })
 
-  const onWheel = (label: string) =>
-    within(screen.getByRole('img', { name: 'wheel' })).queryByText(label)
-
   /** A wheel whose only static wedge is the guaranteed winner. */
   const seedWinner = (reveal?: Reveal) => {
     const segment: Segment = { id: 'solo', label: 'Solo', weight: 1 }
@@ -592,11 +595,11 @@ describe('App landed wheel', () => {
 
       await publish([{ id: 'zoe', label: 'Zoe' }])
       // Held: the frame the spin drew outlives a roster that arrived under it.
-      expect(onWheel('Zoe')).not.toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(false)
 
       await userEvent.click(screen.getByRole('button', { name: /reset/i }))
 
-      expect(onWheel('Zoe')).toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(true)
       expect(container.querySelector('.app__result')).toHaveTextContent('')
       expect(screen.getByRole('button', { name: /reset/i })).toBeDisabled()
     } finally {
@@ -613,13 +616,13 @@ describe('App landed wheel', () => {
       await harness.land()
 
       await publish([{ id: 'zoe', label: 'Zoe' }])
-      expect(onWheel('Zoe')).not.toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(false)
 
       await userEvent.click(screen.getByRole('dialog'))
 
       // Dismissing is the operator saying the landing has been seen, so the
       // wheel goes back to tracking the room without waiting for a spin.
-      expect(onWheel('Zoe')).toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(true)
     } finally {
       harness.restore()
     }
@@ -655,7 +658,7 @@ describe('App landed wheel', () => {
       // No reveal means no dismissal, so nothing has said the landing is over.
       // Releasing on landing instead would wipe the landed frame the instant a
       // roster change that arrived mid-spin was applied.
-      expect(onWheel('Zoe')).not.toBeInTheDocument()
+      expect(wheelHas('Zoe')).toBe(false)
     } finally {
       harness.restore()
     }

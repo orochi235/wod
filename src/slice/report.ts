@@ -14,6 +14,8 @@ export type FitRow = {
   degraded: boolean
 }
 
+const letters = (text: string): string => text.replace(/\s+/g, '').toUpperCase()
+
 /** What each wedge resolves to, for an operator to read before the wheel is on a screen. */
 export function fitReport(
   segments: Segment[],
@@ -54,14 +56,18 @@ export function fitReport(
       }
       return []
     })
-    const text = spelled[0]
+    // Every part, not the first: a composition can split a name across two, and
+    // reporting one of them would read as a wedge that shortened it.
+    const drawn = spelled.length > 0 ? spelled.map((entry) => entry.text).join(' ') : null
 
     return {
       id: segment.id,
       label: segment.label,
-      drawn: text?.text ?? null,
-      size: text?.size ?? null,
-      degraded: text === undefined || text.text !== segment.label,
+      drawn,
+      size: spelled[0]?.size ?? null,
+      // Letters, not spelling: a part may set its share in capitals, and where
+      // the composition broke the name is not the operator's problem.
+      degraded: drawn === null || letters(drawn) !== letters(segment.label),
     }
   })
 }

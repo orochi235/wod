@@ -46,6 +46,12 @@ export function applyTransform(content: ContentTransform, text: string): string 
   switch (content) {
     case 'firstName':
       return text.split(/\s+/)[0] ?? text
+    // Nothing, not the whole word, for a one-word label: a composition pairing
+    // this with firstName would otherwise set the same word twice.
+    case 'lastName': {
+      const words = text.split(/\s+/).filter((word) => word !== '')
+      return words.length > 1 ? words[words.length - 1] : ''
+    }
     case 'initials':
       return text
         .split(/\s+/)

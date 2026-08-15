@@ -16,6 +16,20 @@ const JOINABLE = SIM.kind === 'simulated' ? SIM.pool[0] : ''
 const JOINABLE_ID = slugify(JOINABLE)
 
 /**
+ * What each wedge spells. The default layout sets a name glyph by glyph, so no
+ * single node carries the word and only the wedge's own text content has it.
+ */
+const wheelLabels = (): string[] =>
+  [...screen.getByRole('img', { name: 'wheel' }).querySelectorAll('.wheel__wedge')].map((node) =>
+    (node.textContent ?? '').replace(/…$/, ''),
+  )
+
+/** Letters only: the default layout splits a name across parts and capitalises one. */
+const letters = (text: string): string => text.replace(/\s+/g, '').toUpperCase()
+
+const wheelHas = (label: string): boolean => wheelLabels().map(letters).includes(letters(label))
+
+/**
  * The editor ships locked, so every test about the rigging has to say it is the
  * operator looking. `Editor locked` is the one that does not.
  */
@@ -344,9 +358,8 @@ describe('Editor spin', () => {
       // A full-share takeover drives every other wedge to zero, so the landed
       // wheel carries exactly one label. Falling back to the scrub position
       // instead would put the five names back the instant the spin ended.
-      const wheel = screen.getByRole('img', { name: 'wheel' })
-      expect(within(wheel).getByText('free beer')).toBeInTheDocument()
-      expect(within(wheel).queryByText(FIRST.label)).not.toBeInTheDocument()
+      expect(wheelHas('free beer')).toBe(true)
+      expect(wheelHas(FIRST.label)).toBe(false)
     } finally {
       harness.restore()
     }
@@ -379,12 +392,9 @@ describe('Editor spin', () => {
       // Ana (first wedge, the pinned winner) now carries Ben's name, and
       // Ben's own wedge (second) carries Ana's — the landed frame carries
       // the trade both ways.
-      const wheel = screen.getByRole('img', { name: 'wheel' })
-      const labels = [...wheel.querySelectorAll('.wheel__label')].map((node) =>
-        (node.textContent ?? '').replace(/…$/, ''),
-      )
-      expect(SECOND.label.startsWith(labels[0])).toBe(true)
-      expect(FIRST.label.startsWith(labels[1])).toBe(true)
+      const labels = wheelLabels().map(letters)
+      expect(letters(SECOND.label).startsWith(labels[0])).toBe(true)
+      expect(letters(FIRST.label).startsWith(labels[1])).toBe(true)
     } finally {
       harness.restore()
       vi.restoreAllMocks()
@@ -470,12 +480,12 @@ describe('Editor preview', () => {
     await userEvent.selectOptions(screen.getByLabelText('Wedges leaving'), 'shrink')
 
     await userEvent.click(screen.getByRole('button', { name: `Join ${JOINABLE}` }))
-    expect(within(wheel()).getByText(JOINABLE)).toBeInTheDocument()
+    expect(wheelHas(JOINABLE)).toBe(true)
 
     await userEvent.click(screen.getByRole('button', { name: `Remove ${JOINABLE}` }))
 
     // The shrink has barely started, so an editor that armed it still draws her.
-    expect(within(wheel()).getByText(JOINABLE)).toBeInTheDocument()
+    expect(wheelHas(JOINABLE)).toBe(true)
   })
 
   it('holds a level frame level while the preview spins', async () => {
@@ -571,9 +581,8 @@ describe('Editor locked', () => {
       // The whole constraint: the flag is cosmetic. A full-share takeover
       // leaves one label on the landed wheel whether or not anyone can see
       // the panel that authored it.
-      const wheel = screen.getByRole('img', { name: 'wheel' })
-      expect(within(wheel).getByText('free beer')).toBeInTheDocument()
-      expect(within(wheel).queryByText(FIRST.label)).not.toBeInTheDocument()
+      expect(wheelHas('free beer')).toBe(true)
+      expect(wheelHas(FIRST.label)).toBe(false)
     } finally {
       harness.restore()
     }

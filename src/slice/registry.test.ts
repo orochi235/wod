@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readParts } from './parts'
 import { DEFAULT_SLICE, SLICE_LIST, getSlice, resolveInstance } from './registry'
 
 describe('getSlice', () => {
@@ -50,8 +51,27 @@ describe('resolveInstance', () => {
     expect(resolveInstance(segment, { id: 'curved', params: {} }).id).toBe('curved')
   })
 
-  it('falls back to auto when nothing is configured', () => {
+  it('falls back to the built-in when nothing is configured', () => {
     const segment = { id: 'a', label: 'Mike Truk', weight: 1 }
     expect(resolveInstance(segment, undefined)).toEqual(DEFAULT_SLICE)
+  })
+
+  it('sets a wedge with nothing configured as a name plate', () => {
+    expect(DEFAULT_SLICE.id).toBe('composed')
+    const [given, surname] = readParts(DEFAULT_SLICE.params.parts)
+    expect(given).toMatchObject({
+      orientation: 'archedRim',
+      content: { from: 'label', transform: 'firstName' },
+    })
+    expect(surname).toMatchObject({
+      orientation: 'stacked',
+      caps: true,
+      content: { from: 'label', transform: 'lastName' },
+    })
+  })
+
+  it('keeps the two parts off each other, surname inside the given name', () => {
+    const [given, surname] = readParts(DEFAULT_SLICE.params.parts)
+    expect(surname.band[1]).toBeLessThan(given.band[0])
   })
 })

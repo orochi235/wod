@@ -46,9 +46,13 @@ describe('the flat look', () => {
 
 describe('the wof look', () => {
   it('turns on the machinery that makes it read as a wheel', () => {
-    for (const part of ['rim', 'peg', 'flapper', 'hub', 'panel'] as const) {
+    for (const part of ['rim', 'peg', 'flapper', 'hub'] as const) {
       expect(partOn(wof, part)).toBe(true)
     }
+  })
+
+  it('leaves the wedge panel off, so a wedge is its own color', () => {
+    expect(partOn(wof, 'panel')).toBe(false)
   })
 
   it('puts its pegs on the wedge boundaries', () => {

@@ -93,9 +93,10 @@ export function typeset(part: SlicePart, ctx: SliceContext): SliceElement[] {
     ]
   }
 
-  if (resolved.text.length === 0) return []
-  if (isFitted(part)) return fitted(part, ctx, resolved.text)
+  const text = part.caps ? resolved.text.toUpperCase() : resolved.text
+  if (text.length === 0) return []
+  if (isFitted(part)) return fitted(part, ctx, text)
   const run = part.orientation === 'archedRim' ? runAlongArc : runAlongRadius
-  const glyphs = run(part, ctx, resolved.text)
+  const glyphs = run(part, ctx, text)
   return glyphs.length > 0 ? [{ kind: 'glyphRun', glyphs }] : []
 }

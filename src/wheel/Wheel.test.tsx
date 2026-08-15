@@ -64,6 +64,16 @@ const opening = {
 const labelSize = (container: HTMLElement, id: string) =>
   container.querySelector(`[data-segment-id="${id}"] text.wheel__label`)?.getAttribute('font-size')
 
+/**
+ * What each wedge spells. The default layout sets a name glyph by glyph, so no
+ * single node carries the word and only the wedge's own text content has it.
+ */
+const spelled = (container: HTMLElement): string[] =>
+  [...container.querySelectorAll('.wheel__wedge')].map((node) => node.textContent ?? '')
+
+/** The layout that fits one run through `ctx.fit`, which the sizes below are of. */
+const AUTO: SliceInstance = { id: 'auto', params: {} }
+
 describe('Wheel', () => {
   it('renders one path per weighted segment', () => {
     const { container } = render(<Wheel segments={segments} />)
@@ -71,9 +81,8 @@ describe('Wheel', () => {
   })
 
   it('renders segment labels', () => {
-    render(<Wheel segments={segments} />)
-    expect(screen.getByText('Ana')).toBeInTheDocument()
-    expect(screen.getByText('Ben')).toBeInTheDocument()
+    const { container } = render(<Wheel segments={segments} />)
+    expect(spelled(container)).toEqual(['Ana', 'Ben'])
   })
 
   it('applies segment color as a fill attribute rather than an inline style', () => {
@@ -132,7 +141,8 @@ describe('Wheel', () => {
     const { container } = render(
       <Wheel segments={[{ id: 'a', label: 'Willie Dustice', weight: 1 }]} />,
     )
-    expect(container.textContent).toContain('Willie Dustice')
+    // The name plate splits the label and capitalises the surname.
+    expect(container.textContent).toContain('WillieDUSTICE')
   })
 
   it('honors a per-segment layout override', () => {
@@ -156,7 +166,7 @@ describe('Wheel', () => {
       { id: 'b', label: 'Shown Furcotte', weight: 1 },
     ]
     const { container } = render(<Wheel segments={drawn} layoutFrom={settled} />)
-    expect(container.textContent).toContain('Scott Dourque')
+    expect(container.textContent).toContain('ScottDOURQUE')
   })
 
   it('tags each wedge with its segment id, so a transition can find it', () => {
@@ -186,7 +196,11 @@ describe('Wheel', () => {
       // arc (0.5/5.5 of it, halfway through a shrink, fitting at 10.29)
       // disagree, and neither is near the size cap that would hide the gap.
       const { container, rerender } = render(
-        <Wheel segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])} transitions={opening} />,
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
+          transitions={opening}
+          slice={AUTO}
+        />,
       )
       clock.advance(1000)
 
@@ -194,6 +208,7 @@ describe('Wheel', () => {
         <Wheel
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
+          slice={AUTO}
         />,
       )
       clock.advance(200)
@@ -212,13 +227,18 @@ describe('Wheel', () => {
         <Wheel
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
+          slice={AUTO}
         />,
       )
       clock.advance(1000)
       expect(labelSize(container, 'cal')).toBe('18.88')
 
       rerender(
-        <Wheel segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])} transitions={opening} />,
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
+          transitions={opening}
+          slice={AUTO}
+        />,
       )
       clock.advance(200)
 
@@ -344,11 +364,16 @@ describe('parts', () => {
     expect(container.querySelectorAll('.wheel__peg')).toHaveLength(8)
   })
 
-  it('draws a panel and a divider inside each wedge', () => {
+  it('draws a divider inside each wedge', () => {
     const { container } = render(<Wheel segments={segments} theme={wof} />)
     const wedge = container.querySelector('.wheel__wedge')
-    expect(wedge?.querySelector('.wheel__panel')).not.toBeNull()
     expect(wedge?.querySelector('.wheel__divider')).not.toBeNull()
+  })
+
+  it('draws a panel for a look that asks for one', () => {
+    const panelled = { ...wof, parts: { ...wof.parts, panel: true } }
+    const { container } = render(<Wheel segments={segments} theme={panelled} />)
+    expect(container.querySelector('.wheel__panel')).not.toBeNull()
   })
 
   it('strokes every seam after both of the wedges it separates', () => {

@@ -17,7 +17,7 @@ export type Orientation =
   | 'taperedRadial'
   | 'archedRim'
 
-export type ContentTransform = 'full' | 'firstName' | 'initials' | 'ellipsis'
+export type ContentTransform = 'full' | 'firstName' | 'lastName' | 'initials' | 'ellipsis'
 
 export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed'
 
@@ -127,6 +127,8 @@ export type SlicePart = {
   stretch?: 'none' | 'fill' | number
   /** How a glyph the chord cannot hold gives way. Default 'proportional'. */
   shrink?: 'proportional' | 'condense'
+  /** Set the resolved content in capitals, whatever case it arrived in. */
+  caps?: boolean
   /** How the run is drawn. Default 'glyphs'. Only 'glyphs' is implemented. */
   shape?: 'glyphs' | 'outline'
   /** A registry id. Absent means the theme's default face. Not yet read. */

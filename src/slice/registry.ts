@@ -16,7 +16,34 @@ export const SLICE_LAYOUTS: Record<SliceLayoutId, SliceLayout> = {
 
 export const SLICE_LIST: SliceLayout[] = [auto, composed, curved, tangential, radial]
 
-export const DEFAULT_SLICE: SliceInstance = { id: 'auto', params: { ...auto.defaults } }
+/**
+ * The name plate: given name on an arc inside the rim, surname in capitals down
+ * the wedge. Two parts rather than one run, because a full name set either way
+ * alone is bad at the size a roster needs — horizontal it is bounded by the
+ * chord, stacked it solves below the floor and overruns its band.
+ */
+export const DEFAULT_SLICE: SliceInstance = {
+  id: 'composed',
+  params: {
+    parts: [
+      // Capped, or the arc's room makes the given name the loudest thing on the
+      // wedge — the surname is the one being called out.
+      {
+        content: { from: 'label', transform: 'firstName' },
+        orientation: 'archedRim',
+        band: [0.82, 0.95],
+        maxSize: 22,
+      },
+      {
+        content: { from: 'label', transform: 'lastName' },
+        orientation: 'stacked',
+        band: [0.2, 0.78],
+        caps: true,
+        stretch: 'fill',
+      },
+    ],
+  },
+}
 
 /**
  * Returns null rather than throwing, matching getTransition: ids come out of

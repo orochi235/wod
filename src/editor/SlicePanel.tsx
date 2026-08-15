@@ -34,7 +34,7 @@ export function SlicePanel({ slice, onChange }: SlicePanelProps) {
         label="Layout"
         value={layout?.id ?? NONE}
         options={[
-          { value: NONE, label: 'Auto (default)' },
+          { value: NONE, label: 'Name plate (default)' },
           ...SLICE_LIST.map((item) => ({ value: item.id, label: item.name })),
         ]}
         onChange={choose}

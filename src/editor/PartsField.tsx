@@ -39,6 +39,7 @@ const ORIENTATIONS: { value: Orientation; label: string }[] = [
 const TRANSFORMS: { value: ContentTransform; label: string }[] = [
   { value: 'full', label: 'Not at all' },
   { value: 'firstName', label: 'First name' },
+  { value: 'lastName', label: 'Last name' },
   { value: 'initials', label: 'Initials' },
   { value: 'ellipsis', label: 'Cut with an ellipsis' },
 ]
@@ -171,6 +172,11 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 label="Grow toward the rim"
                 value={part.fan ?? true}
                 onChange={(next) => edit(index, { fan: next })}
+              />
+              <CheckboxRow
+                label="All caps"
+                value={part.caps ?? false}
+                onChange={(next) => edit(index, { caps: next })}
               />
               <SelectRow
                 label="Stretch"

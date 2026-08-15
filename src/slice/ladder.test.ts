@@ -24,6 +24,17 @@ describe('applyTransform', () => {
     expect(applyTransform('firstName', 'Sleve McDichael')).toBe('Sleve')
   })
 
+  it('takes the last word for lastName', () => {
+    expect(applyTransform('lastName', 'Sleve McDichael')).toBe('McDichael')
+    expect(applyTransform('lastName', 'Mario Van Peebles')).toBe('Peebles')
+  })
+
+  it('gives lastName nothing to set when a label is one word', () => {
+    // Paired with firstName across two parts, a one-word label would otherwise
+    // be drawn twice on the same wedge.
+    expect(applyTransform('lastName', 'Dave')).toBe('')
+  })
+
   it('takes one letter per word for initials', () => {
     expect(applyTransform('initials', 'Bobson Dugnutt')).toBe('BD')
   })

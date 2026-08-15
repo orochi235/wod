@@ -24,7 +24,7 @@ const ORIENTATIONS: Orientation[] = [
   'archedRim',
 ]
 
-const TRANSFORMS: ContentTransform[] = ['full', 'firstName', 'initials', 'ellipsis']
+const TRANSFORMS: ContentTransform[] = ['full', 'firstName', 'lastName', 'initials', 'ellipsis']
 
 const DERIVED = ['weight', 'index', 'position'] as const
 
@@ -81,6 +81,7 @@ function readPart(value: unknown): SlicePart | null {
     part.direction = value.direction
   }
   if (typeof value.fan === 'boolean') part.fan = value.fan
+  if (typeof value.caps === 'boolean') part.caps = value.caps
   const stretch = readStretch(value.stretch)
   if (stretch !== undefined) part.stretch = stretch
   if (value.shrink === 'proportional' || value.shrink === 'condense') part.shrink = value.shrink

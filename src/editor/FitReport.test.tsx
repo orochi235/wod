@@ -18,8 +18,11 @@ describe('FitReport', () => {
         measure={measure}
       />,
     )
-    expect(screen.getAllByText('Sleve McDichael')).toHaveLength(2)
-    expect(screen.getAllByText('Onson Sweemey')).toHaveLength(2)
+    // Twice each: the roster label, and what the wedge draws it as.
+    expect(screen.getByText('Sleve McDichael')).toBeInTheDocument()
+    expect(screen.getByText('Sleve MCDICHAEL')).toBeInTheDocument()
+    expect(screen.getByText('Onson Sweemey')).toBeInTheDocument()
+    expect(screen.getByText('Onson SWEEMEY')).toBeInTheDocument()
   })
 
   it('says so when a wedge draws no label', () => {
@@ -29,7 +32,8 @@ describe('FitReport', () => {
           { id: 'a', label: 'Raul Chamgerlain', weight: 0.00001 },
           { id: 'b', label: 'Kevin Nogilny', weight: 100 },
         ]}
-        slice={undefined}
+        // Giving up on a label is `auto`'s, not the built-in default's.
+        slice={{ id: 'auto', params: {} }}
         measure={measure}
       />,
     )

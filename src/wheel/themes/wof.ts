@@ -14,7 +14,7 @@ export const wof: Theme = {
     rim: true,
     face: true,
     divider: true,
-    panel: true,
+    panel: false,
     'inner-shadow': true,
     sheen: true,
     peg: true,
