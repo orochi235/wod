@@ -53,7 +53,7 @@ export type BranchNode = {
 }
 
 export type Preset = {
-  version: 4
+  version: 5
   name: string
   /** Statics. Feed items and trick wedges join these at compose time. */
   segments: Segment[]
@@ -67,4 +67,6 @@ export type Preset = {
   transitions?: Transitions
   /** The wheel's default slice layout. Absent means the built-in `auto`. */
   slice?: SliceInstance
+  /** Absent means the flat look, which is what the wheel drew before themes. */
+  theme?: string
 }

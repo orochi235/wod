@@ -121,7 +121,7 @@ describe('parsePreset', () => {
     expect(parsed.segments[0].weight).toBe(0)
   })
 
-  it('migrates a v1 preset to v4', () => {
+  it('migrates a v1 preset to v5', () => {
     const v1 = {
       version: 1,
       name: 'standup',
@@ -138,7 +138,7 @@ describe('parsePreset', () => {
       spin: { durationMs: 4500, fullSpins: 6, easing: 'linear' },
     }
     const parsed = parsePreset(JSON.stringify(v1))
-    expect(parsed.version).toBe(4)
+    expect(parsed.version).toBe(5)
     // The migration's most user-visible failure mode is a silently emptied
     // wheel, since readTricks depends on segments — pin both surviving intact.
     expect(parsed.segments).toEqual([{ id: 'ana', label: 'Ana', weight: 1 }])
@@ -582,7 +582,7 @@ describe('v3 feeds and overrides', () => {
     const preset = parsePreset(
       JSON.stringify({ version: 2, name: 'old', segments: [], tricks: [], branches: [] }),
     )
-    expect(preset.version).toBe(4)
+    expect(preset.version).toBe(5)
     expect(preset.feeds).toEqual([])
     expect(preset.overrides).toEqual({})
   })
@@ -976,5 +976,32 @@ describe('slice layouts', () => {
       }),
     )
     expect(preset.overrides.truk.slice).toEqual({ id: 'curved', params: {} })
+  })
+})
+
+describe('theme', () => {
+  it('reads a stored theme by id', () => {
+    const raw = JSON.stringify({ ...DEFAULT_PRESET, version: 5, theme: 'wof' })
+    expect(parsePreset(raw).theme).toBe('wof')
+  })
+
+  it('leaves the theme absent when a v4 preset has none', () => {
+    const raw = JSON.stringify({ ...DEFAULT_PRESET, version: 4 })
+    expect(parsePreset(raw).theme).toBeUndefined()
+  })
+
+  it('drops an id no theme answers to', () => {
+    const raw = JSON.stringify({ ...DEFAULT_PRESET, version: 5, theme: 'nope' })
+    expect(parsePreset(raw).theme).toBeUndefined()
+  })
+
+  it('drops a prototype key rather than resolving it', () => {
+    const raw = JSON.stringify({ ...DEFAULT_PRESET, version: 5, theme: '__proto__' })
+    expect(parsePreset(raw).theme).toBeUndefined()
+  })
+
+  it('reads a v5 preset back out at version 5', () => {
+    const raw = JSON.stringify({ ...DEFAULT_PRESET, version: 5, theme: 'wof' })
+    expect(parsePreset(raw).version).toBe(5)
   })
 })

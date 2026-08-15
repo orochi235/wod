@@ -11,6 +11,7 @@ import { getRecipe } from '../tricks/registry'
 import { isSelectorToken } from '../tricks/targets'
 import type { Trick, TrickParams } from '../tricks/types'
 import { DEFAULT_SETTLE_CURVE, isSettleCurve, parseCurve } from '../wheel/curve'
+import { getTheme } from '../wheel/themes/registry'
 import type { Curve, Media, Reveal, Segment, Settle } from '../wheel/types'
 import { DEFAULT_PRESET } from './defaults'
 import type {
@@ -498,6 +499,13 @@ function readTransitions(value: unknown): Transitions | undefined {
   return Object.keys(transitions).length === 0 ? undefined : transitions
 }
 
+function readTheme(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  // Resolved rather than trusted: the id indexes a record, and a stored
+  // 'constructor' would otherwise come back as a function.
+  return getTheme(value)?.id
+}
+
 export function parsePreset(raw: string | null): Preset {
   if (raw === null) return DEFAULT_PRESET
 
@@ -509,7 +517,13 @@ export function parsePreset(raw: string | null): Preset {
   }
 
   if (!isRecord(data)) return DEFAULT_PRESET
-  if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4) {
+  if (
+    data.version !== 1 &&
+    data.version !== 2 &&
+    data.version !== 3 &&
+    data.version !== 4 &&
+    data.version !== 5
+  ) {
     return DEFAULT_PRESET
   }
 
@@ -526,7 +540,7 @@ export function parsePreset(raw: string | null): Preset {
   const feeds = readFeeds(data.feeds)
 
   return {
-    version: 4,
+    version: 5,
     name: typeof data.name === 'string' ? data.name : DEFAULT_PRESET.name,
     segments,
     feeds,
@@ -536,6 +550,7 @@ export function parsePreset(raw: string | null): Preset {
     branches: readBranches(data.branches),
     transitions: readTransitions(data.transitions),
     slice: readSlice(data.slice),
+    theme: readTheme(data.theme),
   }
 }
 

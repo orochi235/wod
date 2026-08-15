@@ -18,7 +18,7 @@ const cast = sampleNames(STATIC_COUNT + POOL_COUNT, cryptoRng)
  * grows a sixth wedge out of nothing.
  */
 export const DEFAULT_PRESET: Preset = {
-  version: 4,
+  version: 5,
   name: 'standup',
   segments: cast.slice(0, STATIC_COUNT).map((label, index) => ({
     id: `seg${index + 1}`,
