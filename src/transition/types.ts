@@ -29,6 +29,8 @@ export type TransitionContext = {
   /** The wedge's arc midpoint, degrees clockwise from 12 o'clock. */
   angle: number
   durationMs: number
+  /** Which moment is being asked for, so a departure is authored, not reversed. */
+  moment: Moment
 }
 
 export type TransitionFrames = {
@@ -42,6 +44,8 @@ export type Transition = {
   name: string
   description: string
   scope: TransitionScope
+  /** Which moments this transition serves. The editor offers it only for these. */
+  moments: Moment[]
   defaults: TransitionParams
   fields: Field[]
   /** Pure. The only thing that affects what actually runs. */

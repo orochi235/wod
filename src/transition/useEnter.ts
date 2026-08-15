@@ -63,6 +63,7 @@ export function useEnter(
         count: segments.length,
         angle,
         durationMs,
+        moment: 'enter',
       })
 
       // Nothing cancels this yet: a spin starting mid-enter should snap the wedge

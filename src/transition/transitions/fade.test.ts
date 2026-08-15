@@ -7,6 +7,7 @@ const ctx = (patch: Partial<TransitionContext> = {}): TransitionContext => ({
   count: 5,
   angle: 0,
   durationMs: 400,
+  moment: 'enter',
   ...patch,
 })
 
@@ -33,5 +34,15 @@ describe('fade', () => {
       expect(frame.offset).toBeUndefined()
       expect(frame.scale).toBeUndefined()
     }
+  })
+
+  it('serves both membership moments', () => {
+    expect(fade.moments).toEqual(['enter', 'exit'])
+  })
+
+  it('fades out at exit', () => {
+    const { keyframes } = fade.frames({}, ctx({ moment: 'exit' }))
+    expect(keyframes[0].opacity).toBe(1)
+    expect(keyframes[keyframes.length - 1].opacity).toBe(0)
   })
 })

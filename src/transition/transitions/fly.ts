@@ -30,6 +30,7 @@ export const fly: Transition = {
   name: 'Wedges fly in from outside',
   description: 'Each wedge travels in along a radius and settles into its arc.',
   scope: 'wedge',
+  moments: ['enter', 'exit'],
   defaults: {
     distance: DISTANCE,
     from: 'side',
@@ -55,18 +56,35 @@ export const fly: Transition = {
   ],
   frames(params, ctx) {
     const offsetAngle = directionOf(params, ctx)
-    const from: PresentationKeyframe = {
-      at: 0,
+    const distance = readNumber(params, 'distance', DISTANCE)
+    const tumble = readNumber(params, 'tumbleDeg', 0)
+    const delayMs = readNumber(params, 'staggerMs', STAGGER_MS) * ctx.index
+
+    // The direction rides on whichever frame carries the nonzero offset. An
+    // interrupted transition drops its frame at 0, and a direction declared
+    // there would go with it.
+    const away: PresentationKeyframe = {
+      at: ctx.moment === 'exit' ? 1 : 0,
       opacity: 0,
       scale: 0.9,
-      offset: readNumber(params, 'distance', DISTANCE),
-      rotate: readNumber(params, 'tumbleDeg', 0),
+      offset: distance,
+      // Negated on exit so the wedge keeps turning the same way it arrived,
+      // rather than reversing the instant an arrival becomes a departure.
+      rotate: ctx.moment === 'exit' ? -tumble : tumble,
     }
-    if (offsetAngle !== undefined) from.offsetAngle = offsetAngle
+    if (offsetAngle !== undefined) away.offsetAngle = offsetAngle
+
+    const settled: PresentationKeyframe = {
+      at: ctx.moment === 'exit' ? 0 : 1,
+      opacity: 1,
+      scale: 1,
+      offset: 0,
+      rotate: 0,
+    }
 
     return {
-      keyframes: [from, { at: 1, opacity: 1, scale: 1, offset: 0, rotate: 0 }],
-      delayMs: readNumber(params, 'staggerMs', STAGGER_MS) * ctx.index,
+      keyframes: ctx.moment === 'exit' ? [settled, away] : [away, settled],
+      delayMs,
     }
   },
 }

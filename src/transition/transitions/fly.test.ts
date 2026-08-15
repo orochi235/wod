@@ -7,6 +7,7 @@ const ctx = (patch: Partial<TransitionContext> = {}): TransitionContext => ({
   count: 5,
   angle: 90,
   durationMs: 500,
+  moment: 'enter',
   ...patch,
 })
 
@@ -65,5 +66,26 @@ describe('fly', () => {
     const [first] = fly.frames({ distance: 'far', tumbleDeg: {} }, ctx()).keyframes
     expect(first.offset).toBe(1.6)
     expect(first.rotate).toBe(0)
+  })
+
+  it('flies out at exit, ending away from the hub', () => {
+    const { keyframes } = fly.frames({ distance: 2 }, ctx({ moment: 'exit' }))
+    const last = keyframes[keyframes.length - 1]
+    expect(last.offset).toBe(2)
+    expect(last.opacity).toBe(0)
+  })
+
+  it('keeps tumbling the same direction across arrival and departure', () => {
+    const entering = fly.frames({ tumbleDeg: 180 }, ctx({ moment: 'enter' })).keyframes
+    const exiting = fly.frames({ tumbleDeg: 180 }, ctx({ moment: 'exit' })).keyframes
+    expect(entering[0].rotate).toBe(180)
+    expect(exiting[exiting.length - 1].rotate).toBe(-180)
+  })
+
+  it('puts the direction on the frame that carries the offset', () => {
+    const { keyframes } = fly.frames({ from: 'top' }, ctx({ moment: 'exit' }))
+    const last = keyframes[keyframes.length - 1]
+    expect(last.offsetAngle).toBe(0)
+    expect(keyframes[0].offsetAngle).toBeUndefined()
   })
 })
