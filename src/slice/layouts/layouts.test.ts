@@ -48,6 +48,17 @@ describe('curved', () => {
     const [element] = curved.draw(curved.defaults, context({ arc: { start: 0, end: 0.4 } }))
     expect(element).toMatchObject({ kind: 'curvedText', text: 'Sleve McDichael' })
   })
+
+  it('lays a level run out horizontally rather than along the arc', () => {
+    const [element] = curved.draw(
+      { ...curved.defaults, frame: 'level' },
+      context({ arc: { start: 0, end: 0.4 } }),
+    )
+    // A level run is horizontal by construction, so the arc has nothing to say
+    // about it. This used to emit curvedText, which the renderer drew along the
+    // arc — the frame choice did nothing at all.
+    expect(element).toMatchObject({ kind: 'text', along: 'tangential', frame: 'level' })
+  })
 })
 
 describe('every layout', () => {
