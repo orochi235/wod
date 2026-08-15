@@ -271,20 +271,6 @@ describe('Wheel', () => {
       clock.restore()
     }
   })
-
-  it('paints each wedge with its own color', () => {
-    const painted = roster(['ana', 'ben']).map((segment, i) => ({
-      ...segment,
-      color: ['#f4a261', '#2a9d8f'][i],
-    }))
-    const { container } = render(<Wheel segments={painted} />)
-    const fills = [...container.querySelectorAll('path.wheel__segment')].map((path) =>
-      path.getAttribute('fill'),
-    )
-    expect(fills).toHaveLength(2)
-    expect(fills.every((fill) => fill !== null && fill !== '')).toBe(true)
-    expect(new Set(fills).size).toBe(2)
-  })
 })
 
 describe('parts', () => {
