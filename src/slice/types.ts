@@ -91,6 +91,23 @@ export type RunFrame =
 
 export type PlacedRun = { frame: RunFrame; glyphs: PlacedGlyph[] }
 
+/** A flattened glyph contour at size 1: x from the glyph origin along its
+ * baseline, y up from it. Curves are already subdivided — a non-affine warp
+ * moves the points themselves, so there is nothing left for a curve to mean. */
+export type Contour = [number, number][]
+
+/**
+ * Where outline mode gets its geometry. Synchronous by construction: `draw` is
+ * pure, so the parse has to have happened before the wedge is drawn.
+ */
+export type GlyphSource = {
+  /** Null for a character the face does not carry. */
+  contours(char: string): Contour[] | null
+  advance(char: string): number
+  /** How far above the baseline the glyph's centre line sits, at size 1. */
+  centre: number
+}
+
 type Drawn =
   | { kind: 'text'; text: string; along: 'radial' | 'tangential'; anchor: number; size: number }
   | { kind: 'curvedText'; text: string; anchor: number; size: number }
@@ -120,6 +137,11 @@ export type SliceContext = {
   fit: (spec: FitSpec) => Placement | null
   /** The look's default face. A part's own `font` overrides it. */
   font?: FontId
+  /**
+   * A parsed face, or null while one is still arriving — which is why a part in
+   * outline mode draws in glyph mode until then.
+   */
+  outlines?: (font: FontId | undefined) => GlyphSource | null
 }
 
 export type SliceLayout = {
