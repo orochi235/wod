@@ -1,6 +1,7 @@
 import { LADDERS, LADDER_OPTIONS, isLadderId, walkLadder } from '../ladder'
 import type { SliceLayout } from '../types'
-import { COMMON_DEFAULTS, COMMON_FIELDS, readFrame, specOf } from './shared'
+import { typeset } from '../typeset'
+import { COMMON_DEFAULTS, COMMON_FIELDS, legacyPart, specOf } from './shared'
 
 export const auto: SliceLayout = {
   id: 'auto',
@@ -17,24 +18,11 @@ export const auto: SliceLayout = {
     const placed = walkLadder(ctx.segment.label, rungs, spec, ctx.fit, ctx.measure)
     if (!placed) return []
 
-    const frame = readFrame(params)
-    // Level frame has no orientation to honor: the text is horizontal by
-    // construction, so every rung that fits draws the same element.
-    if (frame === 'level' || placed.orientation !== 'curved') {
-      return [
-        {
-          kind: 'text',
-          text: placed.text,
-          along: frame === 'level' || placed.orientation === 'tangential' ? 'tangential' : 'radial',
-          anchor: placed.anchor,
-          size: placed.size,
-          frame,
-        },
-      ]
-    }
-
-    return [
-      { kind: 'curvedText', text: placed.text, anchor: placed.anchor, size: placed.size, frame },
-    ]
+    // The ladder chose the orientation and already shortened the text; `typeset`
+    // re-runs the same fit against the same spec and lands on the same size.
+    return typeset(
+      { ...legacyPart(placed.orientation, params), content: { from: 'text', value: placed.text } },
+      ctx,
+    )
   },
 }

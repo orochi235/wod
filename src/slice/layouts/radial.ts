@@ -1,5 +1,6 @@
 import type { SliceLayout } from '../types'
-import { COMMON_DEFAULTS, COMMON_FIELDS, readFrame, specOf } from './shared'
+import { typeset } from '../typeset'
+import { COMMON_DEFAULTS, COMMON_FIELDS, legacyPart } from './shared'
 
 export const radial: SliceLayout = {
   id: 'radial',
@@ -8,18 +9,6 @@ export const radial: SliceLayout = {
   defaults: { ...COMMON_DEFAULTS, anchor: 0.62 },
   fields: COMMON_FIELDS,
   draw(params, ctx) {
-    const spec = specOf(params, ctx)
-    const placed = ctx.fit({ ...spec, orientation: 'radial', text: ctx.segment.label })
-    if (!placed) return []
-    return [
-      {
-        kind: 'text',
-        text: placed.text,
-        along: 'radial',
-        anchor: placed.anchor,
-        size: placed.size,
-        frame: readFrame(params),
-      },
-    ]
+    return typeset(legacyPart('radial', params), ctx)
   },
 }

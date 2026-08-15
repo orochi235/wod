@@ -1,5 +1,6 @@
 import type { SliceLayout } from '../types'
-import { COMMON_DEFAULTS, COMMON_FIELDS, readFrame, specOf } from './shared'
+import { typeset } from '../typeset'
+import { COMMON_DEFAULTS, COMMON_FIELDS, legacyPart } from './shared'
 
 export const curved: SliceLayout = {
   id: 'curved',
@@ -8,17 +9,6 @@ export const curved: SliceLayout = {
   defaults: { ...COMMON_DEFAULTS, anchor: 0.78 },
   fields: COMMON_FIELDS,
   draw(params, ctx) {
-    const spec = specOf(params, ctx)
-    const placed = ctx.fit({ ...spec, orientation: 'curved', text: ctx.segment.label })
-    if (!placed) return []
-    return [
-      {
-        kind: 'curvedText',
-        text: placed.text,
-        anchor: placed.anchor,
-        size: placed.size,
-        frame: readFrame(params),
-      },
-    ]
+    return typeset(legacyPart('curved', params), ctx)
   },
 }

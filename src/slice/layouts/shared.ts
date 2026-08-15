@@ -1,6 +1,6 @@
 import type { Field } from '../../form/fields'
 import { readNumber } from '../../tricks/params'
-import type { FitSpec, Frame, SliceContext, SliceParams } from '../types'
+import type { FitSpec, Frame, Orientation, SliceContext, SliceParams, SlicePart } from '../types'
 
 export const MIN_SIZE = 9
 
@@ -40,5 +40,20 @@ export function specOf(
     anchor: readNumber(params, 'anchor', 0.7),
     maxSize: readNumber(params, 'maxSize', 26),
     minSize: MIN_SIZE,
+  }
+}
+
+/**
+ * A pre-parts layout's params as a single part. The band collapses to the
+ * anchor, because `typeset` reads a fitted part's anchor as the band's midpoint.
+ */
+export function legacyPart(orientation: Orientation, params: SliceParams): SlicePart {
+  const anchor = readNumber(params, 'anchor', 0.7)
+  return {
+    content: { from: 'label' },
+    orientation,
+    band: [anchor, anchor],
+    frame: readFrame(params),
+    maxSize: readNumber(params, 'maxSize', 26),
   }
 }
