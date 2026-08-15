@@ -53,10 +53,21 @@ export function App() {
     [preset.segments, preset.feeds, preset.overrides, items],
   )
 
+  const colorsRef = useRef(new Map<string, string>())
+  const retainedRef = useRef<ReadonlySet<string>>(new Set())
+
+  // The refs are deliberately not dependencies. This recomputes on the composed
+  // roster and reads them at that moment; anything narrower re-assigns a roster
+  // it has already colored, anything wider re-assigns on every frame of a spin.
   const resolved = useMemo(
-    () => resolveTricks(base, preset.tricks, preset.spin.motion.durationMs),
+    () =>
+      resolveTricks(base, preset.tricks, preset.spin.motion.durationMs, 0, null, {
+        previous: colorsRef.current,
+        retained: retainedRef.current,
+      }),
     [base, preset.tricks, preset.spin.motion.durationMs],
   )
+  colorsRef.current = resolved.colors
 
   const config = useMemo<SpinConfig>(
     () => spinConfigOf(preset.spin.motion, resolved.morphs),
@@ -128,6 +139,7 @@ export function App() {
         rotorRef={rotorRef}
         levelRef={levelRef}
         transitions={preset.transitions}
+        retainedRef={retainedRef}
         held={held}
         theme={theme}
         muted={muted}
