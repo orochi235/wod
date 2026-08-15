@@ -269,4 +269,14 @@ describe('Wheel', () => {
       clock.restore()
     }
   })
+
+  it('colors a wedge that authored no color', () => {
+    const { container } = render(<Wheel segments={roster(['ana', 'ben'])} />)
+    const fills = [...container.querySelectorAll('path.wheel__segment')].map((path) =>
+      path.getAttribute('fill'),
+    )
+    expect(fills).toHaveLength(2)
+    expect(fills.every((fill) => fill !== null && fill !== '')).toBe(true)
+    expect(new Set(fills).size).toBe(2)
+  })
 })
