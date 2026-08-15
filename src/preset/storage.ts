@@ -3,6 +3,7 @@ import type { WedgeIndex } from '../compose/types'
 import { MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { DEFAULT_POLL_INTERVAL_MS, MIN_POLL_INTERVAL_MS } from '../meet/poll'
+import { readParts } from '../slice/parts'
 import { getSlice } from '../slice/registry'
 import type { SliceInstance } from '../slice/types'
 import { getTransition } from '../transition/registry'
@@ -61,7 +62,13 @@ function readSlice(value: unknown): SliceInstance | undefined {
   if (!isRecord(value) || typeof value.id !== 'string') return undefined
   const layout = getSlice(value.id)
   if (!layout) return undefined
-  return { id: layout.id, params: isRecord(value.params) ? value.params : {} }
+  const params = isRecord(value.params) ? value.params : {}
+  // Only the composed layout carries parts. Every other layout's params are
+  // read by the layout itself, through fallbacks that cannot throw.
+  if (layout.id === 'composed') {
+    return { id: layout.id, params: { ...params, parts: readParts(params.parts) } }
+  }
+  return { id: layout.id, params }
 }
 
 function readSegments(value: unknown): Segment[] {

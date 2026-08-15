@@ -977,6 +977,52 @@ describe('slice layouts', () => {
     )
     expect(preset.overrides.truk.slice).toEqual({ id: 'curved', params: {} })
   })
+
+  it('keeps a well-formed part list', () => {
+    const parts = [
+      { content: { from: 'text', value: 'BANKRUPT' }, orientation: 'stacked', band: [0.45, 0.94] },
+    ]
+    expect(withSlice({ id: 'composed', params: { parts } }).slice).toEqual({
+      id: 'composed',
+      params: { parts },
+    })
+  })
+
+  it('clamps a band that runs outside the radius', () => {
+    const slice = withSlice({
+      id: 'composed',
+      params: {
+        parts: [{ content: { from: 'label' }, orientation: 'stacked', band: [1.4, -0.2] }],
+      },
+    }).slice
+    expect((slice?.params.parts as { band: number[] }[])[0].band).toEqual([0, 1])
+  })
+
+  it('drops a part whose orientation names nothing', () => {
+    const slice = withSlice({
+      id: 'composed',
+      params: {
+        parts: [
+          { content: { from: 'label' }, orientation: 'spiral', band: [0.4, 0.9] },
+          { content: { from: 'label' }, orientation: 'archedRim', band: [0.8, 0.94] },
+        ],
+      },
+    }).slice
+    expect(slice?.params.parts).toHaveLength(1)
+  })
+
+  it('falls back to a plain label composition when parts is junk', () => {
+    const slice = withSlice({ id: 'composed', params: { parts: 'BANKRUPT' } }).slice
+    expect(slice?.params.parts).toEqual([
+      { content: { from: 'label' }, orientation: 'stacked', band: [0.45, 0.94] },
+    ])
+  })
+
+  it('leaves the params of another layout alone', () => {
+    expect(withSlice({ id: 'curved', params: { anchor: 0.8 } }).slice?.params).toEqual({
+      anchor: 0.8,
+    })
+  })
 })
 
 describe('theme', () => {
