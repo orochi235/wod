@@ -2106,7 +2106,7 @@ did not, there is nothing to commit and the plan is done.
 
 Tasks 1-7 are committed on `feat/wedge-presence-impl`, which has `main` merged
 in as of `3a6b9f4`. Tasks 8-10 have not been started. Baseline: 58 test files,
-798 tests, `npm run build` and `npx biome check .` clean. Verified in a browser:
+802 tests, `npm run build` and `npx biome check .` clean. Verified in a browser:
 wedges paint, the custom properties resolve to real computed values, and a `fly`
 entrance travels along each wedge's own radius.
 
@@ -2126,7 +2126,43 @@ Task 7 departed from the plan in three places, each recorded in its commits:
   since it shifts values six earlier tests pin.
 
 Tasks 8-10 should read the amended Task 7 above rather than trusting the
-prescribed code: the `Wheel.tsx` and `App.tsx` snippets there predate all three.
+prescribed code. **Stale snippets:** Task 7's `Wheel.tsx` and `App.tsx`, and
+Task 10's `settle(leaving)`, which no longer typechecks against
+`settle(segments: Segment[])` — write `settle([segment('ana')])`.
+
+Task 7's review found the implementation correct — both reviewers drove the rAF
+clock with a stubbed timer and confirmed easing, termination, restart, unmount
+cleanup and StrictMode stability — but almost none of it was held by tests. The
+whole rAF effect could be deleted with the suite green, along with six other
+mutations to it. A hand-pumped clock now covers the loop, and `settle`'s held
+path is pinned to keep every wedge painted: dropping the color resolution there
+rendered a fill-less (black) wheel for the length of every spin, green.
+
+Palette colors now stick to an id rather than a roster position, and a newcomer
+takes a color no drawn wedge is using. Assigning by index meant a departing
+wedge froze its color while the survivor inheriting its index took the same one.
+This also ends the recolor-on-departure that `main` has always had, which was a
+deliberate call rather than a regression repair.
+
+Two things left open on purpose:
+
+- **Easing is one global `easeOut` for every transition and both moments.**
+  `useEnter` eased entrances only; exits are new. **Task 8 should decide whether
+  a transition authors its own curve** before `shrink` locks in how the reflow
+  reads — the spec (line 140) has the reflow following from the transition's
+  declaration, and the repo already has `EasingName`, `readEasing`, and
+  per-morph `morph.easing` to build on.
+- **The `held` wire from `App` to `Wheel` is untested.** Both `held={isSpinning}`
+  and dropping the prop survive mutation. Each end is covered; the wire is not.
+  Constructing an observable divergence needs `displaySegments` to change while
+  held, which `useSpin` deliberately refuses to do — so this may be closer to
+  unobservable than untested. Worth one attempt if `resolveLate` ever changes a
+  wedge's id.
+
+Not done, judged disproportionate: `planTrack` does not reject a wheel-scope
+transition armed at `enter` (unreachable — both registered transitions are
+wedge-scope), and `Drawn.segment.color` stays optional, so the always-colored
+invariant lives in `withColor` and a test rather than in the type.
 
 Task 6 landed one thing the plan did not call for. Nothing linked the property
 names `styleOf` emits to the `var()` calls in `Wheel.css`, and jsdom never
@@ -2145,7 +2181,7 @@ vitest config narrows its CSS stub so that import returns the file. Note the
 | 4 Start, reverse, interrupt tracks | `ef22460` | spec + quality, fixes applied |
 | 5 Build the draw list | `ba98ba0`, `683690c`, `b9fcb88`, `34381e0` | spec + quality, fixes applied |
 | 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa`, `adcb8bf` | spec + quality, fixes applied |
-| 7 Run the clock and draw it | `3b7db08`, `991a602` | **not independently reviewed** |
+| 7 Run the clock and draw it | `3b7db08`, `991a602`, `3d8987d`, `51774d6` | spec + quality, fixes applied |
 
 `683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
 resting wedge. A consumer writing into a presence now throws at the write rather
