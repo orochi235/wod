@@ -971,9 +971,11 @@ const MIN_ADVANCE = 0.3
 /** How much of the em a capital spans vertically, for a quarter-turned glyph. */
 const CAP_HEIGHT = 0.72
 
-const round = (n: number): number => Number(n.toFixed(2))
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n))
 ```
+
+`round` already exists in this file from Task 4 — `Math.round(n * 100) / 100`. Reuse it; do
+not add a second rounding helper under another name.
 
 Add the solve, above `typeset`:
 
