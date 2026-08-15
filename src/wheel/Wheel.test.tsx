@@ -439,6 +439,32 @@ describe('parts', () => {
     vi.restoreAllMocks()
   })
 
+  it('measures again once the label face has loaded', async () => {
+    // The first render measures against whatever the fallback is, because the
+    // webfont has not arrived — and the measurer caches per string, so those
+    // numbers would size every wedge for the rest of the session.
+    let settle: () => void = () => undefined
+    const ready = new Promise<void>((resolve) => {
+      settle = resolve
+    })
+    Object.defineProperty(document, 'fonts', { value: { ready }, configurable: true })
+
+    const module = await import('../slice/measure')
+    const made = vi.spyOn(module, 'createMeasure')
+
+    render(<Wheel segments={segments} />)
+    const before = made.mock.calls.length
+
+    await act(async () => {
+      settle()
+      await ready
+    })
+
+    expect(made.mock.calls.length).toBeGreaterThan(before)
+    made.mockRestore()
+    Reflect.deleteProperty(document, 'fonts')
+  })
+
   it('hangs a flapper above the rim when a look asks for one', () => {
     const { container } = render(<Wheel segments={segments} theme={wof} />)
     expect(container.querySelector('.wheel__flapper')).not.toBeNull()

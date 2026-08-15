@@ -135,8 +135,23 @@ export function Wheel({
     clicker().setMuted(muted)
   }, [muted, clicker])
 
+  // The label face is a webfont, so the first render measures whatever the
+  // fallback is. Nothing recomputes on its own: sizes are decided during render
+  // and the measurer caches per string, so the arriving face has to retire it.
+  const [faceLoaded, setFaceLoaded] = useState(false)
+  useEffect(() => {
+    let live = true
+    document.fonts?.ready.then(() => {
+      if (live) setFaceLoaded(true)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+
   // One measurer per wheel, so the string cache outlives a render.
-  const measure = useMemo(() => createMeasure(), [])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `faceLoaded` is the point — it is what retires the cache.
+  const measure = useMemo(() => createMeasure(), [faceLoaded])
   const fit = useMemo(() => createFit(measure), [measure])
 
   // A departing wedge re-fitted against its closing arc would shrink its label

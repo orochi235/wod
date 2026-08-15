@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { FONT_STACK, FONT_WEIGHT } from '../slice/measure'
 import css from './Wheel.css?raw'
 import { wof } from './themes/wof'
 
@@ -9,6 +10,21 @@ describe('Wheel.css', () => {
     for (const name of Object.keys(wof.tokens)) {
       expect(css).toContain(`var(${name}`)
     }
+  })
+
+  // Every fitted size comes from a canvas measured in FONT_STACK at FONT_WEIGHT.
+  // Painting the label in anything else silently mis-sizes every wedge, and
+  // nothing in jsdom would notice.
+  it('paints a label in the face the measurer measures', () => {
+    expect(css).toContain(`font-family: ${FONT_STACK};`)
+    expect(css).toContain(`font-weight: ${FONT_WEIGHT};`)
+  })
+
+  it('serves the default face itself rather than reaching for a CDN', () => {
+    expect(css).toContain('@font-face')
+    expect(css).toMatch(/src: url\(['"]?\/fonts\//)
+    expect(css).not.toContain('fonts.gstatic.com')
+    expect(css).not.toContain('fonts.googleapis.com')
   })
 
   it('binds each part class to a rule', () => {

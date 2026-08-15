@@ -1,6 +1,6 @@
 import type { Measure } from './types'
 
-/** Mean glyph width as a fraction of font size, for a sans-serif face. */
+/** Mean glyph width as a fraction of font size, for the default face. */
 const CHAR_WIDTH_RATIO = 0.55
 
 /**
@@ -9,8 +9,9 @@ const CHAR_WIDTH_RATIO = 0.55
  */
 const REFERENCE_SIZE = 100
 
-export const FONT_STACK = 'system-ui, sans-serif'
-export const FONT_WEIGHT = 600
+export const FONT_STACK = 'Bevan, system-ui, sans-serif'
+/** Bevan ships one weight; asking for more would have the browser synthesise it. */
+export const FONT_WEIGHT = 400
 
 export const estimateWidth: Measure = (text, size) => text.length * CHAR_WIDTH_RATIO * size
 
