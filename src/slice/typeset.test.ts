@@ -181,7 +181,7 @@ describe('the stacked solve', () => {
     expect(radiusOf(glyphs[0])).toBeGreaterThan(radiusOf(glyphs[2]))
   })
 
-  it('reverses the run when the direction is hubOutward', () => {
+  it('runs outward from the hub without reordering the letters', () => {
     const glyphs = glyphsOf({ content: { from: 'text', value: 'RYE' }, direction: 'hubOutward' })
     expect(glyphs.map((glyph) => glyph.char)).toEqual(['R', 'Y', 'E'])
     expect(radiusOf(glyphs[0])).toBeLessThan(radiusOf(glyphs[2]))
