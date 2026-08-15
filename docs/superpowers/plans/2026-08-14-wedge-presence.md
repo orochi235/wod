@@ -693,8 +693,10 @@ Expected: FAIL — "Failed to resolve import './tracks'".
 
 - [ ] **Step 3: Write the implementation**
 
-Create `src/transition/tracks.ts`. `sampleTrack` gets a stub here that Task 5
-replaces; the two tests above that touch it only need resting values.
+Create `src/transition/tracks.ts`, complete as below. `sampleTrack` is real
+here, not a placeholder — the interrupt test above asserts a sampled `base`,
+which only a working sampler produces. Task 5 adds `drawList` beside it and
+changes nothing in this file's other functions.
 
 ```ts
 import { readNumber } from '../tricks/params'
