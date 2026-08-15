@@ -3,7 +3,7 @@ import type { Presence, PresentationKeyframe } from './types'
 
 /** A wedge sitting in its arc with nothing applied. */
 // Handed out by identity to every resting wedge, so a consumer writing into one
-// sample would move them all. Frozen shallowly, which covers every field.
+// sample would move them all.
 export const RESTING: Presence = Object.freeze({
   hold: 1,
   opacity: 1,

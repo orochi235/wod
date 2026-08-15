@@ -262,9 +262,8 @@ export type Drawn = {
 }
 
 /**
- * A wedge still holding arc takes part in layout at `weight * hold`; one that
- * has released it is drawn where it last stood, so nothing else shifts as it
- * animates out.
+ * A wedge that has released its arc is drawn where it last stood, so nothing
+ * else shifts as it animates out.
  */
 export function drawList(
   tracks: Map<string, Track>,
