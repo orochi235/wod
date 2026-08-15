@@ -127,3 +127,43 @@ describe('PartsField', () => {
     expect((spy.mock.calls.at(-1)?.[0] as SlicePart[])[0].stretch).toBe('fill')
   })
 })
+
+describe('the face a part is set in', () => {
+  it('follows the look until a face is chosen', () => {
+    render(<PartsField label="Part" max={MAX_PARTS} value={onePart} onChange={vi.fn()} />)
+    expect(screen.getByLabelText('Face')).toHaveValue('')
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+
+  it('writes the chosen face onto the part, and shows it', async () => {
+    const spy = vi.fn()
+    render(<Controlled initial={onePart} spy={spy} />)
+
+    await userEvent.selectOptions(screen.getByLabelText('Face'), 'rye')
+
+    expect(spy).toHaveBeenCalledWith([expect.objectContaining({ font: 'rye' })])
+    // Baked at build time: a menu of 33 faces loads none of them.
+    expect(screen.getByRole('img', { name: 'rye specimen' }).querySelector('path')).not.toBeNull()
+  })
+
+  // A part carries the key only when it names a face, so going back to the
+  // look's face has to remove it rather than store an empty one.
+  it('clears the face rather than storing an empty one', async () => {
+    const spy = vi.fn()
+    render(<Controlled initial={[{ ...onePart[0], font: 'rye' }]} spy={spy} />)
+
+    await userEvent.selectOptions(screen.getByLabelText('Face'), '')
+
+    expect(spy).toHaveBeenCalledWith([expect.not.objectContaining({ font: expect.anything() })])
+  })
+
+  it('chooses the shape the run is drawn as', async () => {
+    const spy = vi.fn()
+    render(<Controlled initial={onePart} spy={spy} />)
+
+    expect(screen.getByLabelText('Drawn as')).toHaveValue('glyphs')
+    await userEvent.selectOptions(screen.getByLabelText('Drawn as'), 'outline')
+
+    expect(spy).toHaveBeenCalledWith([expect.objectContaining({ shape: 'outline' })])
+  })
+})

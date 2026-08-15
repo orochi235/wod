@@ -409,3 +409,10 @@
 .fit-report__row--degraded .fit-report__drawn {
   font-weight: 600;
 }
+
+/* The picker's baked previews: outlines, so a menu of faces loads none of them. */
+.parts__specimen {
+  justify-self: end;
+  fill: currentColor;
+  opacity: 0.75;
+}

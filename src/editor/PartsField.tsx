@@ -1,6 +1,7 @@
 import { CheckboxRow, PropertyGroup, SelectRow, SliderRow, TextRow } from '@weasel-js/labkit'
 import { DEFAULT_PART, readParts } from '../slice/parts'
 import type { ContentTransform, Orientation, PartContent, SlicePart } from '../slice/types'
+import { FontField } from './FontField'
 
 export type PartsFieldProps = {
   label: string
@@ -50,6 +51,11 @@ const STRETCHES = [
   { value: 'custom', label: 'A chosen amount' },
 ]
 
+const SHAPES = [
+  { value: 'glyphs', label: 'Letter by letter' },
+  { value: 'outline', label: 'One warped shape' },
+]
+
 const SHRINKS = [
   { value: 'proportional', label: 'The whole letter' },
   { value: 'condense', label: 'Its width only' },
@@ -82,6 +88,15 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
     const entry = CONTENTS.find((candidate) => candidate.value === choice)
     if (!entry) return
     replace(index, { ...(slots[index] ?? DEFAULT_PART), content: entry.make() })
+  }
+
+  // Cleared rather than set to undefined: a stored part carries the key only
+  // when it names a face.
+  const setFont = (index: number, font: string | undefined) => {
+    const part = slots[index]
+    if (!part) return
+    const { font: cleared, ...rest } = part
+    replace(index, font ? { ...rest, font } : rest)
   }
 
   const setStretch = (index: number, choice: string) => {
@@ -207,6 +222,13 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 step={1}
                 value={part.maxSize ?? 40}
                 onChange={(next) => edit(index, { maxSize: next })}
+              />
+              <FontField label="Face" value={part.font} onChange={(next) => setFont(index, next)} />
+              <SelectRow
+                label="Drawn as"
+                value={part.shape ?? 'glyphs'}
+                options={SHAPES}
+                onChange={(next) => edit(index, { shape: next as SlicePart['shape'] })}
               />
             </>
           ) : null}
