@@ -109,6 +109,7 @@ export function App() {
       preset.spin,
       preset.branches,
       cryptoRng,
+      { previous: colorsRef.current, retained: retainedRef.current },
     )
     if (!resolution) return
     spin({
