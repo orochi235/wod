@@ -1,3 +1,4 @@
+import { bracket } from '../keyframes/bracket'
 import type { EasingName, Media, Morph, MorphKeyframe, Reveal, Segment } from './types'
 
 export const EASINGS: Record<EasingName, (t: number) => number> = {
@@ -48,32 +49,6 @@ function pointsFor<K extends keyof MorphKeyframe>(
   return [...keyframes]
     .sort((a, b) => a.at - b.at)
     .filter((k): k is Defined<K> => k[key] !== undefined)
-}
-
-/** Finds the pair of keyframes bracketing `p`, plus how far between them it sits. */
-function bracket<K extends keyof MorphKeyframe>(
-  points: Defined<K>[],
-  p: number,
-): { from: Defined<K>; to: Defined<K>; t: number } | null {
-  if (points.length === 0) return null
-  const first = points[0]
-  const last = points[points.length - 1]
-  // Checked before `p <= first.at`: when every point shares one offset,
-  // `first === last`, and a tie must go to the later keyframe to agree with
-  // the `span === 0` branch below, which already prefers `to`. Deciding it the
-  // other way would resolve the landing frame of a duplicate-offset pair to
-  // the value it is trading away from, not the value it is trading to.
-  if (p >= last.at) return { from: last, to: last, t: 1 }
-  if (p <= first.at) return { from: first, to: first, t: 0 }
-  for (let i = 0; i < points.length - 1; i++) {
-    const from = points[i]
-    const to = points[i + 1]
-    if (p >= from.at && p <= to.at) {
-      const span = to.at - from.at
-      return { from, to, t: span === 0 ? 1 : (p - from.at) / span }
-    }
-  }
-  return { from: last, to: last, t: 1 }
 }
 
 /**
