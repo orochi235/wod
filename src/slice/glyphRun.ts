@@ -1,8 +1,7 @@
 import { pointAt } from '../wheel/geometry'
 import { chord } from './fit'
-import { MIN_SIZE } from './layouts/shared'
+import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
 import type { Glyph, SliceContext, SlicePart } from './types'
-import { DEFAULT_MAX_SIZE } from './typeset'
 
 /** Added to every glyph's step so letters do not touch. A fraction of the size. */
 const TRACKING = 0.08

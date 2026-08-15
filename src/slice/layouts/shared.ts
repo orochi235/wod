@@ -4,6 +4,9 @@ import type { FitSpec, Frame, SliceContext, SliceParams } from '../types'
 
 export const MIN_SIZE = 9
 
+/** What a part with no `maxSize` of its own may reach. */
+export const DEFAULT_MAX_SIZE = 40
+
 export function readFrame(params: SliceParams): Frame {
   return params.frame === 'level' ? 'level' : 'wheel'
 }

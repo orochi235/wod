@@ -1,11 +1,8 @@
 import type { Media } from '../wheel/types'
 import { runAlongRadius } from './glyphRun'
 import { applyTransform } from './ladder'
-import { MIN_SIZE } from './layouts/shared'
+import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
 import type { PartContent, SliceContext, SliceElement, SlicePart } from './types'
-
-/** What a part with no `maxSize` of its own may reach. */
-export const DEFAULT_MAX_SIZE = 40
 
 type Resolved = { kind: 'text'; text: string } | { kind: 'image'; href: string }
 
