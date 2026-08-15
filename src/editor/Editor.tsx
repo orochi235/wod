@@ -23,6 +23,7 @@ import { OverridesPanel } from './OverridesPanel'
 import { PresetIo } from './PresetIo'
 import { SegmentList } from './SegmentList'
 import { SlicePanel } from './SlicePanel'
+import { ThemePanel } from './ThemePanel'
 import { TransitionPanel } from './TransitionPanel'
 import { Transport } from './Transport'
 import { TrickLibrary } from './TrickLibrary'
@@ -245,6 +246,7 @@ export function Editor() {
             onChange={(transitions) => update({ ...preset, transitions })}
           />
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
+          <ThemePanel theme={preset.theme} onChange={(theme) => update({ ...preset, theme })} />
           <FitReport segments={shown} slice={preset.slice} />
         </section>
         {rigVisible ? (
