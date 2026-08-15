@@ -2,7 +2,7 @@
 // does not know about the `test` key and rejects it as an unknown property.
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 const entry = (name: string) => fileURLToPath(new URL(name, import.meta.url))
 
@@ -18,6 +18,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // A worktree checked out under the repo is a second copy of every test file,
+    // with no node_modules of its own to run them against. Gitignoring it does
+    // not hide it from the test glob.
+    exclude: [...configDefaults.exclude, '**/.claude/worktrees/**'],
     setupFiles: ['./src/vitest.setup.ts'],
     poolOptions: {
       forks: {
