@@ -12,6 +12,7 @@ import type { Field } from '../form/fields'
 import { SELECTOR_TOKENS, type SelectorToken } from '../tricks/targets'
 import type { TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
+import { PartsField } from './PartsField'
 
 /**
  * Operator-facing wording. The tokens themselves are internal.
@@ -154,7 +155,15 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
           </PropertyRow>
         )
       case 'parts':
-        return null
+        return (
+          <PartsField
+            key={field.key}
+            label={field.label}
+            max={field.max}
+            value={value}
+            onChange={(next) => set(field.key, next)}
+          />
+        )
     }
   }
 
