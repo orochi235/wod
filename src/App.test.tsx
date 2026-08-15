@@ -354,6 +354,37 @@ describe('feed', () => {
       stop()
     }
   })
+
+  it('spins against the composed roster, not the one still animating', async () => {
+    const harness = installSpinHarness()
+    try {
+      // A four-second departure, so the drawn roster stays larger than the
+      // composed one for the whole test.
+      window.localStorage.setItem(
+        PRESET_KEY,
+        JSON.stringify({
+          ...DEFAULT_PRESET,
+          transitions: { exit: { id: 'shrink', params: { durationMs: 4000, staggerMs: 0 } } },
+        }),
+      )
+      render(<App />)
+
+      await publish([{ id: 'zoe', label: 'Zoe' }])
+      await waitFor(() => expect(screen.getByText('Zoe')).toBeInTheDocument())
+
+      await publish([])
+      // Still drawn: the shrink has barely started. Without this the test would
+      // pass for the trivial reason that she was already gone.
+      expect(screen.getByText('Zoe')).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+
+      // Settled to the roster the spin planned against, mid-departure or not.
+      expect(screen.queryByText('Zoe')).not.toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
+  })
 })
 
 describe('churn during a spin', () => {

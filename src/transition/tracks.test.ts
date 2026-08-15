@@ -603,4 +603,30 @@ describe('settle', () => {
     expect([...settled.keys()]).toEqual(['ana', 'ben'])
     expect([...settled.values()].every((track) => track.phase === 'present')).toBe(true)
   })
+
+  it('settles a mid-flight roster to exactly the composed one', () => {
+    const opening: Transitions = {
+      enter: { id: 'shrink', params: { durationMs: 400, staggerMs: 0 } },
+      exit: { id: 'shrink', params: { durationMs: 400, staggerMs: 0 } },
+    }
+    const start = advance(
+      input({ segments: [segment('ana'), segment('ben')], transitions: opening, now: 0 }),
+    )
+    const leaving = advance(
+      input({
+        tracks: start,
+        segments: [segment('ana')],
+        arcs: drawList(start, 0).arcs,
+        transitions: opening,
+        now: 100,
+      }),
+    )
+    expect(drawList(leaving, 200).drawn.map((item) => item.segment.id)).toEqual(['ana', 'ben'])
+
+    const { drawn } = drawList(settle([segment('ana')]), 200)
+
+    expect(drawn.map((item) => item.segment.id)).toEqual(['ana'])
+    expect(drawn[0].presence).toEqual(RESTING)
+    expect(drawn[0].arc.end - drawn[0].arc.start).toBeCloseTo(1)
+  })
 })
