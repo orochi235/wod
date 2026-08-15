@@ -11,6 +11,8 @@ import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
 import { Wheel } from './wheel/Wheel'
 import { cryptoRng, forced } from './wheel/selection'
+import { flat } from './wheel/themes/flat'
+import { getTheme } from './wheel/themes/registry'
 import type { SpinConfig } from './wheel/types'
 import { useSpin } from './wheel/useSpin'
 import './App.css'
@@ -22,6 +24,8 @@ export function App() {
   useEffect(() => subscribePreset(setPreset), [])
 
   const [items, setItems] = useState<Record<string, FeedItem[]>>({})
+  const [muted, setMuted] = useState(false)
+  const theme = getTheme(preset.theme ?? '') ?? flat
 
   // The editor window owns the clock; this one only renders what arrives. With
   // no editor open the roster freezes, which is a comprehensible failure.
@@ -124,6 +128,8 @@ export function App() {
         levelRef={levelRef}
         transitions={preset.transitions}
         held={held}
+        theme={theme}
+        muted={muted}
       />
       <div className="app__controls">
         <button
@@ -142,6 +148,11 @@ export function App() {
         >
           Reset
         </button>
+        {theme.flapper !== 'silent' && (
+          <button type="button" className="app__button" onClick={() => setMuted((on) => !on)}>
+            {muted ? 'Unmute' : 'Mute'}
+          </button>
+        )}
         <a className="app__button" href="#/edit">
           Edit
         </a>

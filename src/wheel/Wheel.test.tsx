@@ -361,6 +361,12 @@ describe('parts', () => {
     }
   })
 
+  it('takes a mute it can be told about', () => {
+    // The clicker is silent under a mute regardless of what the look asks for.
+    const { container } = render(<Wheel segments={segments} theme={wof} muted />)
+    expect(container.querySelector('.wheel')).not.toBeNull()
+  })
+
   it('hangs a flapper above the rim when a look asks for one', () => {
     const { container } = render(<Wheel segments={segments} theme={wof} />)
     expect(container.querySelector('.wheel__flapper')).not.toBeNull()

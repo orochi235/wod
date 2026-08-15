@@ -1,5 +1,5 @@
 import type { Ref } from 'react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createFit } from '../slice/fit'
 import { createMeasure } from '../slice/measure'
 import { getSlice, resolveInstance } from '../slice/registry'
@@ -8,7 +8,8 @@ import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
 import { SliceElements } from './SliceElements'
-import { deflectionDeg } from './flapper'
+import { deflectionDeg, pegCrossings } from './flapper'
+import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
 import { panelPath } from './panel'
 import { pegAngles } from './pegs'
@@ -44,6 +45,8 @@ export type WheelProps = {
   held?: boolean
   /** Which look to wear. Absent is the flat look, which is what the wheel drew before themes. */
   theme?: Theme
+  /** Silences the flapper without changing the look. */
+  muted?: boolean
 }
 
 /**
@@ -73,6 +76,7 @@ export function Wheel({
   levelRef,
   held = false,
   theme = flat,
+  muted = false,
 }: WheelProps) {
   const drawn = usePresence(segments, transitions, held)
   const pegs = partOn(theme, 'peg')
@@ -89,9 +93,33 @@ export function Wheel({
   const [deflection, setDeflection] = useState(0)
   const hasFlapper = partOn(theme, 'flapper')
 
-  useWheelAngle(ownRotorRef, hasFlapper, (angle) => {
+  const clickerRef = useRef<ReturnType<typeof createClicker> | null>(null)
+  if (clickerRef.current === null) clickerRef.current = createClicker()
+
+  const lastAngleRef = useRef<number | null>(null)
+
+  useWheelAngle(ownRotorRef, hasFlapper, (angle, speed) => {
     setDeflection(deflectionDeg(angle, pegs))
+    const previous = lastAngleRef.current
+    lastAngleRef.current = angle
+    if (previous === null || theme.flapper === 'silent') return
+    clickerRef.current?.click(pegCrossings(previous, angle, pegs), speed)
   })
+
+  useEffect(() => {
+    const clicker = clickerRef.current
+    const unlock = () => clicker?.unlock()
+    window.addEventListener('pointerdown', unlock, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      clicker?.close()
+      clickerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    clickerRef.current?.setMuted(muted)
+  }, [muted])
 
   // One measurer per wheel, so the string cache outlives a render.
   const measure = useMemo(() => createMeasure(), [])

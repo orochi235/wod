@@ -624,4 +624,16 @@ describe('App landed wheel', () => {
       harness.restore()
     }
   })
+
+  it('offers a mute once the look can make noise', async () => {
+    window.localStorage.setItem(PRESET_KEY, JSON.stringify({ ...DEFAULT_PRESET, theme: 'wof' }))
+    render(<App />)
+    expect(await screen.findByRole('button', { name: /mute/i })).toBeInTheDocument()
+  })
+
+  it('offers no mute under a silent look', () => {
+    window.localStorage.setItem(PRESET_KEY, JSON.stringify({ ...DEFAULT_PRESET, theme: 'flat' }))
+    render(<App />)
+    expect(screen.queryByRole('button', { name: /mute/i })).toBeNull()
+  })
 })
