@@ -20,10 +20,10 @@ const LINE_HEIGHT = 1.2
 const floor2 = (n: number): number => Math.floor(n * 100) / 100
 
 /** The straight-line distance across an arc at a given radius. */
-const chord = (turns: number, radius: number): number =>
+export const chord = (turns: number, radius: number): number =>
   2 * radius * Math.sin(Math.PI * Math.min(turns, 0.5))
 
-const arcLength = (turns: number, radius: number): number => TAU * radius * turns
+export const arcLength = (turns: number, radius: number): number => TAU * radius * turns
 
 /**
  * Radial text centers on this run, not on the layout's anchor: centering it

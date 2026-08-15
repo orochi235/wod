@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { budget, createFit, levelRoom } from './fit'
+import { arcLength, budget, chord, createFit, levelRoom } from './fit'
 import type { FitSpec, Measure } from './types'
 
 /** Deterministic and linear, so a size assertion is arithmetic rather than a font. */
@@ -13,6 +13,20 @@ const base: Omit<FitSpec, 'text' | 'orientation'> = {
   maxSize: 26,
   minSize: 9,
 }
+
+describe('chord and arcLength', () => {
+  it('gives a half turn the full diameter as its chord', () => {
+    expect(chord(0.5, 200)).toBeCloseTo(400)
+  })
+
+  it('caps the chord at half a turn rather than folding back', () => {
+    expect(chord(0.9, 200)).toBeCloseTo(chord(0.5, 200))
+  })
+
+  it('gives a full turn the circumference as its arc', () => {
+    expect(arcLength(1, 200)).toBeCloseTo(2 * Math.PI * 200)
+  })
+})
 
 describe('budget', () => {
   it('gives radial a length that ignores arc width', () => {
