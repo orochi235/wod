@@ -2104,11 +2104,27 @@ did not, there is nothing to commit and the plan is done.
 
 ## Where execution stopped
 
-Tasks 1-7 are committed on `feat/wedge-presence-impl`, which has `main` merged
-in as of `3a6b9f4`. Tasks 8-10 have not been started. Baseline: 58 test files,
-802 tests, `npm run build` and `npx biome check .` clean. Verified in a browser:
-wedges paint, the custom properties resolve to real computed values, and a `fly`
-entrance travels along each wedge's own radius.
+Tasks 1-8 are committed on `feat/wedge-presence-impl`, which has `main` merged
+in as of `3a6b9f4`. Tasks 9-10 have not been started. Baseline: 59 test files,
+813 tests, `npm run build` and `npx biome check .` clean. Verified in a browser
+as of Task 7: wedges paint, the custom properties resolve to real computed
+values, and a `fly` entrance travels along each wedge's own radius. Nothing has
+armed `shrink` in a browser yet — Task 9 is what puts it in reach of the editor.
+
+Task 8 settled the curve question Task 7 left open: **a transition authors its
+own.** `frames()` may return an `easing`, which rides onto the track and drives
+`sampleTrack`; absent still means the global `easeOut`, so `fade` and `fly` are
+untouched. It landed in its own commit (`60bdb53`) ahead of `shrink`. The
+deciding evidence was in the plan already — Task 8's own reflow test expects
+`hold` 0.5 at the midpoint, which only a symmetric curve produces. Under
+`easeOut` a departing wedge gives up three quarters of its arc in the first half
+of its duration, and because the neighbors grow into that space as it goes, the
+lurch is on every wedge rather than only the one leaving. `shrink` declares
+`easeInOut` for both moments.
+
+Each new rule was mutation-checked. The prescribed tests already held the exit
+half of the easing wire and `shrink`'s own declaration, but the enter half and
+`shrink`'s opening opacity both survived deletion, so each gained a test.
 
 Task 7 departed from the plan in three places, each recorded in its commits:
 
@@ -2125,9 +2141,10 @@ Task 7 departed from the plan in three places, each recorded in its commits:
   precedent `bracket` set. Landed in its own commit from the render wiring,
   since it shifts values six earlier tests pin.
 
-Tasks 8-10 should read the amended Task 7 above rather than trusting the
-prescribed code. **Stale snippets:** Task 7's `Wheel.tsx` and `App.tsx`, and
-Task 10's `settle(leaving)`, which no longer typechecks against
+Tasks 9-10 should read the amended Task 7 above rather than trusting the
+prescribed code. **Stale snippets:** Task 7's `Wheel.tsx` and `App.tsx`; Task
+8's `shrink.ts`, which now also returns `easing`; and Task 10's
+`settle(leaving)`, which no longer typechecks against
 `settle(segments: Segment[])` — write `settle([segment('ana')])`.
 
 Task 7's review found the implementation correct — both reviewers drove the rAF
@@ -2147,11 +2164,10 @@ deliberate call rather than a regression repair.
 Two things left open on purpose:
 
 - **Easing is one global `easeOut` for every transition and both moments.**
-  `useEnter` eased entrances only; exits are new. **Task 8 should decide whether
-  a transition authors its own curve** before `shrink` locks in how the reflow
-  reads — the spec (line 140) has the reflow following from the transition's
-  declaration, and the repo already has `EasingName`, `readEasing`, and
-  per-morph `morph.easing` to build on.
+  Settled in Task 8: a transition may declare its own, and `easeOut` is what
+  absent means. Still open underneath it — the curve is per transition, not per
+  moment, though `frames()` sees `ctx.moment` and so could split them if a
+  transition ever wants to.
 - **The `held` wire from `App` to `Wheel` is untested.** Both `held={isSpinning}`
   and dropping the prop survive mutation. Each end is covered; the wire is not.
   Constructing an observable divergence needs `displaySegments` to change while
@@ -2182,6 +2198,7 @@ vitest config narrows its CSS stub so that import returns the file. Note the
 | 5 Build the draw list | `ba98ba0`, `683690c`, `b9fcb88`, `34381e0` | spec + quality, fixes applied |
 | 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa`, `adcb8bf` | spec + quality, fixes applied |
 | 7 Run the clock and draw it | `3b7db08`, `991a602`, `3d8987d`, `51774d6` | spec + quality, fixes applied |
+| 8 The shrink transition | `60bdb53`, `d6dd571` | not yet reviewed |
 
 `683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
 resting wedge. A consumer writing into a presence now throws at the write rather
