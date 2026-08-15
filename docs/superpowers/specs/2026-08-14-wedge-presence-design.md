@@ -88,10 +88,11 @@ continues from the position and opacity it reached, and a wedge that re-joins
 while exiting retargets toward `present` from its current sample rather than
 starting a second, duplicate arrival at the same id.
 
-A transition's stagger delay holds the current sample rather than the keyframes'
-declared start, which is the same substitution one step earlier. A staggered
-exit therefore freezes an interrupted wedge where it stands until its turn
-comes, instead of snapping it back to a resting pose it had already left.
+A transition's stagger delay holds progress at 0, which is the same substitution
+one step earlier: an interrupted wedge has no frame at 0, so it waits at the
+sample it was interrupted on, while a fresh one waits at its declared start. A
+staggered exit therefore freezes an interrupted wedge where it stands until its
+turn comes, instead of snapping it back to a resting pose it had already left.
 
 ## Declaring a transition
 

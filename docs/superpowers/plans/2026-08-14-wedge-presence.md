@@ -582,6 +582,11 @@ const both: Transitions = {
   exit: { id: 'fade', params: { staggerMs: 0, durationMs: 400 } },
 }
 
+const staggered: Transitions = {
+  enter: { id: 'fade', params: { staggerMs: 100, durationMs: 400 } },
+  exit: { id: 'fade', params: { staggerMs: 100, durationMs: 400 } },
+}
+
 const input = (over: Partial<Parameters<typeof advance>[0]> = {}) => ({
   tracks: new Map(),
   segments: [segment('ana')],
@@ -647,9 +652,15 @@ describe('advance', () => {
   it('reverses a wedge that re-joins while exiting', () => {
     const entering = advance(input({ now: 0 }))
     const exiting = advance(input({ tracks: entering, segments: [], now: 1000 }))
+    const leaving = exiting.get('ana')
     const back = advance(input({ tracks: exiting, now: 1100 }))
-    expect(back.get('ana')?.phase).toBe('entering')
+    const arriving = back.get('ana')
+    expect(arriving?.phase).toBe('entering')
     expect(back.size).toBe(1)
+    // A quarter of the way out, so it turns around from 0.75 rather than
+    // restarting its arrival at the 0 its entrance declares.
+    expect(leaving && sampleTrack(leaving, 1100).opacity).toBeCloseTo(0.75)
+    expect(arriving && sampleTrack(arriving, 1100).opacity).toBeCloseTo(0.75)
   })
 
   it('promotes a finished entrance to present', () => {
@@ -662,6 +673,54 @@ describe('advance', () => {
     const tracks = advance(input({ transitions: enterOnly, now: 0 }))
     const gone = advance(input({ tracks, segments: [], transitions: enterOnly, now: 10 }))
     expect(gone.has('ana')).toBe(false)
+  })
+
+  it('leaves a wedge alone when its transition id is unknown', () => {
+    // Ids come out of localStorage, so one that no longer exists is reachable.
+    const unknown = { enter: { id: 'nope' }, exit: { id: 'nope' } } as unknown as Transitions
+    const tracks = advance(input({ transitions: unknown, now: 0 }))
+    expect(tracks.get('ana')?.phase).toBe('present')
+    const gone = advance(input({ tracks, segments: [], transitions: unknown, now: 10 }))
+    expect(gone.has('ana')).toBe(false)
+  })
+
+  it('holds a waiting wedge at its declared start until its turn', () => {
+    const tracks = advance(
+      input({ segments: [segment('ana'), segment('ben')], transitions: staggered, now: 0 }),
+    )
+    const ben = tracks.get('ben')
+    expect(ben?.delayMs).toBe(100)
+    expect(ben && sampleTrack(ben, 50).opacity).toBe(0)
+  })
+
+  it('holds an interrupted wedge where it stands until its turn', () => {
+    const entering = advance(input({ segments: [segment('ana'), segment('ben')], now: 0 }))
+    const exiting = advance(
+      input({ tracks: entering, segments: [], transitions: staggered, now: 100 }),
+    )
+    const ben = exiting.get('ben')
+    expect(ben?.delayMs).toBe(100)
+    expect(ben && sampleTrack(ben, 150).opacity).toBeCloseTo(0.25)
+  })
+
+  it('defaults hold by phase when the transition declares none', () => {
+    const entering = advance(input({ now: 0 }))
+    const arriving = entering.get('ana')
+    expect(arriving && sampleTrack(arriving, 100).hold).toBe(1)
+
+    const exiting = advance(input({ tracks: entering, segments: [], now: 100 }))
+    const leaving = exiting.get('ana')
+    expect(leaving && sampleTrack(leaving, 150).hold).toBe(0)
+  })
+
+  it('leaves the tracks it was given untouched', () => {
+    const first = advance(input({ now: 0 }))
+    const before = { ...first.get('ana') }
+    // Both branches: one advance keeps the wedge and promotes it, one departs it.
+    advance(input({ tracks: first, segments: [{ ...segment('ana'), label: 'Ana L.' }], now: 1000 }))
+    advance(input({ tracks: first, segments: [], now: 100 }))
+    expect(first.size).toBe(1)
+    expect(first.get('ana')).toEqual(before)
   })
 
   it('tracks a label change without restarting anything', () => {
@@ -679,9 +738,10 @@ describe('settle', () => {
     const entering = advance(input({ segments: [segment('ana'), segment('ben')], now: 0 }))
     const exiting = advance(input({ tracks: entering, segments: [segment('ana')], now: 100 }))
     const settled = settle(exiting)
+    const ana = settled.get('ana')
     expect(settled.has('ben')).toBe(false)
-    expect(settled.get('ana')?.phase).toBe('present')
-    expect(sampleTrack(settled.get('ana')!, 999)).toEqual(RESTING)
+    expect(ana?.phase).toBe('present')
+    expect(ana && sampleTrack(ana, 999)).toEqual(RESTING)
   })
 })
 ```
@@ -722,24 +782,19 @@ export type Track = {
   delayMs: number
   durationMs: number
   declaresHold: boolean
-  /** Where it sat when it left the layout. Read only once `hold` reaches zero. */
+  /** Where it sat when it left the layout, for drawing it once it holds no arc. */
   ghostArc: Arc | null
 }
 
 export type AdvanceInput = {
   tracks: Map<string, Track>
-  /** The composed roster now, with colors already resolved. */
+  /** The composed roster now. */
   segments: Segment[]
-  /** Last frame's layout, so a departing wedge can freeze where it stood. */
+  /** Last frame's layout: where a departing wedge freezes, and the angle each transition points from. */
   arcs: Map<string, Arc>
   transitions: Transitions | undefined
   now: number
   reduced: boolean
-}
-
-/** A phase whose animation is still running, and so can be interrupted. */
-function inFlight(track: Track, now: number): boolean {
-  return track.phase !== 'present' && !isDone(track, now)
 }
 
 export function isDone(track: Track, now: number): boolean {
@@ -747,14 +802,22 @@ export function isDone(track: Track, now: number): boolean {
   return now - track.startedAt >= track.delayMs + track.durationMs
 }
 
+/** A phase whose animation is still running, and so can be interrupted. */
+function inFlight(track: Track, now: number): boolean {
+  return track.phase !== 'present' && !isDone(track, now)
+}
+
+function progressOf(track: Track, now: number): number {
+  const elapsed = now - track.startedAt - track.delayMs
+  if (elapsed <= 0) return 0
+  return track.durationMs <= 0 ? 1 : Math.min(1, elapsed / track.durationMs)
+}
+
 export function sampleTrack(track: Track, now: number): Presence {
   if (track.phase === 'present') return RESTING
-  const elapsed = now - track.startedAt - track.delayMs
-  // A stagger delay holds the current sample rather than the keyframes'
-  // declared start, so an interrupted wedge waits where it stands.
-  if (elapsed < 0) return track.base
-  const p = track.durationMs <= 0 ? 1 : Math.min(1, elapsed / track.durationMs)
-  const presence = samplePresence(track.frames, p, track.base)
+  // A wedge waiting out its stagger delay sits at p 0, which is its interrupted
+  // sample once a zero frame has been dropped and its declared start otherwise.
+  const presence = samplePresence(track.frames, progressOf(track, now), track.base)
   if (!track.declaresHold) presence.hold = track.phase === 'exiting' ? 0 : 1
   return presence
 }
@@ -778,6 +841,8 @@ function planTrack(
   if (!instance) return null
   const authored = getTransition(instance.id)
   if (!authored) return null
+  // A stored preset can arm any transition at any moment, including one it does
+  // not serve; no registered transition refuses a moment yet, so this is untested.
   if (!authored.moments.includes(moment)) return null
 
   const transition = reduced ? fade : authored
@@ -801,6 +866,27 @@ function angleOf(arc: Arc | undefined): number {
   return (arc.start + (arc.end - arc.start) / 2) * 360
 }
 
+function restingTrack(segment: Segment): Track {
+  return {
+    id: segment.id,
+    phase: 'present',
+    segment,
+    frames: [],
+    base: RESTING,
+    startedAt: 0,
+    delayMs: 0,
+    durationMs: 0,
+    declaresHold: false,
+    ghostArc: null,
+  }
+}
+
+/**
+ * Diffs the composed roster against the tracks already drawn. A transition
+ * starting on a wedge that is still animating takes that wedge's current sample
+ * as its base and drops its own frame at 0, so the two interpolate into each
+ * other instead of the second one snapping to its declared start.
+ */
 export function advance(input: AdvanceInput): Map<string, Track> {
   const { tracks, segments, arcs, transitions, now, reduced } = input
   const next = new Map<string, Track>()
@@ -819,69 +905,73 @@ export function advance(input: AdvanceInput): Map<string, Track> {
     }
 
     const interrupting = existing !== undefined && inFlight(existing, now)
-    const plan = planTrack(transitions, 'enter', index, count, angleOf(arcs.get(segment.id)), reduced)
+    const plan = planTrack(
+      transitions,
+      'enter',
+      index,
+      count,
+      angleOf(arcs.get(segment.id)),
+      reduced,
+    )
     if (!plan) {
       next.set(segment.id, restingTrack(segment))
       return
     }
 
+    const frames = interrupting ? withoutZeroFrame(plan.frames) : plan.frames
     next.set(segment.id, {
       id: segment.id,
       phase: 'entering',
       segment,
-      frames: interrupting ? withoutZeroFrame(plan.frames) : plan.frames,
+      frames,
       base: interrupting ? sampleTrack(existing, now) : RESTING,
       startedAt: now,
       delayMs: plan.delayMs,
       durationMs: plan.durationMs,
-      declaresHold: declaresHold(plan.frames),
-      ghostArc: null,
+      declaresHold: declaresHold(frames),
+      // A reversal keeps the arc its exit froze: it may still be at hold 0, and
+      // a wedge holding no arc has nowhere to be drawn without one.
+      ghostArc: interrupting ? existing.ghostArc : null,
     })
   })
 
-  let departed = 0
+  const departing: [string, Track][] = []
   for (const [id, track] of tracks) {
     if (next.has(id)) continue
-
     if (track.phase === 'exiting') {
       if (!isDone(track, now)) next.set(id, track)
       continue
     }
+    departing.push([id, track])
+  }
 
+  departing.forEach(([id, track], index) => {
     const interrupting = inFlight(track, now)
-    const plan = planTrack(transitions, 'exit', departed, tracks.size, angleOf(arcs.get(id)), reduced)
-    departed += 1
-    if (!plan) continue
+    const plan = planTrack(
+      transitions,
+      'exit',
+      index,
+      departing.length,
+      angleOf(arcs.get(id)),
+      reduced,
+    )
+    if (!plan) return
 
+    const frames = interrupting ? withoutZeroFrame(plan.frames) : plan.frames
     next.set(id, {
       ...track,
       phase: 'exiting',
-      frames: interrupting ? withoutZeroFrame(plan.frames) : plan.frames,
+      frames,
       base: interrupting ? sampleTrack(track, now) : RESTING,
       startedAt: now,
       delayMs: plan.delayMs,
       durationMs: plan.durationMs,
-      declaresHold: declaresHold(plan.frames),
+      declaresHold: declaresHold(frames),
       ghostArc: arcs.get(id) ?? null,
     })
-  }
+  })
 
   return next
-}
-
-function restingTrack(segment: Segment): Track {
-  return {
-    id: segment.id,
-    phase: 'present',
-    segment,
-    frames: [],
-    base: RESTING,
-    startedAt: 0,
-    delayMs: 0,
-    durationMs: 0,
-    declaresHold: false,
-    ghostArc: null,
-  }
 }
 
 /**
@@ -901,7 +991,7 @@ export function settle(tracks: Map<string, Track>): Map<string, Track> {
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/transition/tracks.test.ts`
-Expected: PASS, 13 tests.
+Expected: PASS, 18 tests.
 
 - [ ] **Step 5: Run the whole suite**
 
@@ -950,7 +1040,7 @@ describe('drawList', () => {
   it('lays out holding wedges by weight times hold', () => {
     const tracks = new Map<string, Track>([
       ['ana', { ...holding('ana', 1), phase: 'present', frames: [], declaresHold: false }],
-      ['ben', holding('ben', 1)],
+      ['ben', holding('ben', 0)],
     ])
     const { drawn } = drawList(tracks, 100)
     // ben has decayed to hold 0 at p=1, so ana takes the whole circle.
@@ -1089,7 +1179,7 @@ export function drawList(
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/transition/tracks.test.ts`
-Expected: PASS, 19 tests.
+Expected: PASS, 24 tests.
 
 - [ ] **Step 5: Commit**
 
