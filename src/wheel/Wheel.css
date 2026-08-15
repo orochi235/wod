@@ -44,3 +44,63 @@
   transform-box: fill-box;
   transform-origin: center;
 }
+
+.wheel__stage-ground {
+  fill: var(--wheel-stage-fill, transparent);
+}
+
+/* On the body rather than the wheel root: the root also holds the pointer and
+   the flapper, which are not on the wheel and cast no shadow with it. */
+.wheel__body--shadow {
+  filter: var(--wheel-shadow, none);
+}
+
+.wheel__rim {
+  fill: var(--wheel-rim-fill, none);
+}
+
+.wheel__face {
+  fill: var(--wheel-face-fill, none);
+}
+
+.wheel__inner-shadow,
+.wheel__sheen {
+  pointer-events: none;
+}
+
+.wheel__inner-shadow {
+  fill: var(--wheel-inner-shadow-fill, none);
+}
+
+.wheel__sheen {
+  fill: var(--wheel-sheen-fill, none);
+}
+
+.wheel__peg {
+  fill: var(--wheel-peg-fill, none);
+  stroke: var(--wheel-peg-stroke, none);
+  stroke-width: 0.7;
+}
+
+.wheel__hub {
+  fill: var(--wheel-hub-fill, none);
+  stroke: var(--wheel-hub-stroke, none);
+  stroke-width: 1.6;
+}
+
+.wheel__panel {
+  fill: var(--wedge-panel-fill, none);
+  stroke: var(--wedge-panel-stroke, none);
+  stroke-width: 0.8;
+}
+
+.wheel__divider {
+  stroke: var(--wedge-divider-stroke, none);
+  stroke-width: 2.2;
+}
+
+.wheel__flapper {
+  fill: var(--wheel-flapper-fill, none);
+  stroke: var(--wheel-flapper-stroke, none);
+  stroke-width: 1;
+}
