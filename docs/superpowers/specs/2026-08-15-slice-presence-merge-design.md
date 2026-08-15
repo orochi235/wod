@@ -76,6 +76,13 @@ registrations synchronously — before the `held → settle` re-render lands. A 
 caught mid-departure would otherwise register the angle it happened to be passing
 through. The layout angle is already what the settle is about to produce.
 
+That change means nothing until a second one lands with it: `useSpin` memoizes
+its ref callback per segment id, so the angle a wedge reports on its first render
+is the angle it keeps, however far the roster later moves it. The element is what
+has to be registered on mount; the angle has to be read when the spin is planned.
+This is a defect on `main` — a level label tilts after any roster change — and
+the merge only makes it reachable in more ways.
+
 **`paletteColor(index)` leaves `Wheel`.** `usePresence` assigns colors by id,
 which is what ends the recolor-on-departure the wheel has always had. A fallback
 in `Wheel` would only hide a missing assignment behind a plausible color.
@@ -111,10 +118,14 @@ invents, each checked by mutation:
   arc for the presence arc must fail it.
 - A departing wedge, gone from the composed roster, keeps its remembered layout
   arc.
-- The memory holds only what is drawn, so a session of churn does not accumulate
-  ids.
+- A spin counter-rotates by where a wedge is now, not by where it first mounted.
 - `levelRef` registers the layout angle. Registering the presence angle must fail
   it — that failure is invisible until someone spins mid-departure.
+
+The memory's prune gets no test. Nothing can read a stale entry: every id in the
+current layout is overwritten before the lookup runs, and the ids that fall
+through to the memory instead are exactly the ones still being drawn. It bounds
+the map across a session of churn and has no other observable effect.
 - A wedge with no authored color still gets a fill.
 
 Then a browser pass on `#/`, which is the only page that animates anything: arm a
