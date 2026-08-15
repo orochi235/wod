@@ -1290,13 +1290,11 @@ describe('wedge presence', () => {
     expect(wedges(container)).toEqual(['ana'])
   })
 
-  it('settles everything while a spin owns the wheel', () => {
+  it('settles everything while something else owns the wheel', () => {
     const { container, rerender } = render(
       <Wheel segments={[segment('ana'), segment('ben')]} transitions={transitions} />,
     )
-    rerender(
-      <Wheel segments={[segment('ana')]} transitions={transitions} isSpinning={true} />,
-    )
+    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} held={true} />)
     expect(wedges(container)).toEqual(['ana'])
     const wedge = container.querySelector('[data-segment-id="ana"]') as SVGGElement
     expect(wedge.style.opacity).toBe('1')
@@ -1313,7 +1311,7 @@ describe('wedge presence', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/transition/usePresence.test.tsx`
-Expected: FAIL — `Wheel` takes no `isSpinning`, and wedges carry no inline
+Expected: FAIL — `Wheel` takes no `held`, and wedges carry no inline
 opacity.
 
 - [ ] **Step 3: Write the hook**
@@ -1338,7 +1336,7 @@ function withColor(segments: Segment[]): Segment[] {
 export function usePresence(
   segments: Segment[],
   transitions: Transitions | undefined,
-  isSpinning: boolean,
+  held: boolean,
 ): Drawn[] {
   const tracks = useRef(new Map<string, Track>())
   const arcs = useRef(new Map<string, Arc>())
@@ -1350,7 +1348,7 @@ export function usePresence(
 
   // Rendering, not an effect: the first painted frame has to already show the
   // transition's start, or every arrival flashes at rest before it begins.
-  tracks.current = isSpinning
+  tracks.current = held
     ? settle(tracks.current)
     : advance({
         tracks: tracks.current,
@@ -1411,8 +1409,12 @@ export type WheelProps = {
   rotationDeg?: number
   rotorRef?: Ref<SVGGElement>
   transitions?: Transitions
-  /** A spin owns the geometry: presences settle and stay settled while it runs. */
-  isSpinning?: boolean
+  /**
+   * Something other than the roster owns the geometry, so presences settle and
+   * stay settled. A spin today; `useSpin` is growing a landed-frame hold that
+   * means the same thing, so this takes the condition rather than the cause.
+   */
+  held?: boolean
 }
 ```
 
@@ -1423,9 +1425,9 @@ export function Wheel({
   rotationDeg = 0,
   rotorRef,
   transitions,
-  isSpinning = false,
+  held = false,
 }: WheelProps) {
-  const drawn = usePresence(segments, transitions, isSpinning)
+  const drawn = usePresence(segments, transitions, held)
   const half = radius + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
 
@@ -1486,7 +1488,7 @@ In `src/App.tsx`, pass the flag the hook needs:
         segments={displaySegments}
         rotorRef={rotorRef}
         transitions={preset.transitions}
-        isSpinning={isSpinning}
+        held={isSpinning}
       />
 ```
 
