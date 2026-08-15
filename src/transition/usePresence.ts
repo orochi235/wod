@@ -28,7 +28,7 @@ export function usePresence(
   // Rendering, not an effect: the first painted frame has to already show the
   // transition's start, or every arrival flashes at rest before it begins.
   tracks.current = held
-    ? settle(tracks.current)
+    ? settle(colored)
     : advance({
         tracks: tracks.current,
         segments: colored,

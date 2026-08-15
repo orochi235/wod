@@ -1,9 +1,9 @@
 import type { Ref } from 'react'
+import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
-import { useEnter } from '../transition/useEnter'
-import { arcPath, arcs } from './geometry'
+import { usePresence } from '../transition/usePresence'
+import { arcPath } from './geometry'
 import { fitLabel } from './label'
-import { paletteColor } from './palette'
 import type { Segment } from './types'
 import './Wheel.css'
 
@@ -13,6 +13,12 @@ export type WheelProps = {
   rotationDeg?: number
   rotorRef?: Ref<SVGGElement>
   transitions?: Transitions
+  /**
+   * Something other than the roster owns the geometry, so presences settle and
+   * stay settled. Takes the condition rather than the cause: a running spin and
+   * a landed frame not yet released both mean it.
+   */
+  held?: boolean
 }
 
 /**
@@ -34,40 +40,38 @@ export function Wheel({
   rotationDeg = 0,
   rotorRef,
   transitions,
+  held = false,
 }: WheelProps) {
-  const layout = arcs(segments)
+  const drawn = usePresence(segments, transitions, held)
   const half = radius + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
-
-  const wedgeRef = useEnter(segments, transitions?.enter, radius)
 
   return (
     <svg className="wheel" viewBox={viewBox} role="img" aria-label="wheel">
       <g className="wheel__stage">
         <g className="wheel__rotor" transform={`rotate(${rotationDeg})`} ref={rotorRef}>
-          {layout.map((arc, index) => {
+          {drawn.map(({ segment, arc, presence }) => {
             const width = arc.end - arc.start
             if (!(width > 0)) return null
 
-            const segment = segments[index]
             const d = arcPath(arc.start, arc.end, radius)
             if (d === '') return null
 
-            const color = segment.color ?? paletteColor(index)
             const fitted = fitLabel(segment.label, width, radius)
             const midDeg = (arc.start + width / 2) * 360
             // Radial text reads upside down when its baseline points leftward on
             // screen. Flip those segments so every label reads left-to-right.
             const flipped = Math.cos(((midDeg + 90) * Math.PI) / 180) < 0
+            const style = styleOf(presence, { angle: midDeg, radius, pivot: radius * 0.6 })
 
             return (
               <g
                 key={segment.id}
                 className="wheel__wedge"
                 data-segment-id={segment.id}
-                ref={wedgeRef(segment.id)}
+                style={style}
               >
-                <path className="wheel__segment" d={d} fill={color} />
+                <path className="wheel__segment" d={d} fill={segment.color} />
                 {fitted && (
                   <text
                     className="wheel__label"

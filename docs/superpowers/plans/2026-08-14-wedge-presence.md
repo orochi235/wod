@@ -2124,7 +2124,7 @@ vitest config narrows its CSS stub so that import returns the file. Note the
 | 3 Give a transition its moment | `9e7e557` | spec + quality, fixes applied |
 | 4 Start, reverse, interrupt tracks | `ef22460` | spec + quality, fixes applied |
 | 5 Build the draw list | `ba98ba0`, `683690c`, `b9fcb88`, `34381e0` | spec + quality, fixes applied |
-| 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa` | not yet reviewed |
+| 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa`, `ac9f1e2` | spec + quality, fixes applied |
 
 `683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
 resting wedge. A consumer writing into a presence now throws at the write rather

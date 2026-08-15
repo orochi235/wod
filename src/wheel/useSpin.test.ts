@@ -725,6 +725,42 @@ describe('release and reset', () => {
     expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
   })
 
+  // `held` is what the wheel reads to decide whether to animate presences. It
+  // has to outlive isSpinning, or a landed frame animates against a roster this
+  // hook is deliberately ignoring.
+  it('reports the hold across a landing, and drops it on release', async () => {
+    const { result } = await land(PLAIN, swapped)
+    expect(result.current.isSpinning).toBe(false)
+    expect(result.current.held).toBe(true)
+
+    act(() => {
+      result.current.release()
+    })
+
+    expect(result.current.held).toBe(false)
+  })
+
+  it('reports the hold while a spin is still running', () => {
+    const { result } = renderSpin(PLAIN)
+    expect(result.current.held).toBe(false)
+
+    act(() => {
+      result.current.spin()
+    })
+
+    expect(result.current.held).toBe(true)
+  })
+
+  it('drops the hold on reset', async () => {
+    const { result } = await land(PLAIN)
+
+    act(() => {
+      result.current.reset()
+    })
+
+    expect(result.current.held).toBe(false)
+  })
+
   it('keeps the landing, so the announced winner outlives the hold', async () => {
     const { result } = await land(PLAIN, swapped)
     const landed = result.current.landing

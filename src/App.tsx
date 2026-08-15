@@ -59,7 +59,7 @@ export function App() {
     [preset.spin, resolved.morphs],
   )
 
-  const { displaySegments, isSpinning, landing, spin, release, reset, rotorRef } = useSpin(
+  const { displaySegments, isSpinning, held, landing, spin, release, reset, rotorRef } = useSpin(
     resolved.segments,
     config,
   )
@@ -108,7 +108,12 @@ export function App() {
 
   return (
     <main className="app">
-      <Wheel segments={displaySegments} rotorRef={rotorRef} transitions={preset.transitions} />
+      <Wheel
+        segments={displaySegments}
+        rotorRef={rotorRef}
+        transitions={preset.transitions}
+        held={held}
+      />
       <div className="app__controls">
         <button
           className="app__button"

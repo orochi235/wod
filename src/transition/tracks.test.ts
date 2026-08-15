@@ -471,13 +471,18 @@ describe('advance through drawList', () => {
 })
 
 describe('settle', () => {
-  it('drops exiting wedges and rests the rest', () => {
-    const entering = advance(input({ segments: [segment('ana'), segment('ben')], now: 0 }))
-    const exiting = advance(input({ tracks: entering, segments: [segment('ana')], now: 100 }))
-    const settled = settle(exiting)
+  it('drops everything off the roster and rests what is on it', () => {
+    const settled = settle([segment('ana')])
     const ana = settled.get('ana')
     expect(settled.has('ben')).toBe(false)
     expect(ana?.phase).toBe('present')
     expect(ana && sampleTrack(ana, 999)).toEqual(RESTING)
+  })
+
+  it('rests a wedge that was still arriving, rather than dropping it', () => {
+    // A spin can start against a roster whose wedges have not finished entering.
+    const settled = settle([segment('ana'), segment('ben')])
+    expect([...settled.keys()]).toEqual(['ana', 'ben'])
+    expect([...settled.values()].every((track) => track.phase === 'present')).toBe(true)
   })
 })

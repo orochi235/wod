@@ -306,14 +306,12 @@ export function drawList(
 }
 
 /**
- * Everything at its target, now. A spin owns the geometry it is about to plan
- * against, so nothing may still be arriving or leaving underneath it.
+ * Everything at its target, now. Built from the roster rather than from the
+ * tracks: a spin owns the geometry it is about to plan against, so the drawn set
+ * has to become exactly what it planned against, not whatever was mid-flight.
  */
-export function settle(tracks: Map<string, Track>): Map<string, Track> {
+export function settle(segments: Segment[]): Map<string, Track> {
   const next = new Map<string, Track>()
-  for (const [id, track] of tracks) {
-    if (track.phase === 'exiting') continue
-    next.set(id, restingTrack(track.segment))
-  }
+  for (const segment of segments) next.set(segment.id, restingTrack(segment))
   return next
 }
