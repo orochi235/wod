@@ -192,6 +192,11 @@ class is what groups them in the picker.
   default, this is the one to reach for when the wedge is fat enough to hold it.
 - **Changa One** — condensed heavy with flat terminals. Narrower than Anton, so it is
   what a fourteen-letter name falls back to before the size floor does.
+- **Limelight** — Art Deco caps, thin and wide. A title face; it cannot carry a name.
+- **Monoton** — inline, with the counters drawn as parallel strokes. Those strokes are
+  the case that proves outline mode: a stepwise glyph run breaks them at every seam.
+- **Special Elite** — distressed typewriter. Its roughened edges are outline detail, so
+  it costs more to warp than any other face here.
 
 *Woodtype and slab* — the show's own register:
 
@@ -227,6 +232,8 @@ class is what groups them in the picker.
   sets acceptably in glyph mode.
 - **Great Vibes** — formal calligraphy with long joins and swashes. The strongest case
   for outline mode and the worst case without it.
+- **Eagle Lake** — hand-lettered with heavy swashes and a tall ascender. Unjoined, so it
+  survives glyph mode, but the swashes overlap their neighbours' slots.
 
 Because outline mode can only warp a face we bundle, `font` is an id from the registry
 and never a raw family string: a free string would let a part silently render unwarped.
