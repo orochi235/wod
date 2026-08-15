@@ -2104,12 +2104,39 @@ did not, there is nothing to commit and the plan is done.
 
 ## Where execution stopped
 
-Tasks 1-8 are committed on `feat/wedge-presence-impl`, which has `main` merged
-in as of `3a6b9f4`. Tasks 9-10 have not been started. Baseline: 59 test files,
-813 tests, `npm run build` and `npx biome check .` clean. Verified in a browser
-as of Task 7: wedges paint, the custom properties resolve to real computed
-values, and a `fly` entrance travels along each wedge's own radius. Nothing has
-armed `shrink` in a browser yet — Task 9 is what puts it in reach of the editor.
+The plan is done. Every task is committed on `feat/wedge-presence-impl`, which
+has `main` merged in as of `3a6b9f4`. Baseline: 59 test files, 827 tests,
+`npm run build` and `npx biome check .` clean.
+
+Task 11 verified all of it on the show page, sampling the drawn arcs per frame:
+a `shrink` departure closes its arc while the neighbors take the space back
+continuously, the drop frame is invisible (the leaver is at 0.1° and opacity
+0.001 when it goes), an exit interrupting a `fly` entrance continues from the
+sample it caught rather than snapping to rest, a reversal turns around with only
+ever one element for that wedge, and a spin mid-departure snaps the wheel to the
+composed roster in the same frame and names a winner on it.
+
+**The pass has to run on `#/`, not in the editor.** `Editor.tsx` renders
+`<Wheel segments={shown} rotorRef={rotorRef} />` with no `transitions` prop, so
+the editor's own preview drops a departing wedge instantly no matter what the
+panel is set to — the panel arms what the show window will do, and shows none of
+it. Whether the preview should animate is a question for the next plan; nothing
+in the spec asks for it. The roster changes above were driven by writing the
+preset and dispatching a `storage` event, which is what an edit in the other
+window delivers.
+
+Task 11 found the one defect the plan had left open, now fixed in `0ce4d4f`:
+**a reversal reopened its whole arc on its first frame.** `sampleTrack` assigned
+the phase default for a transition that declares no `hold`, so `fly` catching a
+half-shrunk wedge returned 22° of arc in one frame while its opacity was still
+turning around. An arrival now ramps from `base.hold`; an exit keeps the flat
+default, which is what makes a `fade` release its arc at once and be drawn as a
+ghost. A fresh arrival is unaffected — its base is `RESTING`.
+
+Left alone: an exit interrupting a `fly` freezes the offset it caught, so the
+wedge closes while still displaced outward. That is `samplePresence`
+interpolating from the base wherever the frames are silent, and `shrink` says
+nothing about `offset`.
 
 Task 8 settled the curve question Task 7 left open: **a transition authors its
 own.** `frames()` may return an `easing`, which rides onto the track and drives
@@ -2147,11 +2174,9 @@ all fixed:
 Left open, with reasons:
 
 - **A transition that declares no `hold` interrupting one that does snaps the
-  geometry.** `sampleTrack` assigns the phase default rather than ramping from
-  the chained base, so reversing a half-shrunk wedge with `fade` returns its
-  whole arc in one frame. Only an imported preset reaches it today, since the
-  panel arms `enter` alone until Task 9. Ramping from `base.hold` is the likely
-  fix and is a design change, not a repair.
+  geometry.** Fixed in Task 11 once the panel could arm both moments and a
+  browser showed it: an arrival ramps from `base.hold`, an exit keeps the flat
+  default.
 - **`hold` is relative, so `shrink` at `enter` is a no-op on a first paint.**
   `arcs()` normalizes, and when every wedge shares a hold no arc moves: the
   wheel is blank for one frame, then every wedge appears at full arc with only
@@ -2174,6 +2199,14 @@ Task 7 departed from the plan in three places, each recorded in its commits:
   flattened every arrival. `EASINGS` moved to `keyframes/easing.ts` on the
   precedent `bracket` set. Landed in its own commit from the render wiring,
   since it shifts values six earlier tests pin.
+
+Task 9's prescribed "offers only transitions that serve the moment" test does
+not hold the rule it names: every registered transition serves both membership
+moments, so deleting the filter leaves it green. A stand-in registry supplied
+through `vi.doMock` holds it instead, and will keep holding it when the first
+wheel-scope transition arrives. Each field row is labeled the same in both
+moments, so an edit landing on the wrong one would be invisible on screen as
+well — `arm`, `edit` and `without` each have a mutation guard now.
 
 Tasks 9-10 should read the amended Task 7 above rather than trusting the
 prescribed code. **Stale snippets:** Task 7's `Wheel.tsx` and `App.tsx`; Task
@@ -2233,6 +2266,9 @@ vitest config narrows its CSS stub so that import returns the file. Note the
 | 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa`, `adcb8bf` | spec + quality, fixes applied |
 | 7 Run the clock and draw it | `3b7db08`, `991a602`, `3d8987d`, `51774d6` | spec + quality, fixes applied |
 | 8 The shrink transition | `60bdb53`, `d6dd571`, `+ fixes` | spec + quality, fixes applied |
+| 9 Arm a transition per moment | `0723de6` | mutation-checked |
+| 10 Pin the selection guard | `395a76b` | mutation-checked |
+| 11 See it move | `0ce4d4f` | browser pass |
 
 `683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
 resting wedge. A consumer writing into a presence now throws at the write rather
@@ -2308,6 +2344,10 @@ done.
 
 ## What this leaves for the next plan
 
+- The editor preview animates nothing: its `<Wheel>` takes no `transitions`, so
+  the operator arms a transition in one window and can only watch it in the
+  other. Wiring it means deciding what `held` means there, since the preview has
+  no spin of its own to hold against.
 - `spin` and `reveal`, and the two wheel-scope transitions (`shutter`, `zoom`),
   which need the stage wrapper the entrance plan added but nothing else new.
 - Transitions that turn one wedge into many — shards, particles, trails. They
