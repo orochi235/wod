@@ -153,9 +153,16 @@ with the catalogue. And the files are self-hosted rather than pulled from a font
 the parser has to fetch the same binary the stylesheet uses, and a wheel that stops
 setting type when a third party is unreachable is not a wheel.
 
-The picker draws its menu in the UI font and loads a face when it is chosen. Twenty
-previews would otherwise fetch twenty files to render a dropdown nobody has picked from
-yet.
+The picker shows each face as a **pre-baked specimen path** — one short run, set in that
+face and baked to SVG outlines at build time. A whole menu of twenty is a few KB and
+loads no fonts at all, where drawing the previews live would fetch twenty files for a
+dropdown nobody has opened.
+
+This is not the build-time baking rejected above, and the difference is the whole reason
+it is safe: a specimen is a picture, not a source of metrics. Nothing measures it, no
+wedge is fitted from it, and a stale one shows a slightly wrong preview rather than
+setting a name two different ways. Regenerating the specimens is a script run when a face
+is added, and its output is committed.
 
 Four faces to start, all OFL. Nothing is loaded until a part names it, so a plain wheel
 fetches one face and a look that never reaches for the woodtype never pays for it:
