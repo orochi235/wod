@@ -164,16 +164,40 @@ wedge is fitted from it, and a stale one shows a slightly wrong preview rather t
 setting a name two different ways. Regenerating the specimens is a script run when a face
 is added, and its output is committed.
 
-Four faces to start, all OFL. Nothing is loaded until a part names it, so a plain wheel
-fetches one face and a look that never reaches for the woodtype never pays for it:
+Twelve faces to start, all OFL. Nothing is loaded until a part names it, so a plain wheel
+fetches one face and a look that never reaches for the woodtype never pays for it. The
+class is what groups them in the picker.
 
-- **Anton** — the default. Condensed, heavy, and the one that stays legible at fourteen
-  letters in a wedge.
+*Display* — heavy and condensed, which is what a wedge wants:
+
+- **Anton** — the default. The one that stays legible at fourteen letters in a wedge.
+- **Oswald** — condensed, and lighter than Anton, so a long name keeps its counters.
+- **Bebas Neue** — caps only, and narrower still. Its lowercase is small caps, so it is
+  the wrong face for anything read as a sentence.
+- **Black Ops One** — stencil. Reads as a prize rather than a name.
+- **Gravitas One** — fat Didone. Extreme stroke contrast, so it thins out below about
+  sixteen units and wants the outer band.
+
+*Woodtype and slab* — the show's own register:
+
 - **Rye** — western woodtype with inline detail and spurred serifs. The BANKRUPT face.
   Muddies at small sizes, so it suits short authored words rather than names.
 - **Bevan** — condensed slab. The woodtype that survives a long name.
 - **Alfa Slab One** — the boldest and clearest of the slabs, and the widest, so it wants
   short words or fat wedges.
+
+*Serif*:
+
+- **Cinzel** — inscriptional Roman capitals. Formal, and light, so it needs stretch.
+- **Bodoni Moda** — Didone with an optical size axis. The variable axis is not exposed;
+  the registry names one instance.
+
+*Script* — for a caption or a single word, never a roster of names:
+
+- **Lobster** — connected brush script. Its joins break at the letter seams, so it is
+  glyph mode's worst case and outline mode's best argument.
+- **Shadows Into Light** — thin handwriting. Below the largest sizes it disappears
+  against a busy wedge.
 
 Because outline mode can only warp a face we bundle, `font` is an id from the registry
 and never a raw family string: a free string would let a part silently render unwarped.
@@ -238,9 +262,8 @@ on it — `shape` simply defaults to `glyphs` until it lands.
 
 ## Open
 
-- Which face to bundle, if outline mode is built. It needs a heavy display weight to read
-  at wedge sizes and a licence permitting baked outlines; Anton or Archivo Black (both
-  OFL) are the obvious candidates. Whatever is chosen also becomes the wheel's label face
-  in glyph mode, or the two shapes would set the same name differently.
+- Whether a script face is worth warping. Lobster's joins are what outline mode exists
+  to fix, and also the case where a stepwise glyph run looks worst; decide by looking at
+  the two shapes side by side rather than by argument.
 - Whether `archedRim` should also warp its outlines. The lean is subtler on an arc than
   on a converging wedge, so glyph mode may be enough; decide by looking at it.
