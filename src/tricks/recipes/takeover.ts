@@ -146,7 +146,7 @@ export const takeover: Recipe = {
     const othersTotal = others.reduce((sum, segment) => sum + segment.weight, 0)
 
     const writes: Write[] = [{ segmentId: id, property: 'weight' }]
-    if (readOptionalString(params, 'endColor') && ctx.segments.some((s) => s.id === id)) {
+    if (readOptionalString(params, 'endColor')) {
       writes.push({ segmentId: id, property: 'color' })
     }
     if (takesWholeCircle(readUnit(params, 'endShare', 1), othersTotal)) {
