@@ -51,14 +51,13 @@ function inFlight(track: Track, now: number): boolean {
 
 function progressOf(track: Track, now: number): number {
   const elapsed = now - track.startedAt - track.delayMs
+  if (track.durationMs <= 0) return elapsed < 0 ? 0 : 1
   if (elapsed <= 0) return 0
-  return track.durationMs <= 0 ? 1 : Math.min(1, elapsed / track.durationMs)
+  return Math.min(1, elapsed / track.durationMs)
 }
 
 export function sampleTrack(track: Track, now: number): Presence {
   if (track.phase === 'present') return RESTING
-  // Eased here because nothing in a keyframe list carries easing, and the WAAPI
-  // path this replaced passed `ease-out` to animate().
   const p = EASINGS[track.easing ?? 'easeOut'](progressOf(track, now))
   // A wedge waiting out its stagger delay sits at p 0, which is its interrupted
   // sample once a zero frame has been dropped and its declared start otherwise.

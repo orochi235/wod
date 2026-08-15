@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Segment } from '../wheel/types'
+import { REDUCED_MOTION_MS } from '../wheel/useSpin'
 import { RESTING } from './sample'
 import { advance, drawList, sampleTrack, settle } from './tracks'
 import type { Track } from './tracks'
@@ -11,6 +12,14 @@ const enterOnly: Transitions = { enter: { id: 'fade', params: { staggerMs: 0 } }
 const both: Transitions = {
   enter: { id: 'fade', params: { staggerMs: 0, durationMs: 400 } },
   exit: { id: 'fade', params: { staggerMs: 0, durationMs: 400 } },
+}
+
+const arriving: Transitions = {
+  enter: { id: 'shrink', params: { durationMs: 400, staggerMs: 0 } },
+}
+
+const shrinking: Transitions = {
+  exit: { id: 'shrink', params: { durationMs: 400, staggerMs: 0 } },
 }
 
 const staggered: Transitions = {
@@ -419,12 +428,25 @@ describe('sampleTrack', () => {
   })
 
   it('carries that curve from the transition onto an arriving track', () => {
-    const arriving: Transitions = {
-      enter: { id: 'shrink', params: { durationMs: 400, staggerMs: 0 } },
-    }
     const start = advance(input({ transitions: arriving, now: 0 }))
     const ana = start.get('ana')
     expect(ana && sampleTrack(ana, 200).hold).toBeCloseTo(0.5)
+  })
+
+  it('keeps an arriving wedge on its curve once a frame re-advances it', () => {
+    const start = advance(input({ transitions: arriving, now: 0 }))
+    const again = advance(input({ tracks: start, transitions: arriving, now: 100 }))
+    const ana = again.get('ana')
+    expect(ana && sampleTrack(ana, 200).hold).toBeCloseTo(0.5)
+  })
+
+  it('finishes a zero-duration transition on the frame it starts', () => {
+    // progressOf sees elapsed 0 there, which is the same reading as "not started
+    // yet" — and a shrink stuck at p 0 holds no arc, so the wheel draws nothing.
+    const instant: Transitions = { enter: { id: 'shrink', params: { durationMs: 0 } } }
+    const start = advance(input({ transitions: instant, now: 0 }))
+    const ana = start.get('ana')
+    expect(ana && sampleTrack(ana, 0).hold).toBe(1)
   })
 
   it('hands back the shared resting presence for a settled wedge', () => {
@@ -494,9 +516,6 @@ describe('advance through drawList', () => {
   })
 
   it('gives a shrinking wedge less arc and its neighbor more', () => {
-    const shrinking: Transitions = {
-      exit: { id: 'shrink', params: { durationMs: 400, staggerMs: 0 } },
-    }
     const start = advance(
       input({ segments: [segment('ana'), segment('ben')], transitions: shrinking, now: 0 }),
     )
@@ -516,6 +535,56 @@ describe('advance through drawList', () => {
     expect(ben?.presence.hold).toBeCloseTo(0.5)
     // ana is 1, ben is 0.5, so ana takes two thirds of the circle.
     expect(ana && ana.arc.end - ana.arc.start).toBeCloseTo(2 / 3)
+  })
+
+  it('keeps a departing wedge on its keyframes and curve as frames re-advance it', () => {
+    const start = advance(
+      input({ segments: [segment('ana'), segment('ben')], transitions: shrinking, now: 0 }),
+    )
+    const leaving = advance(
+      input({
+        tracks: start,
+        segments: [segment('ana')],
+        arcs: drawList(start, 0).arcs,
+        transitions: shrinking,
+        now: 0,
+      }),
+    )
+    const again = advance(
+      input({
+        tracks: leaving,
+        segments: [segment('ana')],
+        arcs: drawList(leaving, 100).arcs,
+        transitions: shrinking,
+        now: 100,
+      }),
+    )
+    const ben = again.get('ben')
+    expect(ben && sampleTrack(ben, 200).hold).toBeCloseTo(0.5)
+  })
+
+  it('releases a shrinking wedge at once under reduced motion', () => {
+    const start = advance(
+      input({
+        segments: [segment('ana'), segment('ben')],
+        transitions: shrinking,
+        reduced: true,
+        now: 0,
+      }),
+    )
+    const leaving = advance(
+      input({
+        tracks: start,
+        segments: [segment('ana')],
+        arcs: drawList(start, 0).arcs,
+        transitions: shrinking,
+        reduced: true,
+        now: 0,
+      }),
+    )
+    const ben = leaving.get('ben')
+    expect(ben?.durationMs).toBe(REDUCED_MOTION_MS)
+    expect(ben && sampleTrack(ben, 0).hold).toBe(0)
   })
 })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TRANSITION_LIST, getTransition } from './registry'
+import { TRANSITIONS, TRANSITION_LIST, getTransition } from './registry'
 
 describe('getTransition', () => {
   it('finds a transition by id', () => {
@@ -21,5 +21,11 @@ describe('getTransition', () => {
     for (const transition of TRANSITION_LIST) {
       expect(getTransition(transition.id)).toBe(transition)
     }
+  })
+
+  // The editor builds its menu from the list alone, so one missing from it is
+  // unreachable while every other test still resolves it through TRANSITIONS.
+  it('lists every transition it holds', () => {
+    expect(TRANSITION_LIST.map((transition) => transition.id)).toEqual(Object.keys(TRANSITIONS))
   })
 })

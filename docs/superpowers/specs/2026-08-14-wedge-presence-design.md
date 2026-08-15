@@ -126,7 +126,18 @@ type Transition = {
   // …as before, plus:
   moments: Moment[]
 }
+
+type TransitionFrames = {
+  // …as before, plus:
+  easing?: EasingName
+}
 ```
+
+A transition authors the curve its own motion runs on, returned from `frames()`
+alongside the keyframes; absent means `easeOut`. It is returned rather than
+declared on the transition so that a curve can differ by moment, or be read out
+of a param the transition exposes as a field — neither of which the sampler has
+to know about.
 
 ## Defaults
 

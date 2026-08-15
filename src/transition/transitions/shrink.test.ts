@@ -26,6 +26,14 @@ describe('shrink', () => {
     expect(keyframes[keyframes.length - 1].hold).toBe(1)
   })
 
+  it('takes its paint up over that same entrance', () => {
+    const { keyframes } = shrink.frames({}, ctx('enter'))
+    expect(keyframes[0].scale).toBe(0)
+    expect(keyframes[0].opacity).toBe(0)
+    expect(keyframes[keyframes.length - 1].scale).toBe(1)
+    expect(keyframes[keyframes.length - 1].opacity).toBe(1)
+  })
+
   it('scales with the arc so the wedge does not stretch', () => {
     const { keyframes } = shrink.frames({}, ctx('exit'))
     expect(keyframes[keyframes.length - 1].scale).toBe(0)

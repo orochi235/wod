@@ -2126,6 +2126,40 @@ Each new rule was mutation-checked. The prescribed tests already held the exit
 half of the easing wire and `shrink`'s own declaration, but the enter half and
 `shrink`'s opening opacity both survived deletion, so each gained a test.
 
+Task 8's review found no defect in the shipped behavior and four gaps around it,
+all fixed:
+
+- **`shrink`'s entrance could be reversed with the suite green.** Only its `hold`
+  ends were asserted, so hardcoding the exit's `scale` and `opacity` — an
+  arrival that starts at full paint and finishes invisible — passed 813 tests.
+  This is the standing lesson repeating one task later.
+- **A track re-advanced on a later frame could lose its curve or its whole
+  keyframe list.** Every multi-frame test read `phase` or a label, never a
+  sampled value, so the passthrough branches of `advance` were unguarded.
+- **`durationMs: 0` blanked the wheel.** `progressOf` read `elapsed <= 0` before
+  it read the duration, so a zero-duration track sat at p 0 on the frame it
+  started; `isDone` was already true, so no rAF frame was scheduled to move it.
+  Cosmetic for `fade`, and no arcs at all for a transition declaring `hold`.
+  The duration field's minimum is 0, so the editor reaches it.
+- **`shrink` was named for its exit only** — "Wedges shrink away" under the
+  panel's "Wedges arriving". Both moments now read from one name.
+
+Left open, with reasons:
+
+- **A transition that declares no `hold` interrupting one that does snaps the
+  geometry.** `sampleTrack` assigns the phase default rather than ramping from
+  the chained base, so reversing a half-shrunk wedge with `fade` returns its
+  whole arc in one frame. Only an imported preset reaches it today, since the
+  panel arms `enter` alone until Task 9. Ramping from `base.hold` is the likely
+  fix and is a design change, not a repair.
+- **`hold` is relative, so `shrink` at `enter` is a no-op on a first paint.**
+  `arcs()` normalizes, and when every wedge shares a hold no arc moves: the
+  wheel is blank for one frame, then every wedge appears at full arc with only
+  scale and opacity animating. The reflow reads only when holds differ. Task 9
+  will show this in a browser; it is not a bug to chase.
+- **A solo wedge cannot shrink** — it holds the whole circle at every `hold`
+  above 0, then lands on a full-circle ghost.
+
 Task 7 departed from the plan in three places, each recorded in its commits:
 
 - **`held` comes from `useSpin`, not from `isSpinning`.** `6bae2a1` on `main`
@@ -2165,9 +2199,9 @@ Two things left open on purpose:
 
 - **Easing is one global `easeOut` for every transition and both moments.**
   Settled in Task 8: a transition may declare its own, and `easeOut` is what
-  absent means. Still open underneath it — the curve is per transition, not per
-  moment, though `frames()` sees `ctx.moment` and so could split them if a
-  transition ever wants to.
+  absent means. Because the curve comes back from `frames()`, which sees
+  `ctx.moment` and the params, it can already differ by moment or be read from a
+  field — `shrink` simply returns the same curve for both.
 - **The `held` wire from `App` to `Wheel` is untested.** Both `held={isSpinning}`
   and dropping the prop survive mutation. Each end is covered; the wire is not.
   Constructing an observable divergence needs `displaySegments` to change while
@@ -2198,7 +2232,7 @@ vitest config narrows its CSS stub so that import returns the file. Note the
 | 5 Build the draw list | `ba98ba0`, `683690c`, `b9fcb88`, `34381e0` | spec + quality, fixes applied |
 | 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa`, `adcb8bf` | spec + quality, fixes applied |
 | 7 Run the clock and draw it | `3b7db08`, `991a602`, `3d8987d`, `51774d6` | spec + quality, fixes applied |
-| 8 The shrink transition | `60bdb53`, `d6dd571` | not yet reviewed |
+| 8 The shrink transition | `60bdb53`, `d6dd571`, `+ fixes` | spec + quality, fixes applied |
 
 `683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
 resting wedge. A consumer writing into a presence now throws at the write rather

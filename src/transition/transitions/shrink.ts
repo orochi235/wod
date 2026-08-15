@@ -5,8 +5,8 @@ const STAGGER_MS = 0
 
 export const shrink: Transition = {
   id: 'shrink',
-  name: 'Wedges shrink away',
-  description: 'The arc itself closes, and the wedges beside it grow into the space.',
+  name: 'Wedges open and close',
+  description: 'The arc itself opens or closes, and the wedges beside it move over.',
   scope: 'wedge',
   moments: ['enter', 'exit'],
   defaults: { durationMs: 500, staggerMs: STAGGER_MS },
