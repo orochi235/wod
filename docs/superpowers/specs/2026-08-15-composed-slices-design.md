@@ -31,6 +31,8 @@ type SlicePart = {
   stretch?: 'none' | 'fill' | number
   /** How the run is drawn. Default 'glyphs'. */
   shape?: 'glyphs' | 'outline'
+  /** A registry id. Absent means the theme's default face. */
+  font?: FontId
   maxSize?: number
   frame?: Frame
 }
@@ -48,6 +50,10 @@ baseline on an arc just inside the rim) beside today's `radial`, `tangential`, `
 
 The params are the freeform shape from the start. The editor caps the list at three
 parts; lifting that cap later is a UI change and not a data migration.
+
+A band that runs to the hub tapers itself into unreadability — the chord goes to zero, so
+the last letters hit the size floor. Type belongs in the outer half; the WoF theme's own
+parts should stop around 0.45.
 
 Parts do not negotiate for space. Each owns its band outright, overlap is the author's
 business, and nothing reflows when a neighbouring part changes — a part's position is a
@@ -105,31 +111,56 @@ made in the pure layer.
 
 ## Where outlines come from
 
-One bundled face, two readers of it:
+The font file, parsed on demand, cached per glyph. Nothing is baked at build time.
 
-- A build step bakes a Latin-1, digits and punctuation subset into JSON path commands.
-  A few KB, no parser at runtime, and the common case never waits.
-- A parser (opentype.js) lazy-loads on first demand for a character outside the subset.
+No browser API hands back a glyph's outline — canvas gives advances and bounding boxes,
+`document.fonts` gives the file's identity, and SVG cannot extract a path from `<text>`.
+So outline mode fetches the face and parses it (opentype.js), lazily: glyph mode never
+pays for the parser, and a face is parsed once. Glyph paths are memoised by face and
+character, so a roster of repeating letters costs one parse each.
 
-**Both read advances from the same font file.** Metrics agreeing is a property of the
-setup, not a thing to remember: bake from the file the parser loads, and a word fits
-identically whichever path drew it. A test asserts that agreement on the subset, because
-the failure — the same name fitting two different ways depending on load order — is
-invisible until someone screenshots it.
+A build-time subset was considered and rejected. It buys a smaller first load for outline
+mode, and costs a second source of metrics — a word would fit one way from the baked JSON
+and another from the parser, a difference invisible until someone screenshots it. One
+source cannot disagree with itself.
 
-Using a real font's metrics is also why `typeset` becomes exactly testable: today's
+Using the face's own metrics is also why `typeset` becomes exactly testable: today's
 advances come from canvas measurement, which jsdom fakes.
 
-A character no outline source can supply — an emoji, most obviously, which a text face
-does not carry — drops **the whole part** to glyph mode. One missing character never
-leaves a half-warped word, and never changes what the wedge says.
+**Parsing is async, so a part in outline mode renders in glyph mode until its face is
+ready.** The face is requested when the theme resolves, not when the first wedge draws,
+so the one swap lands at load and never mid-spin.
+
+A character the face does not carry — an emoji, most obviously — drops **the whole part**
+to glyph mode. One missing character never leaves a half-warped word, and never changes
+what the wedge says.
+
+## Which face
+
+Faces live in a registry, on the precedent `src/slice/registry.ts` and
+`src/transition/registry.ts` set: an id, a display name, and the file to load. A part
+carries `font?: FontId` and falls back to the theme's default, so adding a third face is
+a registry entry and a file — no type changes, and a wedge can reach for any bundled face
+rather than only the ones its theme nominated.
+
+Two faces to start, both OFL:
+
+- **Anton** — the default. Condensed, heavy, and the only candidate that stays legible at
+  fourteen letters in one wedge.
+- **Rye** — the woodtype, for short authored words like BANKRUPT. Its inline detail
+  muddies at small sizes, which is why it is not the default and why nothing long should
+  be set in it. Bevan is the fallback choice if that proves too fragile.
+
+Because outline mode can only warp a face we bundle, `font` is an id from the registry
+and never a raw family string: a free string would let a part silently render unwarped.
 
 ## Modules
 
 | File | Responsibility |
 | --- | --- |
 | `src/slice/typeset.ts` | *new* — pure. A part and a context to concrete placements: the solve, the caps, fan, stretch, direction. |
-| `src/slice/outline.ts` | *new* — pure. Placements to one warped `d`. Owns the baked subset and the lazy parser behind one lookup. |
+| `src/slice/outline.ts` | *new* — placements to one warped `d`. Pure given a glyph source; owns the memo, not the fetch. |
+| `src/slice/fonts/registry.ts` | *new* — `FONTS`, `FONT_LIST`, `getFont`. Loads and parses a face once, on demand. |
 | `src/slice/layouts/composed.ts` | *new* — reads `parts`, maps each through `typeset`, concatenates the elements. |
 | `src/slice/layouts/{radial,tangential,curved}.ts` | Keep their ids, names, fields and defaults; each becomes a one-part composition. One code path. |
 | `src/slice/layouts/auto.ts` | Unchanged in spirit: still chooses an orientation by what fits. |
