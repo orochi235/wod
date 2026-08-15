@@ -44,8 +44,9 @@ export function assignColors(
   state: ColorState,
 ): { segments: Segment[]; colors: Map<string, string> } {
   const { previous, retained, choose } = state
-  const keep = new Set<string>(retained)
-  for (const segment of segments) keep.add(segment.id)
+  const present = new Set<string>()
+  for (const segment of segments) present.add(segment.id)
+  const keep = new Set<string>([...retained, ...present])
 
   const authored = new Set<string>()
   for (const segment of segments) {
@@ -54,7 +55,7 @@ export function assignColors(
 
   const colors = new Map<string, string>()
   for (const [id, color] of previous) {
-    if (keep.has(id) && !authored.has(color)) colors.set(id, color)
+    if (keep.has(id) && !(present.has(id) && authored.has(color))) colors.set(id, color)
   }
 
   const taken = new Set<string>([...colors.values(), ...authored])

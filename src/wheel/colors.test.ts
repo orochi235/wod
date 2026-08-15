@@ -76,9 +76,16 @@ describe('assignColors', () => {
   })
 
   it('does not mutate the previous map', () => {
-    const previous = new Map<string, string>([['ana', DEFAULT_PALETTE[0]]])
+    const previous = new Map<string, string>([
+      ['ana', DEFAULT_PALETTE[0]],
+      ['ben', DEFAULT_PALETTE[1]],
+    ])
     const snapshot = new Map(previous)
-    assignColors([segment('ana')], NO_ORIGINS, { previous, retained: new Set<string>() })
+    assignColors([segment('ana'), segment('cy')], NO_ORIGINS, {
+      previous,
+      retained: new Set<string>(),
+      choose: (s) => (s.id === 'ana' ? '#123456' : undefined),
+    })
     expect(previous).toEqual(snapshot)
   })
 
@@ -93,6 +100,22 @@ describe('assignColors', () => {
     expect(second.segments.find((s) => s.id === 'ana')?.color).not.toBe(
       second.segments.find((s) => s.id === 'beer')?.color,
     )
+  })
+
+  it('keeps an exiting wedge reserved when another wedge briefly authors its color', () => {
+    const first = assignColors([segment('ana'), segment('ben')], NO_ORIGINS, fresh)
+    const bens = first.segments.find((s) => s.id === 'ben')?.color as string
+
+    const second = assignColors([segment('ana'), segment('beer', bens)], NO_ORIGINS, {
+      previous: first.colors,
+      retained: new Set(['ben']),
+    })
+
+    const third = assignColors([segment('ana'), segment('cy')], NO_ORIGINS, {
+      previous: second.colors,
+      retained: new Set(['ben']),
+    })
+    expect(third.segments.find((s) => s.id === 'cy')?.color).not.toBe(bens)
   })
 })
 
