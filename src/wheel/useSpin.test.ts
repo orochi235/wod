@@ -668,3 +668,105 @@ describe('landing', () => {
     expect(result.current.landing?.winner.label).toBe('after')
   })
 })
+
+describe('release and reset', () => {
+  let harness: Harness
+
+  beforeEach(() => {
+    harness = installHarness()
+  })
+
+  afterEach(() => {
+    Reflect.deleteProperty(Element.prototype, 'animate')
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  const swapped: Segment[] = [
+    { id: 'zed', label: 'Zed', weight: 1 },
+    { id: 'yan', label: 'Yan', weight: 3 },
+  ]
+
+  /** Spins to a landing, with `segs` swapped underneath while the wheel turns. */
+  async function land(config: SpinConfig, segs?: Segment[]) {
+    const view = renderSpin(config)
+    act(() => {
+      view.result.current.spin()
+    })
+    if (segs) view.rerender({ segs })
+    await act(async () => {
+      harness.animateCalls[0].finish()
+    })
+    return view
+  }
+
+  // The bug this exists to prevent: a live roster stops reaching the wheel the
+  // moment it lands, and only a spin can ever start it again.
+  it('lets a roster held through the landing reach the wheel', async () => {
+    const { result } = await land(PLAIN, swapped)
+    expect(result.current.displaySegments).toEqual(SEGMENTS)
+
+    act(() => {
+      result.current.release()
+    })
+
+    expect(result.current.displaySegments).toEqual(swapped)
+  })
+
+  it('keeps the landed frame when nothing arrived to replace it', async () => {
+    const { result } = await land(MORPHING)
+
+    act(() => {
+      result.current.release()
+    })
+
+    // Release lifts the hold; it does not redraw. The sliver that swallowed the
+    // wheel stays until the roster actually changes.
+    expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
+  })
+
+  it('keeps the landing, so the announced winner outlives the hold', async () => {
+    const { result } = await land(PLAIN, swapped)
+    const landed = result.current.landing
+
+    act(() => {
+      result.current.release()
+    })
+
+    expect(result.current.landing).toEqual(landed)
+  })
+
+  it('follows a roster that arrives after a release', async () => {
+    const { result, rerender } = await land(PLAIN)
+
+    act(() => {
+      result.current.release()
+    })
+    rerender({ segs: swapped })
+
+    expect(result.current.displaySegments).toEqual(swapped)
+  })
+
+  it('redraws the live roster on reset, morph and all', async () => {
+    const { result } = await land(MORPHING)
+
+    act(() => {
+      result.current.reset()
+    })
+
+    // Unlike release, reset is the operator saying the landing is over, so the
+    // morphed frame goes even though no new roster arrived to displace it.
+    expect(result.current.displaySegments).toEqual(SEGMENTS)
+  })
+
+  it('clears the landing on reset', async () => {
+    const { result } = await land(PLAIN)
+    expect(result.current.landing).not.toBeNull()
+
+    act(() => {
+      result.current.reset()
+    })
+
+    expect(result.current.landing).toBeNull()
+  })
+})
