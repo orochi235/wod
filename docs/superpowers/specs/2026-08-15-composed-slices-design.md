@@ -31,6 +31,8 @@ type SlicePart = {
   stretch?: 'none' | 'fill' | number
   /** How a glyph the chord cannot hold gives way. Default 'proportional'. */
   shrink?: 'proportional' | 'condense'
+  /** Set the resolved content in capitals, whatever case it arrived in. */
+  caps?: boolean
   /** How the run is drawn. Default 'glyphs'. */
   shape?: 'glyphs' | 'outline'
   /** A registry id. Absent means the theme's default face. */
@@ -57,6 +59,12 @@ A band that runs to the hub tapers itself into unreadability — the chord goes 
 the last letters hit the size floor. Type belongs in the outer half; the WoF theme's own
 parts should stop around 0.45.
 
+A wedge with nothing configured draws two parts — given name on an arc inside the rim,
+surname in capitals down the wedge. A full name in one run is bad at the size a roster
+needs, whichever orientation it takes: horizontal it is bounded by the chord, and stacked
+it solves below the floor. Splitting it is what makes both halves legible, and it is the
+smallest composition that shows why parts exist at all.
+
 Parts do not negotiate for space. Each owns its band outright, overlap is the author's
 business, and nothing reflows when a neighbouring part changes — a part's position is a
 property of the part, so a look holds still as names come and go.
@@ -75,8 +83,17 @@ division per pass rather than a search: `unit = bandLength / Σ(weight × step)`
 re-weights by the chord at each glyph's settled radius and repeats; a handful of passes
 converge.
 
-**No glyph exceeds the chord at its own radius.** The wedge narrows toward the hub, and
-a letter sized for the rim overruns the sides further in.
+**No glyph crosses a wedge edge at its own corners.** The wedge narrows toward the hub, so
+a letter sized for the rim overruns the sides further in. Its corners, not its centre: a
+glyph reaches inward as well as across, and the corner nearest the hub is the one that
+crosses first. And the sides are straight, so the room at a given depth is the tangent —
+taking the chord at the centre radius understates the room and overstates the depth at
+once, which is how a filled run came to sit several degrees outside its wedge.
+
+A glyph reserves the em its face *inks*, ascender to descender, not the cap height. The
+solve does not know whether a descender is coming, and a run of capitals that reserved
+only for capitals is a run that overflows the moment someone joins with a `y` in their
+name.
 
 **A word never truncates; it shrinks to `MIN_SIZE` and stops.** Dropping letters changes
 what a wedge says, which is worse than small type. The existing content ladder — full,
