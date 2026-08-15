@@ -63,7 +63,7 @@ export function SegmentList({
   }
 
   return (
-    <PropertyPanel title="Segments" className="segment-list">
+    <PropertyPanel title="Static segments" className="segment-list">
       <ul className="segment-list__rows">
         {segments.map((segment, index) => (
           <li className="segment-list__row" key={segment.id}>
