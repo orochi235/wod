@@ -5,7 +5,17 @@ import type { Segment } from '../wheel/types'
 /** Whether a drawn element's orientation rides the rotor or stays level. */
 export type Frame = 'wheel' | 'level'
 
-export type Orientation = 'radial' | 'tangential' | 'curved'
+/**
+ * The first three place one element through `fit`. The last three are set glyph
+ * by glyph and emit a `glyphRun`.
+ */
+export type Orientation =
+  | 'radial'
+  | 'tangential'
+  | 'curved'
+  | 'stacked'
+  | 'taperedRadial'
+  | 'archedRim'
 
 export type ContentTransform = 'full' | 'firstName' | 'initials' | 'ellipsis'
 
@@ -34,6 +44,21 @@ export type Placement = {
   anchor: number
   size: number
   text: string
+}
+
+/**
+ * One character, already placed. Wheel-local user units, with the wedge's own
+ * rotation baked in: the renderer writes the transform and decides nothing.
+ */
+export type Glyph = {
+  char: string
+  x: number
+  y: number
+  size: number
+  /** Degrees, clockwise, applied at (x, y). */
+  rotate: number
+  /** The glyph's own axes, after `rotate`. Stretch lives here. */
+  scale: [number, number]
 }
 
 type Drawn =
@@ -73,3 +98,36 @@ export type SliceLayout = {
 }
 
 export type SliceInstance = { id: SliceLayoutId; params: SliceParams }
+
+/**
+ * A validated string, never a union: a couple of dozen ids in a union type is a
+ * merge conflict waiting to happen, and an unknown id resolves to a default
+ * rather than failing to compile. The registry that validates it is a later
+ * plan's; nothing reads this field yet.
+ */
+export type FontId = string
+
+export type PartContent =
+  | { from: 'label'; transform?: ContentTransform }
+  | { from: 'text'; value: string }
+  | { from: 'media' }
+  | { from: 'derived'; value: 'weight' | 'index' | 'position' }
+
+export type SlicePart = {
+  content: PartContent
+  orientation: Orientation
+  /** Inner and outer edge, as fractions of the radius. */
+  band: [number, number]
+  /** Default 'rimInward'. */
+  direction?: 'rimInward' | 'hubOutward'
+  /** Letters keep their relative growth toward the rim. Default on. */
+  fan?: boolean
+  /** Widen each glyph to the room at its radius. Default 'none'. */
+  stretch?: 'none' | 'fill' | number
+  /** How the run is drawn. Default 'glyphs'. Only 'glyphs' is implemented. */
+  shape?: 'glyphs' | 'outline'
+  /** A registry id. Absent means the theme's default face. Not yet read. */
+  font?: FontId
+  maxSize?: number
+  frame?: Frame
+}

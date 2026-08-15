@@ -67,6 +67,11 @@ export function budget(spec: Omit<FitSpec, 'text'>): Budget {
         length: arcLength(spec.width, anchorRadius) * ARC_FILL,
         natural: (spec.radius * BAND) / LINE_HEIGHT,
       }
+    default:
+      // The glyph-run orientations do not go through `fit`; `typeset` solves
+      // them. A zero budget makes `createFit` return null, which is what a
+      // caller reaching here by mistake should see.
+      return { length: 0, natural: 0 }
   }
 }
 
