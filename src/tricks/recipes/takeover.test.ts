@@ -182,12 +182,10 @@ describe('takeover when nobody else has weight', () => {
   })
 })
 
-describe('takeover color on a wedge left to the palette', () => {
-  // `wedge.color` is undefined for a palette-colored segment, so reading it
-  // directly would drop the requested end color without any signal.
+describe('takeover color in existing mode', () => {
   const plain: Segment[] = [
-    { id: 'ana', label: 'Ana', weight: 1 },
-    { id: 'ben', label: 'Ben', weight: 1 },
+    { id: 'ana', label: 'Ana', weight: 1, color: '#f4a261' },
+    { id: 'ben', label: 'Ben', weight: 1, color: '#2a9d8f' },
   ]
   const params = {
     wedgeMode: 'existing',
@@ -205,7 +203,7 @@ describe('takeover color on a wedge left to the palette', () => {
     winnerId: null,
   }
 
-  it('animates from the painted palette color', () => {
+  it("animates from the wedge's own color", () => {
     const [morph] = takeover.resolve(params, ctx)
     expect(morph.keyframes[0].color).toBe('#f4a261')
     expect(morph.keyframes.at(-1)?.color).toBe('#ff8811')

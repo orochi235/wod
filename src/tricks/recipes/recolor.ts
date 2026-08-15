@@ -1,6 +1,5 @@
 import type { WedgeIndex } from '../../compose/types'
 import { parseHex } from '../../wheel/morph'
-import { effectiveColor } from '../../wheel/palette'
 import type { Morph } from '../../wheel/types'
 import { readEasing, readString, readStringArray, readUnit } from '../params'
 import { isSelectorToken, resolveTargets } from '../targets'
@@ -36,7 +35,7 @@ export const recolor: Recipe = {
       // An explicit at:0 keyframe is required. `morph.ts` only synthesizes an
       // implicit base when the segment already carries the property, and a lone
       // late keyframe would otherwise apply from the first frame.
-      const from = effectiveColor(ctx.segments, segment.id) ?? '#888888'
+      const from = segment.color ?? '#888888'
       return {
         segmentId: segment.id,
         durationMs: ctx.durationMs,

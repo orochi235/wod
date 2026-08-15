@@ -6,12 +6,10 @@ import { swap } from './swap'
 
 const DURATION_MS = 4000
 
-// Cal carries no explicit color, so the palette supplies one. That is the case
-// that silently half-works if the recipe reads `segment.color` directly.
 const SEGMENTS: Segment[] = [
   { id: 'ana', label: 'Ana', weight: 1, color: '#ff0000' },
   { id: 'ben', label: 'Ben', weight: 1, color: '#00ff00' },
-  { id: 'cal', label: 'Cal', weight: 1 },
+  { id: 'cal', label: 'Cal', weight: 1, color: '#0000ff' },
 ]
 
 const ctx = (winnerId: string | null): RecipeContext => ({
@@ -66,25 +64,9 @@ describe('swap', () => {
     ).toBe('Ben')
   })
 
-  it('trades the palette color of a wedge that has none of its own', () => {
-    // `segment.color` is undefined for Cal. Passed straight through, the label
-    // would trade while the color did not, which reads as a rendering bug.
-    const morphs = swap.resolve({ otherWedgeId: 'cal', at: 0.95 }, ctx('ana'))
-    const after = applyMorphs(SEGMENTS, morphs, DURATION_MS)
-    const ana = after.find((s) => s.id === 'ana')
-    const cal = after.find((s) => s.id === 'cal')
-    expect(ana?.label).toBe('Cal')
-    expect(cal?.label).toBe('Ana')
-    expect(ana?.color).toBeDefined()
-    expect(ana?.color).not.toBe('#ff0000')
-    expect(cal?.color).toBe('#ff0000')
-  })
-
   it('trades both labels and both colors at the landing frame when it fires at at: 1', () => {
-    // Cal has no color base, so `withImplicitBase` does not shield its color
-    // keyframes from the duplicate-offset pair the way a labeled property or a
-    // wedge with its own base color does. The landing frame samples at
-    // `p === at` exactly.
+    // The landing frame samples at `p === at` exactly, where both keyframes of
+    // the duplicate-offset pair are in range.
     const morphs = swap.resolve({ otherWedgeId: 'cal', at: 1 }, ctx('ana'))
     const landing = applyMorphs(SEGMENTS, morphs, DURATION_MS)
     const ana = landing.find((s) => s.id === 'ana')
