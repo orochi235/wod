@@ -123,7 +123,7 @@ export function Wheel({
                   arc={presenceArc}
                   radius={radius}
                   id={segment.id}
-                  levelRef={levelRef?.(segment.id, -midDeg(presenceArc))}
+                  levelRef={levelRef?.(segment.id, -midDeg(layoutArc))}
                 />
               </g>
             )

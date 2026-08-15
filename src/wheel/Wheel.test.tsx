@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import type { SliceInstance } from '../slice/types'
 import { Wheel } from './Wheel'
 import type { Segment } from './types'
 
@@ -226,6 +227,44 @@ describe('Wheel', () => {
       // The survivors have grown to a fifth each, so 18.88 is a size nothing
       // else on the wheel now holds.
       expect(labelSize(container, 'ana')).toBe('22.65')
+    } finally {
+      clock.restore()
+    }
+  })
+
+  it('registers a level element at its layout angle, not the one it is passing through', () => {
+    const clock = installClock()
+    try {
+      const level: SliceInstance = { id: 'auto', params: { frame: 'level' } }
+      const seen = new Map<string, number>()
+      const levelRef = (id: string, restingDeg: number) => {
+        seen.set(id, restingDeg)
+        return () => undefined
+      }
+
+      const { rerender } = render(
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
+          slice={level}
+          levelRef={levelRef}
+          transitions={opening}
+        />,
+      )
+      clock.advance(1000)
+
+      rerender(
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
+          slice={level}
+          levelRef={levelRef}
+          transitions={opening}
+        />,
+      )
+      clock.advance(200)
+
+      // Sixth of six: the last sixth of the wheel, centred at 330°. Drawn at
+      // half its arc it is centred near 344°, which is what it must not report.
+      expect(seen.get('cal')).toBeCloseTo(-330)
     } finally {
       clock.restore()
     }
