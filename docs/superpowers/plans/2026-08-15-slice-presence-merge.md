@@ -378,9 +378,9 @@ function installClock() {
 
 /**
  * One label for every wedge, so two wedges of equal arc fit identically and a
- * test can compare them. "Cal Whitmore" curves at size 26 across a quarter of
- * the wheel and at roughly 16 across a seventh, which is the gap these tests
- * read.
+ * test can compare them. Stay at five wedges or more: "Cal Whitmore" saturates
+ * the `maxSize` cap of 26 anywhere above about a fifth of the wheel, and two
+ * clamped sizes match however wrong the arc feeding them was.
  */
 const roster = (ids: string[]): Segment[] =>
   ids.map((id) => ({ id, label: 'Cal Whitmore', weight: 1 }))
@@ -405,28 +405,37 @@ Append inside the `describe('Wheel', …)` block:
   it('fits a label against the layout arc, not the arc it is drawn at', () => {
     const clock = installClock()
     try {
-      // Three at rest, then a fourth joins: only the newcomer's arc is moving,
-      // so its layout arc (a quarter of the wheel) and its presence arc
-      // (0.5/3.5 of it, halfway through a shrink) disagree.
+      // Five at rest, then a sixth joins: only the newcomer's arc is moving, so
+      // its layout arc (a sixth of the wheel, fitting at 18.88) and its presence
+      // arc (0.5/5.5 of it, halfway through a shrink, fitting at 10.29)
+      // disagree, and neither is near the size cap that would hide the gap.
       const { container, rerender } = render(
-        <Wheel segments={roster(['ana', 'ben', 'cy'])} transitions={opening} />,
+        <Wheel segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])} transitions={opening} />,
       )
       clock.advance(1000)
 
-      rerender(<Wheel segments={roster(['ana', 'ben', 'cy', 'cal'])} transitions={opening} />)
+      rerender(
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
+          transitions={opening}
+        />,
+      )
       clock.advance(200)
 
-      // Both hold a quarter of the layout; only `cal` is drawn at half of one.
-      expect(labelSize(container, 'cal')).toBe(labelSize(container, 'ana'))
+      expect(labelSize(container, 'cal')).toBe('18.88')
+      expect(labelSize(container, 'ana')).toBe('18.88')
     } finally {
       clock.restore()
     }
   })
 ```
 
-Both wedges are compared in the same state, so the assertion needs no remembered
-number: `ana` is a resting quarter and `cal` is a quarter being drawn at half its
-width. They share a label, so an equal arc means an equal fit.
+**Six wedges, not four.** A fit is clamped at `maxSize` 26 anywhere above about a
+fifth of the wheel, so a four-wedge test compares two clamped sizes and passes
+whatever arc fed them — it fails under the mutation only because the mutation
+happens to push one side under the ceiling. At a sixth both sides are
+width-derived, and the numbers are asserted outright rather than against each
+other so a uniform breakage cannot make the test agree with itself.
 
 - [ ] **Step 3: Run it**
 
@@ -466,23 +475,32 @@ Append inside the `describe('Wheel', …)` block in `src/wheel/Wheel.test.tsx`:
     const clock = installClock()
     try {
       const { container, rerender } = render(
-        <Wheel segments={roster(['ana', 'ben', 'cy', 'cal'])} transitions={opening} />,
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
+          transitions={opening}
+        />,
       )
       clock.advance(1000)
-      const resting = labelSize(container, 'cal')
+      expect(labelSize(container, 'cal')).toBe('18.88')
 
-      rerender(<Wheel segments={roster(['ana', 'ben', 'cy'])} transitions={opening} />)
+      rerender(
+        <Wheel segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])} transitions={opening} />,
+      )
       clock.advance(200)
 
       // Gone from the roster, so there is no layout arc to look up — only the
-      // one it had while it was still on the wheel.
+      // one it had while it was still on the wheel. Its survivors have already
+      // grown to a fifth each, so this is not the size anything else now holds.
       expect(container.querySelector('[data-segment-id="cal"]')).not.toBeNull()
-      expect(labelSize(container, 'cal')).toBe(resting)
+      expect(labelSize(container, 'cal')).toBe('18.88')
     } finally {
       clock.restore()
     }
   })
 ```
+
+Without the memory `cal` falls back to its presence arc — 0.5/5.5 of the wheel,
+fitting at 10.29 — which is what Step 2 should show.
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -674,13 +692,18 @@ Append inside the `describe('Wheel', …)` block in `src/wheel/Wheel.test.tsx`:
       }
 
       const { rerender } = render(
-        <Wheel segments={roster(['ana', 'ben', 'cy'])} slice={level} levelRef={levelRef} transitions={opening} />,
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
+          slice={level}
+          levelRef={levelRef}
+          transitions={opening}
+        />,
       )
       clock.advance(1000)
 
       rerender(
         <Wheel
-          segments={roster(['ana', 'ben', 'cy', 'cal'])}
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           slice={level}
           levelRef={levelRef}
           transitions={opening}
@@ -688,9 +711,9 @@ Append inside the `describe('Wheel', …)` block in `src/wheel/Wheel.test.tsx`:
       )
       clock.advance(200)
 
-      // Fourth of four: the last quarter of the wheel, centred at 315°. Drawn at
-      // half its arc it is centred near 334°, which is what it must not report.
-      expect(seen.get('cal')).toBeCloseTo(-315)
+      // Sixth of six: the last sixth of the wheel, centred at 330°. Drawn at
+      // half its arc it is centred near 344°, which is what it must not report.
+      expect(seen.get('cal')).toBeCloseTo(-330)
     } finally {
       clock.restore()
     }
