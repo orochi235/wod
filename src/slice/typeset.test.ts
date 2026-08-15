@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createFit } from './fit'
+import { DEFAULT_FAMILY } from './fonts/registry'
 import type { Glyph, Measure, SliceContext, SlicePart } from './types'
 import { typeset } from './typeset'
 
@@ -590,5 +591,49 @@ describe('the arched rim run', () => {
       expect(Number.isFinite(glyph.y)).toBe(true)
       expect(glyph.size).toBe(9)
     }
+  })
+})
+
+describe('which face a part is set in', () => {
+  it('falls back to the look, then to the default', () => {
+    const [themed] = typeset(part({ orientation: 'radial' }), context({ font: 'rye' }))
+    expect(themed).toMatchObject({ family: 'Rye' })
+
+    const [plain] = typeset(part({ orientation: 'radial' }), context())
+    expect(plain).toMatchObject({ family: DEFAULT_FAMILY })
+  })
+
+  it("prefers the part's own", () => {
+    const [element] = typeset(
+      part({ orientation: 'radial', font: 'anton' }),
+      context({ font: 'rye' }),
+    )
+    expect(element).toMatchObject({ family: 'Anton' })
+  })
+
+  // A preset written by a newer build names a face this one does not carry.
+  it('falls back rather than failing on an id no build carries', () => {
+    const [element] = typeset(
+      part({ orientation: 'radial', font: 'made-up' }),
+      context({ font: 'rye' }),
+    )
+    expect(element).toMatchObject({ family: 'Rye' })
+  })
+
+  it('carries the face onto a glyph run too', () => {
+    const [element] = typeset(part({ font: 'anton' }), context())
+    expect(element).toMatchObject({ kind: 'glyphRun', family: 'Anton' })
+  })
+
+  // Every size on the run was measured in that face; measuring in another is a
+  // wrong size on every glyph, and nothing at runtime would report it.
+  it('measures in the face it will be painted in', () => {
+    const seen: string[] = []
+    const spy: Measure = (text, size, family) => {
+      if (family) seen.push(family)
+      return measure(text, size)
+    }
+    typeset(part({ font: 'anton' }), context({ measure: spy, fit: createFit(spy) }))
+    expect(new Set(seen)).toEqual(new Set(['Anton']))
   })
 })

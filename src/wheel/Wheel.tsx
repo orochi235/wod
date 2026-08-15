@@ -215,6 +215,7 @@ export function Wheel({
                     count: drawn.length,
                     measure,
                     fit,
+                    font: theme.font,
                   })
                 : []
 

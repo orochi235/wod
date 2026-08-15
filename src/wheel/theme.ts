@@ -1,3 +1,4 @@
+import type { FontId } from '../slice/types'
 import type { PegMode } from './pegs'
 
 /**
@@ -39,6 +40,11 @@ export type Theme = {
   tokens: Record<string, string>
   pegs: PegMode
   flapper: FlapperMode
+  /**
+   * The face its wedges are set in, so the choice belongs to the look rather
+   * than to every part. A part's own `font` overrides it.
+   */
+  font?: FontId
 }
 
 export const FLAT_METRICS: Metrics = {

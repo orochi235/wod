@@ -49,4 +49,5 @@ export const wof: Theme = {
   },
   pegs: { kind: 'bounds' },
   flapper: 'click',
+  font: 'bevan',
 }

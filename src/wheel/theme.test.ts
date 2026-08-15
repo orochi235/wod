@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getFont } from '../slice/fonts/registry'
 import { FLAT_METRICS, partOn } from './theme'
 import type { Theme } from './theme'
 import { flat } from './themes/flat'
@@ -64,6 +65,12 @@ describe('the wof look', () => {
     expect(inner).toBeGreaterThan(0)
     expect(outer).toBeLessThan(1)
     expect(inner).toBeLessThan(outer)
+  })
+
+  // An id no registry carries silently falls back to the default face, so the
+  // look would read as unstyled rather than as broken.
+  it('names a face the registry carries', () => {
+    expect(getFont(wof.font)).not.toBeNull()
   })
 
   it('names only tokens the wheel scopes', () => {
