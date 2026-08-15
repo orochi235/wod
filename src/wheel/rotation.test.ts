@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTLE_CURVE, parseCurve } from './curve'
-import { type RotationSpec, type RotationTrack, rotationTrack } from './rotation'
+import { type RotationSpec, type RotationTrack, invertTrack, rotationTrack } from './rotation'
 import type { Curve } from './types'
 
 const SPEC: RotationSpec = {
@@ -161,5 +161,31 @@ describe('rotationTrack', () => {
     expect(track.keyframes[1].easing).toBe('cubic-bezier(0.33, 1, 0.68, 1)')
     expect(degreesOf(track.keyframes[1])).toBeLessThan(LANDING)
     expect(degreesOf(track.keyframes[2])).toBeCloseTo(LANDING, 6)
+  })
+})
+
+describe('invertTrack', () => {
+  const spec: RotationSpec = {
+    durationMs: 1000,
+    fullSpins: 2,
+    direction: 'cw',
+    easing: [0, 0, 1, 1],
+  }
+
+  it('negates the rotor angle and carries the element resting angle', () => {
+    const track = rotationTrack(0, 90, spec)
+    const inverted = invertTrack(track, -45)
+    expect(inverted).toHaveLength(track.keyframes.length)
+    expect(inverted[0].transform).toBe('rotate(-45deg)')
+    expect(inverted[inverted.length - 1].transform).toBe(`rotate(${-45 - track.to}deg)`)
+  })
+
+  it("preserves a settle track's offsets and easings", () => {
+    const track = rotationTrack(0, 90, { ...spec, settle: { ms: 300, curve: [0, 0, 0.2, 1] } })
+    const inverted = invertTrack(track, 0)
+    expect(inverted.map((frame) => frame.offset)).toEqual(
+      track.keyframes.map((frame) => frame.offset),
+    )
+    expect(inverted[1].easing).toBe(track.keyframes[1].easing)
   })
 })

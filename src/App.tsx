@@ -59,10 +59,17 @@ export function App() {
     [preset.spin, resolved.morphs],
   )
 
-  const { displaySegments, isSpinning, landing, spin, release, reset, rotorRef } = useSpin(
-    resolved.segments,
-    config,
-  )
+  const {
+    displaySegments,
+    layoutSegments,
+    isSpinning,
+    landing,
+    spin,
+    release,
+    reset,
+    rotorRef,
+    levelRef,
+  } = useSpin(resolved.segments, config)
 
   const { shown, dismiss } = useReveal(landing)
 
@@ -108,7 +115,14 @@ export function App() {
 
   return (
     <main className="app">
-      <Wheel segments={displaySegments} rotorRef={rotorRef} transitions={preset.transitions} />
+      <Wheel
+        segments={displaySegments}
+        layoutFrom={layoutSegments}
+        slice={preset.slice}
+        rotorRef={rotorRef}
+        levelRef={levelRef}
+        transitions={preset.transitions}
+      />
       <div className="app__controls">
         <button
           className="app__button"

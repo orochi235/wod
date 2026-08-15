@@ -26,6 +26,23 @@ export type RotationTrack = {
 /** One frame at 60Hz. A zero-length interval has no speed to hand over at. */
 const MIN_SETTLE_MS = 16
 
+/** Matches the `rotate(Ndeg)` the track emits, so the inverse reads its own values back. */
+const ANGLE = /rotate\((-?[\d.]+)deg\)/
+
+/**
+ * The rotation a level element runs so its orientation stays put while its
+ * anchor orbits. Same offsets, same easings, negated angles, offset by the
+ * element's own resting rotation — derived from the rotor's track rather than
+ * recomputed, so the two cannot drift apart.
+ */
+export function invertTrack(track: RotationTrack, restingDeg: number): Keyframe[] {
+  return track.keyframes.map((frame) => {
+    const match = ANGLE.exec(String(frame.transform ?? ''))
+    const angle = match ? Number(match[1]) : 0
+    return { ...frame, transform: `rotate(${restingDeg - angle}deg)` }
+  })
+}
+
 const LINEAR: Curve = [0, 0, 1, 1]
 
 /**

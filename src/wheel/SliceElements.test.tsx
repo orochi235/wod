@@ -5,7 +5,7 @@ import { SliceElements } from './SliceElements'
 
 function draw(elements: SliceElement[]) {
   const { container } = render(
-    <svg>
+    <svg role="img" aria-label="wedge">
       <SliceElements elements={elements} arc={{ start: 0, end: 0.25 }} radius={200} id="seg1" />
     </svg>,
   )

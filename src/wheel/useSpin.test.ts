@@ -769,4 +769,50 @@ describe('release and reset', () => {
 
     expect(result.current.landing).toBeNull()
   })
+
+  it('freezes the layout geometry on the landed frame while a spin is held', () => {
+    const { result } = renderSpin(MORPHING)
+
+    act(() => {
+      result.current.spin()
+    })
+
+    // Drawn geometry is still at the start of the morph; layout geometry is
+    // already where the wheel will end up, so a ladder cannot re-walk mid-spin.
+    expect(result.current.displaySegments.find((s) => s.id === 'beer')?.weight).toBe(0.02)
+    expect(result.current.layoutSegments.find((s) => s.id === 'beer')?.weight).toBe(1)
+  })
+
+  it('counter-animates a registered level group off the rotor track', () => {
+    const { result } = renderSpin(PLAIN)
+    const element = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+
+    act(() => {
+      result.current.levelRef('ana', -45)(element)
+    })
+    act(() => {
+      result.current.spin()
+    })
+
+    expect(harness.animateCalls).toHaveLength(2)
+    const [rotor, level] = harness.animateCalls
+    expect(level.options.duration).toBe(rotor.options.duration)
+    expect(degreesOf(level.keyframes[0])).toBe(-45 - degreesOf(rotor.keyframes[0]))
+    expect(degreesOf(level.keyframes[1])).toBe(-45 - degreesOf(rotor.keyframes[1]))
+  })
+
+  it('stops counter-animating a level group once it unmounts', () => {
+    const { result } = renderSpin(PLAIN)
+    const element = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+
+    act(() => {
+      result.current.levelRef('ana', -45)(element)
+      result.current.levelRef('ana', -45)(null)
+    })
+    act(() => {
+      result.current.spin()
+    })
+
+    expect(harness.animateCalls).toHaveLength(1)
+  })
 })
