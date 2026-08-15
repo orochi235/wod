@@ -23,16 +23,17 @@ const CAP_HEIGHT = 0.72
 const TAU = Math.PI * 2
 /**
  * A run solved to exactly its space lands a float or two over it, and without
- * this it would give up a rung it never needed to.
+ * this it would concede something it never needed to.
  */
 const FIT_SLACK = 1e-6
 /**
  * What a run gives up, cheapest first, to stay inside the space it was given
- * before the size floor starts pushing it out. Combinations rather than a
- * stack: dropping the fan is the bigger concession, and it buys back the
- * tracking that the rung before it spent.
+ * before the size floor starts pushing it out. Not `ladder.ts`, which climbs
+ * orientations and content transforms for the fit path; this is spacing, and
+ * only the glyph runs have it. Combinations rather than a stack: dropping the
+ * fan costs more, and it buys back the tracking the one before it spent.
  */
-const LADDER: { tracked: boolean; fan: boolean }[] = [
+const CONCESSIONS: { tracked: boolean; fan: boolean }[] = [
   { tracked: true, fan: true },
   { tracked: false, fan: true },
   { tracked: true, fan: false },
@@ -143,11 +144,11 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
 
   let steps: number[] = []
   let solved: Solved = { sizes: [], radii: [] }
-  for (const rung of LADDER) {
-    if (rung.fan && !fanned) continue
+  for (const concession of CONCESSIONS) {
+    if (concession.fan && !fanned) continue
     // Upright letters step by the line; quarter-turned ones step by the advance.
-    steps = chars.map((_, i) => (stacked ? 1 : advances[i]) + (rung.tracked ? TRACKING : 0))
-    solved = solveRadial(steps, across, part, ctx, maxSize, rung.fan)
+    steps = chars.map((_, i) => (stacked ? 1 : advances[i]) + (concession.tracked ? TRACKING : 0))
+    solved = solveRadial(steps, across, part, ctx, maxSize, concession.fan)
     if (spanOf(solved.sizes, steps) <= length + FIT_SLACK) break
   }
   const { sizes, radii } = solved

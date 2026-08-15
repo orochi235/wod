@@ -240,7 +240,7 @@ describe('the stacked solve', () => {
     expect(radialSpan(glyphs, 1.08)).toBeCloseTo(180, 0)
   })
 
-  it('accepts the overflow when no rung of the ladder fits', () => {
+  it('accepts the overflow when no concession is enough', () => {
     const value = 'SCHWARZENEGGERBERGSTEIN'
     const glyphs = glyphsOf({ content: { from: 'text', value }, band: [0.7, 0.8] })
     // Every letter still drawn, and at the floor — the run leaves its band

@@ -21,8 +21,8 @@ the same entry point.
 34 commits, 1127 tests, clean build. Merged with `main` at `5ca05f2`. Outline mode, the
 font registry and the baked specimens are the second plan and are not started.
 
-`shrink` and the overflow ladder have since landed; what is left of the list below is
-item 2.
+`shrink` and the spacing a run concedes before it overflows have since landed; one item
+of the list below is left.
 
 ## Where it lives
 
