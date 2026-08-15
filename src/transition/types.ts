@@ -1,7 +1,7 @@
 import type { Field } from '../form/fields'
 import type { EasingName } from '../wheel/types'
 
-export type TransitionId = 'fade' | 'fly'
+export type TransitionId = 'fade' | 'fly' | 'shrink'
 
 export type TransitionParams = Record<string, unknown>
 

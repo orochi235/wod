@@ -418,6 +418,15 @@ describe('sampleTrack', () => {
     expect(sampleTrack(symmetric, 100).opacity).toBeCloseTo(0.125)
   })
 
+  it('carries that curve from the transition onto an arriving track', () => {
+    const arriving: Transitions = {
+      enter: { id: 'shrink', params: { durationMs: 400, staggerMs: 0 } },
+    }
+    const start = advance(input({ transitions: arriving, now: 0 }))
+    const ana = start.get('ana')
+    expect(ana && sampleTrack(ana, 200).hold).toBeCloseTo(0.5)
+  })
+
   it('hands back the shared resting presence for a settled wedge', () => {
     // By identity, which is what freezing RESTING protects.
     expect(sampleTrack(restingFor('ana'), 500)).toBe(RESTING)
@@ -482,6 +491,31 @@ describe('advance through drawList', () => {
     const at = (list: typeof after.drawn, id: string) => list.find((item) => item.segment.id === id)
     expect(at(after.drawn, 'cy')?.arc).toEqual(at(before.drawn, 'cy')?.arc)
     expect(at(after.drawn, 'ben')?.arc).toEqual(at(before.drawn, 'ben')?.arc)
+  })
+
+  it('gives a shrinking wedge less arc and its neighbor more', () => {
+    const shrinking: Transitions = {
+      exit: { id: 'shrink', params: { durationMs: 400, staggerMs: 0 } },
+    }
+    const start = advance(
+      input({ segments: [segment('ana'), segment('ben')], transitions: shrinking, now: 0 }),
+    )
+    const laid = drawList(start, 0)
+    const leaving = advance(
+      input({
+        tracks: start,
+        segments: [segment('ana')],
+        arcs: laid.arcs,
+        transitions: shrinking,
+        now: 0,
+      }),
+    )
+    const midway = drawList(leaving, 200)
+    const ana = midway.drawn.find((item) => item.segment.id === 'ana')
+    const ben = midway.drawn.find((item) => item.segment.id === 'ben')
+    expect(ben?.presence.hold).toBeCloseTo(0.5)
+    // ana is 1, ben is 0.5, so ana takes two thirds of the circle.
+    expect(ana && ana.arc.end - ana.arc.start).toBeCloseTo(2 / 3)
   })
 })
 

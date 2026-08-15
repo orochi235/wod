@@ -1,10 +1,11 @@
 import { fade } from './transitions/fade'
 import { fly } from './transitions/fly'
+import { shrink } from './transitions/shrink'
 import type { Transition, TransitionId } from './types'
 
-export const TRANSITIONS: Record<TransitionId, Transition> = { fade, fly }
+export const TRANSITIONS: Record<TransitionId, Transition> = { fade, fly, shrink }
 
-export const TRANSITION_LIST: Transition[] = [fade, fly]
+export const TRANSITION_LIST: Transition[] = [fade, fly, shrink]
 
 /**
  * Returns null rather than throwing, matching getRecipe: ids come out of
