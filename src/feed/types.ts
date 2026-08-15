@@ -1,3 +1,4 @@
+import type { SliceInstance } from '../slice/types'
 import type { Media, Reveal } from '../wheel/types'
 
 /** One item from an external feed. The feed owns identity and label; nothing else. */
@@ -61,4 +62,5 @@ export type ItemOverride = {
   color?: string
   media?: Media
   reveal?: Reveal
+  slice?: SliceInstance
 }

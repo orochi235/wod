@@ -47,6 +47,7 @@ function toSegment(feed: FeedConfig, item: FeedItem, override: ItemOverride | un
   if (color !== undefined) segment.color = color
   if (override?.media !== undefined) segment.media = override.media
   if (override?.reveal !== undefined) segment.reveal = override.reveal
+  if (override?.slice !== undefined) segment.slice = override.slice
   return segment
 }
 

@@ -3,6 +3,8 @@ import type { WedgeIndex } from '../compose/types'
 import { MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { DEFAULT_POLL_INTERVAL_MS, MIN_POLL_INTERVAL_MS } from '../meet/poll'
+import { getSlice } from '../slice/registry'
+import type { SliceInstance } from '../slice/types'
 import { getTransition } from '../transition/registry'
 import type { Moment, Transitions } from '../transition/types'
 import { getRecipe } from '../tricks/registry'
@@ -54,6 +56,13 @@ function readReveal(value: unknown): Reveal | undefined {
   return reveal
 }
 
+function readSlice(value: unknown): SliceInstance | undefined {
+  if (!isRecord(value) || typeof value.id !== 'string') return undefined
+  const layout = getSlice(value.id)
+  if (!layout) return undefined
+  return { id: layout.id, params: isRecord(value.params) ? value.params : {} }
+}
+
 function readSegments(value: unknown): Segment[] {
   if (!Array.isArray(value)) return []
   const segments: Segment[] = []
@@ -79,6 +88,8 @@ function readSegments(value: unknown): Segment[] {
     if (media !== undefined) segment.media = media
     const reveal = readReveal(entry.reveal)
     if (reveal !== undefined) segment.reveal = reveal
+    const slice = readSlice(entry.slice)
+    if (slice !== undefined) segment.slice = slice
     segments.push(segment)
   }
   return segments
@@ -456,6 +467,8 @@ function readOverrides(value: unknown): Record<string, ItemOverride> {
     if (media !== undefined) override.media = media
     const reveal = readReveal(raw.reveal)
     if (reveal !== undefined) override.reveal = reveal
+    const slice = readSlice(raw.slice)
+    if (slice !== undefined) override.slice = slice
     // An override with nothing usable left is indistinguishable from no
     // override, and keeping it would show an empty row in the editor forever.
     if (Object.keys(override).length > 0) overrides[id] = override
@@ -522,6 +535,7 @@ export function parsePreset(raw: string | null): Preset {
     spin,
     branches: readBranches(data.branches),
     transitions: readTransitions(data.transitions),
+    slice: readSlice(data.slice),
   }
 }
 
