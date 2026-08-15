@@ -197,6 +197,12 @@ class is what groups them in the picker.
   the case that proves outline mode: a stepwise glyph run breaks them at every seam.
 - **Special Elite** — distressed typewriter. Its roughened edges are outline detail, so
   it costs more to warp than any other face here.
+- **Pirata One** — blackletter. Dense and dark at a glance, and the hardest face here to
+  read as a name rather than as a texture.
+- **Jersey 25** — the other bitmap face, athletic rather than arcade. Same pixel-grid
+  caveat as Press Start 2P, narrower per character.
+- **Asset** — decorative, with the letterform drawn as a highlight and a cast shadow. Two
+  contours per glyph, so a stepwise run misaligns the shadow against the letter.
 
 *Woodtype and slab* — the show's own register:
 
@@ -205,6 +211,10 @@ class is what groups them in the picker.
 - **Bevan** — condensed slab. The woodtype that survives a long name.
 - **Alfa Slab One** — the boldest and clearest of the slabs, and the widest, so it wants
   short words or fat wedges.
+- **Goblin One** — heavy slab with blunt serifs. Narrower than Alfa Slab One and squarer
+  than Bevan, which puts it between them for a name that nearly fits.
+- **Croissant One** — rounded slab. The soft one, and the only face here that reads as
+  friendly rather than loud.
 
 *Serif*:
 
