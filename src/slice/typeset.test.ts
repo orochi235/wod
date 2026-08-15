@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createFit } from './fit'
-import type { Measure, SliceContext, SlicePart } from './types'
+import type { Glyph, Measure, SliceContext, SlicePart } from './types'
 import { typeset } from './typeset'
 
 /**
@@ -146,5 +146,152 @@ describe('the orientations that go through fit', () => {
   it('emits nothing when the wedge cannot hold the run above the floor', () => {
     const ctx = context({ arc: { start: 0, end: 0.0002 } })
     expect(typeset(part({ orientation: 'radial' }), ctx)).toEqual([])
+  })
+})
+
+function glyphsOf(overrides: Partial<SlicePart>, ctx: SliceContext = context()): Glyph[] {
+  const [element] = typeset(part(overrides), ctx)
+  expect(element?.kind).toBe('glyphRun')
+  return (element as { kind: 'glyphRun'; glyphs: Glyph[] }).glyphs
+}
+
+const radiusOf = (glyph: Glyph): number => Math.hypot(glyph.x, glyph.y)
+
+/** How much radius a run consumed: centre to centre, plus a half slot at each end. */
+function radialSpan(glyphs: Glyph[], stepRatio: number): number {
+  const radii = glyphs.map(radiusOf)
+  const ends = glyphs[0].size * stepRatio + glyphs[glyphs.length - 1].size * stepRatio
+  return Math.max(...radii) - Math.min(...radii) + ends / 2
+}
+
+describe('the stacked solve', () => {
+  it('fills its band', () => {
+    const glyphs = glyphsOf({
+      content: { from: 'text', value: 'BANKRUPT' },
+      band: [0.4, 0.9],
+      fan: false,
+    })
+    // (0.9 - 0.4) * 200 units of radius, and a stacked step is size * (1 + tracking).
+    expect(radialSpan(glyphs, 1.08)).toBeCloseTo(100, 0)
+  })
+
+  it('places one glyph per character, in order, rim inward', () => {
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'RYE' } })
+    expect(glyphs.map((glyph) => glyph.char)).toEqual(['R', 'Y', 'E'])
+    expect(radiusOf(glyphs[0])).toBeGreaterThan(radiusOf(glyphs[2]))
+  })
+
+  it('reverses the run when the direction is hubOutward', () => {
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'RYE' }, direction: 'hubOutward' })
+    expect(glyphs.map((glyph) => glyph.char)).toEqual(['R', 'Y', 'E'])
+    expect(radiusOf(glyphs[0])).toBeLessThan(radiusOf(glyphs[2]))
+  })
+
+  it('gives every glyph the same size when fan is off', () => {
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'ANTON' }, fan: false })
+    expect(new Set(glyphs.map((glyph) => glyph.size)).size).toBe(1)
+  })
+
+  it('grows the letters toward the rim when fan is on', () => {
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'ANTON' }, fan: true })
+    expect(glyphs[0].size).toBeGreaterThan(glyphs[glyphs.length - 1].size)
+  })
+
+  it('caps a glyph at the chord at its own radius', () => {
+    // A narrow wedge and a tall band: the fit unit and the max size are both
+    // roomy, so only the chord can be what stops these letters.
+    const glyphs = glyphsOf(
+      { content: { from: 'text', value: 'WW' }, band: [0.1, 0.95], fan: false, maxSize: 60 },
+      context({ arc: { start: 0, end: 0.02 } }),
+    )
+    for (const glyph of glyphs) {
+      const room = 2 * radiusOf(glyph) * Math.sin(Math.PI * 0.02) * 0.86
+      expect(glyph.size).toBeLessThan(60)
+      expect(glyph.size * 0.95).toBeLessThanOrEqual(room)
+    }
+  })
+
+  it('shrinks a long word to the floor rather than dropping letters', () => {
+    const value = 'SCHWARZENEGGERBERGSTEIN'
+    const glyphs = glyphsOf({ content: { from: 'text', value }, band: [0.7, 0.8] })
+    expect(glyphs).toHaveLength(value.length)
+    expect(Math.min(...glyphs.map((glyph) => glyph.size))).toBe(9)
+  })
+
+  it('never exceeds the part max size', () => {
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'AB' }, maxSize: 12, fan: false })
+    expect(Math.max(...glyphs.map((glyph) => glyph.size))).toBeLessThanOrEqual(12)
+  })
+
+  it('keeps stacked letters upright on the wedge midline', () => {
+    const ctx = context({ arc: { start: 0, end: 0.25 } })
+    for (const glyph of glyphsOf({ content: { from: 'text', value: 'AB' } }, ctx)) {
+      expect(glyph.rotate).toBeCloseTo(45)
+    }
+  })
+})
+
+describe('the tapered radial solve', () => {
+  it('gives a narrow letter a narrower slot than a wide one at the same size', () => {
+    // maxSize binds, so every glyph is the same size and the only thing that can
+    // change how much radius each one takes is its own measured advance.
+    const glyphs = glyphsOf({
+      orientation: 'taperedRadial',
+      content: { from: 'text', value: 'IIW' },
+      band: [0.3, 0.95],
+      fan: false,
+      maxSize: 20,
+    })
+    expect(new Set(glyphs.map((glyph) => glyph.size)).size).toBe(1)
+    const gap = (a: number, b: number) => Math.abs(radiusOf(glyphs[a]) - radiusOf(glyphs[b]))
+    expect(gap(1, 2)).toBeGreaterThan(gap(0, 1) * 1.5)
+  })
+
+  it('quarter-turns its letters', () => {
+    const ctx = context({ arc: { start: 0, end: 0.25 } })
+    const glyphs = glyphsOf(
+      { orientation: 'taperedRadial', content: { from: 'text', value: 'AB' } },
+      ctx,
+    )
+    for (const glyph of glyphs) expect(glyph.rotate).toBeCloseTo(-45)
+  })
+})
+
+describe('stretch', () => {
+  it('is off by default', () => {
+    for (const glyph of glyphsOf({ content: { from: 'text', value: 'AB' } })) {
+      expect(glyph.scale).toEqual([1, 1])
+    }
+  })
+
+  it('widens a stacked glyph on its own x axis', () => {
+    const glyphs = glyphsOf({
+      content: { from: 'text', value: 'II' },
+      stretch: 'fill',
+      maxSize: 12,
+    })
+    expect(glyphs[0].scale[0]).toBeGreaterThan(1)
+    expect(glyphs[0].scale[1]).toBe(1)
+  })
+
+  it('moves the other axis for a quarter-turned glyph', () => {
+    const glyphs = glyphsOf({
+      orientation: 'taperedRadial',
+      content: { from: 'text', value: 'II' },
+      stretch: 'fill',
+      maxSize: 12,
+    })
+    expect(glyphs[0].scale[0]).toBe(1)
+    expect(glyphs[0].scale[1]).toBeGreaterThan(1)
+  })
+
+  it('caps a fill so a short word cannot smear', () => {
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'I' }, stretch: 'fill', maxSize: 10 })
+    expect(glyphs[0].scale[0]).toBe(3)
+  })
+
+  it('caps an authored stretch too', () => {
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'AB' }, stretch: 40 })
+    expect(glyphs[0].scale[0]).toBe(3)
   })
 })
