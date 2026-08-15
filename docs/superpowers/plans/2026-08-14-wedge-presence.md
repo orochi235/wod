@@ -2081,6 +2081,51 @@ did not, there is nothing to commit and the plan is done.
 
 ---
 
+## Where execution stopped
+
+Tasks 1-5 are committed on `feat/wedge-presence-impl`. Tasks 6-10 have not been
+started. Baseline at handoff: 58 test files, 756 tests, `npm run build` and
+`npx biome check .` clean.
+
+| Task | Commit | Reviewed |
+| --- | --- | --- |
+| 1 Share the keyframe bracket | `4f23732` | spec + quality, fixes applied |
+| 2 Sample keyframes into a presence | `3e68bf9` | spec + quality, fixes applied |
+| 3 Give a transition its moment | `9e7e557` | spec + quality, fixes applied |
+| 4 Start, reverse, interrupt tracks | `ef22460` | spec + quality, fixes applied |
+| 5 Build the draw list | `ba98ba0` | **not independently reviewed** |
+
+Task 5 needs the two-stage review the others had before it is trusted. Its own
+mutation testing was thorough and is recorded in the commit, but no second pair
+of eyes has read it.
+
+Seven defects in this plan were found during execution, every one in the plan
+rather than in an implementation. Two would have shipped visible bugs: a
+staggered arrival held at rest rather than at its opening frame, which drew every
+wedge past the first fully opaque through its delay and then popped; and a
+reversal that discarded `ghostArc`, which made a `shrink` reversed mid-exit
+vanish for the length of its stagger. Both are fixed, and the spec's chaining
+section was amended for the first.
+
+The lesson worth carrying into tasks 6-10: **a prescribed test list is not
+coverage.** Task 5's own tests all used `hold` at exactly 0 or 1, so replacing
+`weight * hold` with `weight` — the arithmetic the whole feature rests on — left
+every test green. Mutation-test each load-bearing rule before believing a task is
+done.
+
+## Open decisions
+
+- **Inline style on the wedge `<g>`** (Tasks 6-7). The sampled presence is
+  written as an inline `style`, against the repo's no-inline-styles rule. It is a
+  value that changes every frame with no stable class to hold it, which is the
+  same category as the transform WAAPI wrote before. CSS custom properties on the
+  group are the alternative and are cheaper to adopt now than later. Not decided.
+- **Enter/exit stagger asymmetry.** Arrivals stagger by absolute roster index
+  (inherited from `useEnter`), departures by a batch-relative counter. One person
+  joining a five-person meeting therefore waits four stagger intervals before
+  appearing, while one leaving departs at once. Symmetric is probably right;
+  changing it alters behavior already merged to `main`, so it was left alone.
+
 ## What this leaves for the next plan
 
 - `spin` and `reveal`, and the two wheel-scope transitions (`shutter`, `zoom`),
