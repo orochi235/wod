@@ -1,5 +1,5 @@
 import type { Ref } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createFit } from '../slice/fit'
 import { createMeasure } from '../slice/measure'
 import { getSlice, resolveInstance } from '../slice/registry'
@@ -104,7 +104,12 @@ export function Wheel({
   const hasFlapper = partOn(theme, 'flapper')
 
   const clickerRef = useRef<ReturnType<typeof createClicker> | null>(null)
-  if (clickerRef.current === null) clickerRef.current = createClicker()
+  // On demand and never during render, so a caller after a cleanup gets a live
+  // clicker rather than the retired one a render had already handed out.
+  const clicker = useCallback(() => {
+    if (clickerRef.current === null) clickerRef.current = createClicker()
+    return clickerRef.current
+  }, [])
 
   const lastAngleRef = useRef<number | null>(null)
 
@@ -113,23 +118,22 @@ export function Wheel({
     const previous = lastAngleRef.current
     lastAngleRef.current = angle
     if (previous === null || theme.flapper === 'silent') return
-    clickerRef.current?.click(pegCrossings(previous, angle, pegs), speed)
+    clicker().click(pegCrossings(previous, angle, pegs), speed)
   })
 
   useEffect(() => {
-    const clicker = clickerRef.current
-    const unlock = () => clicker?.unlock()
+    const unlock = () => clicker().unlock()
     window.addEventListener('pointerdown', unlock, { once: true })
     return () => {
       window.removeEventListener('pointerdown', unlock)
-      clicker?.close()
+      clickerRef.current?.close()
       clickerRef.current = null
     }
-  }, [])
+  }, [clicker])
 
   useEffect(() => {
-    clickerRef.current?.setMuted(muted)
-  }, [muted])
+    clicker().setMuted(muted)
+  }, [muted, clicker])
 
   // One measurer per wheel, so the string cache outlives a render.
   const measure = useMemo(() => createMeasure(), [])

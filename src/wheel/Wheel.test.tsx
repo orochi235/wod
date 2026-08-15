@@ -389,6 +389,31 @@ describe('parts', () => {
     expect(container.querySelector('.wheel')).not.toBeNull()
   })
 
+  it('unlocks the clicker the wheel is actually using, not one it replaced', async () => {
+    // React runs mount effects twice in development, and the cleanup between
+    // them retires the clicker the second run would otherwise have captured.
+    // Reading it back at the gesture is what keeps the two the same object.
+    const { StrictMode } = await import('react')
+    const unlock = vi.fn()
+    const module = await import('./flapperAudio')
+    vi.spyOn(module, 'createClicker').mockImplementation(() => ({
+      unlock,
+      setMuted: () => undefined,
+      click: () => undefined,
+      close: () => undefined,
+    }))
+
+    render(
+      <StrictMode>
+        <Wheel segments={segments} theme={wof} />
+      </StrictMode>,
+    )
+    window.dispatchEvent(new Event('pointerdown'))
+
+    expect(unlock).toHaveBeenCalled()
+    vi.restoreAllMocks()
+  })
+
   it('hangs a flapper above the rim when a look asks for one', () => {
     const { container } = render(<Wheel segments={segments} theme={wof} />)
     expect(container.querySelector('.wheel__flapper')).not.toBeNull()
