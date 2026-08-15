@@ -978,20 +978,18 @@ A future change to how `tracks.ts` evicts would break the memory silently.
 
 ## What the final review left open
 
-**`effectiveColor` reports a color the wheel does not paint.** It resolves the
-palette by segment position; `usePresence.withColor` assigns by id and keeps the
-swatch, so after one departure they disagree for every uncolored wedge.
-`recolor`, `swap` and `takeover` each read it to build an `at: 0` keyframe, so a
-trick on a churned roster starts its animation from the wrong color and the wedge
-jumps as the spin begins. A live feed is exactly the case that churns.
+**`effectiveColor` reports a color the wheel does not paint.** Fixed. Assignment
+moved into `resolveTricks`, between its provide and resolve passes, and both
+`effectiveColor` and `usePresence.withColor` are gone. See
+`docs/superpowers/specs/2026-08-15-wedge-color-assignment-design.md`.
 
-This predates the merge — it arrived with the branch's move to id-sticky colors,
-which deliberately ended the recolor-on-departure `main` had always had. The
-docstring and the test name now say what the function actually does. The fix is a
-decision about **where color gets assigned**: the sticky assignment lives in a
-`usePresence` ref, and trick resolution runs before render with no way to reach
-it, so making both agree probably means assigning at compose time and letting the
-resolved roster carry concrete colors. Its own plan.
+Two things that plan found which this section did not. The spin path resolves
+through `resolveScriptedSpin`, not the render path, so it needed the assignment
+threaded separately — wiring only the render path would have left the same
+disagreement in the one path where an `at: 0` keyframe animates. And with
+assignment upstream, every segment reaching a recipe carries a color, so
+`effectiveColor` degenerated to `segment.color` the moment it moved; deleting it
+was cleanup, not the fix.
 
 Also left, all minor:
 
