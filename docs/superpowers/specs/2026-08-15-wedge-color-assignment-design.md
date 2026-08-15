@@ -75,9 +75,14 @@ export function assignColors(
 `origin` comes from the map `resolveTricks` already holds. Without it a callback
 that wants to color one feed's wedges has to parse `feed:item` ids by hand.
 
-`resolveTricks` takes these as one object parameter rather than growing its
-positional list to seven. Its call sites are `App.tsx`, `Editor.tsx`, and the two
-`resolveLate` closures in `spin/resolve.ts`.
+`resolveTricks` takes them as one optional sixth parameter, defaulting to an
+empty assignment. Nineteen call sites exist and most are tests that do not care
+about color; converting the five positional parameters to an object would churn
+all of them to no purpose.
+
+Four production callers: `App.tsx` and `Editor.tsx` directly, `evaluateWheel` in
+`spin/resolve.ts` (which every scripted-spin path and both `resolveLate` closures
+route through), and `conflicts.ts`, which is editor-facing and passes nothing.
 
 ## Precedence
 
@@ -135,6 +140,10 @@ out* — not a bare ref into `usePresence`.
   color authority and paints what it is given.
 - `swap`'s two-way null guard and `recolor`'s `?? '#888888'`. Recipes read
   `segment.color`, now always defined.
+
+`takeover.writes` guards on `effectiveColor(ctx.segments, id)`, which returns
+null only for an id that is not on the wheel. It is an existence check wearing a
+color check's clothes, and it becomes one: `ctx.segments.some(...)`.
 
 One behavior changes as a consequence rather than by intent: `taken` is currently
 seeded only from the sticky map's values, not from authored colors, so an
