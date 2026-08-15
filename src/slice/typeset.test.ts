@@ -369,4 +369,14 @@ describe('the arched rim run', () => {
     const glyphs = arched({ content: { from: 'text', value: 'AB' }, stretch: 1.5 })
     expect(glyphs[0].scale).toEqual([1.5, 1])
   })
+
+  it('survives a band collapsed onto the hub', () => {
+    const glyphs = arched({ content: { from: 'text', value: 'AB' }, band: [0, 0] })
+    expect(glyphs).toHaveLength(2)
+    for (const glyph of glyphs) {
+      expect(Number.isFinite(glyph.x)).toBe(true)
+      expect(Number.isFinite(glyph.y)).toBe(true)
+      expect(glyph.size).toBe(9)
+    }
+  })
 })

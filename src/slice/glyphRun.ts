@@ -126,7 +126,7 @@ export function runAlongArc(part: SlicePart, ctx: SliceContext, text: string): G
   const width = ctx.arc.end - ctx.arc.start
   const mid = ctx.arc.start + width / 2
   const [inner, outer] = part.band
-  const baseline = ((inner + outer) / 2) * ctx.radius
+  const baseline = Math.max(((inner + outer) / 2) * ctx.radius, 1)
   const advances = chars.map((char) => Math.max(ctx.measure(char, 1), MIN_ADVANCE))
   const demand = advances.reduce((sum, advance) => sum + advance + TRACKING, 0)
 
