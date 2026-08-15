@@ -201,4 +201,31 @@ describe('Wheel', () => {
       clock.restore()
     }
   })
+
+  it('keeps a departing wedge on the layout arc it last had', () => {
+    const clock = installClock()
+    try {
+      const { container, rerender } = render(
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
+          transitions={opening}
+        />,
+      )
+      clock.advance(1000)
+      expect(labelSize(container, 'cal')).toBe('18.88')
+
+      rerender(
+        <Wheel segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])} transitions={opening} />,
+      )
+      clock.advance(200)
+
+      // Gone from the roster, so there is no layout arc to look up — only the
+      // one it had while it was still on the wheel. Its survivors have already
+      // grown to a fifth each, so this is not the size anything else now holds.
+      expect(container.querySelector('[data-segment-id="cal"]')).not.toBeNull()
+      expect(labelSize(container, 'cal')).toBe('18.88')
+    } finally {
+      clock.restore()
+    }
+  })
 })

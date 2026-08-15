@@ -1,5 +1,5 @@
 import type { Ref } from 'react'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { createFit } from '../slice/fit'
 import { createMeasure } from '../slice/measure'
 import { getSlice, resolveInstance } from '../slice/registry'
@@ -8,7 +8,7 @@ import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
 import { SliceElements } from './SliceElements'
-import { arcPath, arcs } from './geometry'
+import { type Arc, arcPath, arcs } from './geometry'
 import type { Segment } from './types'
 import './Wheel.css'
 
@@ -71,7 +71,14 @@ export function Wheel({
   const measure = useMemo(() => createMeasure(), [])
   const fit = useMemo(() => createFit(measure), [measure])
 
-  const layoutArcs = new Map(arcs(layoutFrom ?? segments).map((arc) => [arc.id, arc]))
+  // A wedge that has left the roster has no layout arc to look up, so the last
+  // one it had is kept for as long as it is still being drawn.
+  const remembered = useRef(new Map<string, Arc>()).current
+  for (const arc of arcs(layoutFrom ?? segments)) remembered.set(arc.id, arc)
+  const stillDrawn = new Set(drawn.map((item) => item.segment.id))
+  for (const id of [...remembered.keys()]) {
+    if (!stillDrawn.has(id)) remembered.delete(id)
+  }
 
   return (
     <svg className="wheel" viewBox={viewBox} role="img" aria-label="wheel">
@@ -84,7 +91,7 @@ export function Wheel({
             const d = arcPath(presenceArc.start, presenceArc.end, radius)
             if (d === '') return null
 
-            const layoutArc = layoutArcs.get(segment.id) ?? presenceArc
+            const layoutArc = remembered.get(segment.id) ?? presenceArc
             const instance = resolveInstance(segment, slice)
             const authored = getSlice(instance.id)
             const elements = authored
