@@ -220,10 +220,12 @@ describe('Wheel', () => {
       clock.advance(200)
 
       // Gone from the roster, so there is no layout arc to look up — only the
-      // one it had while it was still on the wheel. Its survivors have already
-      // grown to a fifth each, so this is not the size anything else now holds.
+      // one it had while it was still on the wheel.
       expect(container.querySelector('[data-segment-id="cal"]')).not.toBeNull()
       expect(labelSize(container, 'cal')).toBe('18.88')
+      // The survivors have grown to a fifth each, so 18.88 is a size nothing
+      // else on the wheel now holds.
+      expect(labelSize(container, 'ana')).toBe('22.65')
     } finally {
       clock.restore()
     }

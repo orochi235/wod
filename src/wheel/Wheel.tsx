@@ -71,13 +71,13 @@ export function Wheel({
   const measure = useMemo(() => createMeasure(), [])
   const fit = useMemo(() => createFit(measure), [measure])
 
-  // A wedge that has left the roster has no layout arc to look up, so the last
-  // one it had is kept for as long as it is still being drawn.
-  const remembered = useRef(new Map<string, Arc>()).current
-  for (const arc of arcs(layoutFrom ?? segments)) remembered.set(arc.id, arc)
+  // A departing wedge re-fitted against its closing arc would shrink its label
+  // every frame. Written during render, idempotently — as `usePresence` does.
+  const lastLayoutArcs = useRef(new Map<string, Arc>()).current
+  for (const arc of arcs(layoutFrom ?? segments)) lastLayoutArcs.set(arc.id, arc)
   const stillDrawn = new Set(drawn.map((item) => item.segment.id))
-  for (const id of [...remembered.keys()]) {
-    if (!stillDrawn.has(id)) remembered.delete(id)
+  for (const id of [...lastLayoutArcs.keys()]) {
+    if (!stillDrawn.has(id)) lastLayoutArcs.delete(id)
   }
 
   return (
@@ -91,7 +91,7 @@ export function Wheel({
             const d = arcPath(presenceArc.start, presenceArc.end, radius)
             if (d === '') return null
 
-            const layoutArc = remembered.get(segment.id) ?? presenceArc
+            const layoutArc = lastLayoutArcs.get(segment.id) ?? presenceArc
             const instance = resolveInstance(segment, slice)
             const authored = getSlice(instance.id)
             const elements = authored

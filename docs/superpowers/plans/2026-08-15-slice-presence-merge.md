@@ -938,6 +938,12 @@ reader does not re-litigate them:
   stage exists so a wheel-scope transform never fights the rotation, and the
   wheel-scope transitions that will use it are the next plan's work.
 
+Task 3's review added one worth carrying: **the prune's safety borrows an
+invariant from another module.** It can only over-retain because a departing id,
+once dropped from `tracks`, never returns — so a discarded render cannot delete
+an entry a later one needs. `Wheel` neither states that dependency nor tests it.
+A future change to how `tracks.ts` evicts would break the memory silently.
+
 ## Notes for whoever executes this
 
 **The merge is the risky task, and it is Task 1.** Everything after it is small and tested. If Task 1's suite does not go green, do not patch tests to make it — the two suites passing against one component is the whole proof that the merge is correct.
