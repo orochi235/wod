@@ -444,10 +444,13 @@ describe('parts', () => {
     // webfont has not arrived — and the measurer caches per string, so those
     // numbers would size every wedge for the rest of the session.
     let settle: () => void = () => undefined
-    const ready = new Promise<void>((resolve) => {
+    const loaded = new Promise<void>((resolve) => {
       settle = resolve
     })
-    Object.defineProperty(document, 'fonts', { value: { ready }, configurable: true })
+    Object.defineProperty(document, 'fonts', {
+      value: { load: () => loaded },
+      configurable: true,
+    })
 
     const module = await import('../slice/measure')
     const made = vi.spyOn(module, 'createMeasure')
@@ -457,7 +460,7 @@ describe('parts', () => {
 
     await act(async () => {
       settle()
-      await ready
+      await loaded
     })
 
     expect(made.mock.calls.length).toBeGreaterThan(before)

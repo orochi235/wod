@@ -1,6 +1,8 @@
 import type { Ref } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createFit } from '../slice/fit'
+import { sourceFor } from '../slice/fonts/load'
+import { facesUsed } from '../slice/fonts/usage'
 import { createMeasure } from '../slice/measure'
 import { getSlice, resolveInstance } from '../slice/registry'
 import type { SliceInstance } from '../slice/types'
@@ -19,6 +21,7 @@ import type { Theme } from './theme'
 import { styleOfTheme } from './themeStyle'
 import { flat } from './themes/flat'
 import type { Segment } from './types'
+import { useFaces } from './useFaces'
 import { useWheelAngle } from './useWheelAngle'
 import './Wheel.css'
 
@@ -135,19 +138,17 @@ export function Wheel({
     clicker().setMuted(muted)
   }, [muted, clicker])
 
-  // The label face is a webfont, so the first render measures whatever the
-  // fallback is. Nothing recomputes on its own: sizes are decided during render
-  // and the measurer caches per string, so the arriving face has to retire it.
-  const [faceLoaded, setFaceLoaded] = useState(false)
-  useEffect(() => {
-    let live = true
-    document.fonts?.ready.then(() => {
-      if (live) setFaceLoaded(true)
-    })
-    return () => {
-      live = false
-    }
-  }, [])
+  // Every face a wedge is set in is a webfont, so the first render measures
+  // whatever the fallback is.
+  const faces = useMemo(
+    () =>
+      facesUsed(
+        segments.map((segment) => resolveInstance(segment, slice)),
+        theme.font,
+      ),
+    [segments, slice, theme.font],
+  )
+  const faceLoaded = useFaces(faces)
 
   // One measurer per wheel, so the string cache outlives a render.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `faceLoaded` is the point — it is what retires the cache.
@@ -216,6 +217,7 @@ export function Wheel({
                     measure,
                     fit,
                     font: theme.font,
+                    outlines: sourceFor,
                   })
                 : []
 
