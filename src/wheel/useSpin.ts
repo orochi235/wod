@@ -32,17 +32,12 @@ export type Landing = { id: number; winner: Segment }
 export type UseSpinResult = {
   /** Segments as they currently appear, with any in-flight morph applied. */
   displaySegments: Segment[]
-  /**
-   * The geometry layouts resolve against. A morph changes weights every frame,
-   * and re-walking a layout's ladder on each of them pops labels between
-   * orientations mid-spin, so a held wheel resolves against where it will land.
-   */
+  /** The roster layouts resolve against, which a morph holds still. */
   layoutSegments: Segment[]
   isSpinning: boolean
   /**
-   * Whether a spin owns the geometry — running, or landed and not yet released.
-   * Outlives `isSpinning`, so a consumer that draws against the roster has to
-   * read this rather than infer it from a spin being in flight.
+   * Whether a spin owns the geometry. Outlives `isSpinning`: a landed frame is
+   * held until the next spin.
    */
   held: boolean
   landing: Landing | null
@@ -57,7 +52,7 @@ export type UseSpinResult = {
   /** Release, and drop the landing and its frame outright. */
   reset: () => void
   rotorRef: RefObject<SVGGElement | null>
-  /** Registers a level group by segment id so a spin can counter-rotate it. */
+  /** Registers a level group so a spin can counter-rotate it. */
   levelRef: (id: string, restingDeg: number) => (element: SVGGElement | null) => void
 }
 
