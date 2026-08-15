@@ -64,7 +64,8 @@ export type Presence = {
   opacity: number
   scale: number
   offset: number
-  offsetAngle: number
+  /** Optional alone among these: absent means the wedge's own angle, and no number says that. */
+  offsetAngle?: number
   rotate: number
   aperture: number
 }

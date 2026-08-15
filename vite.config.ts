@@ -23,10 +23,9 @@ export default defineConfig({
     // not hide it from the test glob.
     exclude: [...configDefaults.exclude, '**/.claude/worktrees/**'],
     setupFiles: ['./src/vitest.setup.ts'],
-    // Vitest stubs CSS imports to '' by default, including `?raw`. Wheel.css is
-    // read as text by a test that pins it against the custom properties css.ts
-    // emits, so it has to survive the stub.
-    css: { include: [/Wheel\.css/] },
+    // Vitest stubs CSS imports to '', including `?raw`. Scoped to raw imports so
+    // a plain `import './Wheel.css'` stays stubbed for component tests.
+    css: { include: [/\.css\?raw$/] },
     poolOptions: {
       forks: {
         // Node 22+'s experimental global `localStorage` shadows jsdom's window.localStorage

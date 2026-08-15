@@ -9,7 +9,6 @@ export const RESTING: Presence = Object.freeze({
   opacity: 1,
   scale: 1,
   offset: 0,
-  offsetAngle: 0,
   rotate: 0,
   aperture: 1,
 })
@@ -50,7 +49,7 @@ export function samplePresence(
   for (const key of KEYS) {
     const points = pointsFor(frames, key)
     if (points.length === 0) continue
-    const withBase = points[0].at > 0 ? [{ at: 0, value: base[key] }, ...points] : points
+    const withBase = points[0].at > 0 ? [{ at: 0, value: base[key] ?? 0 }, ...points] : points
     const found = bracket(withBase, p)
     if (!found) continue
     out[key] = clampUnit(key, found.from.value + (found.to.value - found.from.value) * found.t)

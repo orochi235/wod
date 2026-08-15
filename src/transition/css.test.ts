@@ -1,7 +1,9 @@
+import type { CSSProperties } from 'react'
 import { describe, expect, it } from 'vitest'
 import wheelCss from '../wheel/Wheel.css?raw'
 import { styleOf, toKeyframes, transformOf } from './css'
-import { RESTING } from './sample'
+import { RESTING, samplePresence } from './sample'
+import { fly } from './transitions/fly'
 
 const target = { angle: 90, radius: 200, pivot: 120 }
 
@@ -112,7 +114,34 @@ describe('styleOf', () => {
 
   it('clips only when the aperture is closed', () => {
     expect(styleOf(RESTING, target)['--wedge-clip']).toBeUndefined()
-    expect(styleOf({ ...RESTING, aperture: 0.5 }, target)['--wedge-clip']).toContain('circle(')
+    expect(styleOf({ ...RESTING, aperture: 0.5 }, target)['--wedge-clip']).toBe(
+      'circle(35.355% at 50% 50%)',
+    )
+  })
+
+  it('is assignable to a React style prop', () => {
+    const style: CSSProperties = styleOf(RESTING, target)
+    expect(style).toBeTruthy()
+  })
+
+  it('lets an undeclared direction fall through to the wedge angle', () => {
+    // An absent offsetAngle means the wedge's own angle, which only the emitter
+    // knows. A presence that pins it to 0 would send every wedge to 12 o'clock.
+    expect(styleOf({ ...RESTING, offset: 1 }, target)['--wedge-transform']).toBe(
+      transformOf({ at: 0, offset: 1 }, target),
+    )
+  })
+
+  it('flies a wedge along its own radius at fly’s default direction', () => {
+    const { keyframes } = fly.frames(fly.defaults, {
+      index: 0,
+      count: 3,
+      angle: target.angle,
+      durationMs: 500,
+      moment: 'enter',
+    })
+    const presence = samplePresence(keyframes, 0, RESTING)
+    expect(styleOf(presence, target)['--wedge-transform']).toBe(transformOf(keyframes[0], target))
   })
 
   it('reuses the keyframe transform arithmetic', () => {
@@ -130,12 +159,20 @@ describe('styleOf', () => {
     expect(node.style.getPropertyValue('--wedge-opacity')).toBe('0.25')
   })
 
-  // Nothing else links the two: jsdom never applies the stylesheet, so renaming
-  // a property here and in this file — but not in Wheel.css — would leave every
-  // test green and every wedge unanimated.
-  it('names properties Wheel.css actually binds', () => {
-    const emitted = Object.keys(styleOf({ ...RESTING, aperture: 0.5 }, target))
-    expect(emitted).toHaveLength(3)
-    for (const name of emitted) expect(wheelCss).toContain(`var(${name},`)
+  // jsdom does not substitute var(), so nothing at runtime can prove these reach
+  // the properties they name. Renaming or re-pairing one would otherwise leave
+  // every test green and every wedge unanimated.
+  it('names properties Wheel.css binds, to the properties they drive', () => {
+    const bindings = [
+      ['--wedge-transform', 'transform'],
+      ['--wedge-opacity', 'opacity'],
+      ['--wedge-clip', 'clip-path'],
+    ]
+    expect(Object.keys(styleOf({ ...RESTING, aperture: 0.5 }, target))).toHaveLength(
+      bindings.length,
+    )
+    for (const [name, property] of bindings) {
+      expect(wheelCss).toContain(`${property}: var(${name},`)
+    }
   })
 })
