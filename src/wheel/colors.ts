@@ -35,6 +35,8 @@ export const EMPTY_COLOR_STATE: ColorState = {
  *
  * The returned map holds default assignments only — never authored or chosen
  * colors, which are recomputed each pass so a consumer's mapping can change.
+ * A chosen color releases the wedge's stored swatch, so nothing keeps a
+ * reservation nobody paints.
  */
 export function assignColors(
   segments: Segment[],
@@ -45,18 +47,20 @@ export function assignColors(
   const keep = new Set<string>(retained)
   for (const segment of segments) keep.add(segment.id)
 
-  const colors = new Map<string, string>()
-  for (const [id, color] of previous) {
-    if (keep.has(id)) colors.set(id, color)
+  const authored = new Set<string>()
+  for (const segment of segments) {
+    if (segment.color !== undefined) authored.add(segment.color)
   }
 
-  const taken = new Set<string>(colors.values())
+  const colors = new Map<string, string>()
+  for (const [id, color] of previous) {
+    if (keep.has(id) && !authored.has(color)) colors.set(id, color)
+  }
+
+  const taken = new Set<string>([...colors.values(), ...authored])
   const chosen = new Map<string, string>()
   segments.forEach((segment, index) => {
-    if (segment.color !== undefined) {
-      taken.add(segment.color)
-      return
-    }
+    if (segment.color !== undefined) return
     const picked = choose?.(segment, {
       index,
       count: segments.length,
@@ -73,7 +77,10 @@ export function assignColors(
   const out = segments.map((segment) => {
     if (segment.color !== undefined) return segment
     const picked = chosen.get(segment.id)
-    if (picked !== undefined) return { ...segment, color: picked }
+    if (picked !== undefined) {
+      colors.delete(segment.id)
+      return { ...segment, color: picked }
+    }
     let color = colors.get(segment.id)
     if (color === undefined) {
       color = DEFAULT_PALETTE.find((swatch) => !taken.has(swatch)) ?? paletteColor(colors.size)

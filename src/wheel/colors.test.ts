@@ -69,18 +69,30 @@ describe('assignColors', () => {
     expect(segments[1].color).not.toBe(authored)
   })
 
-  it('keeps colors for wedges present but not in previous', () => {
-    const { segments } = assignColors([segment('ana')], NO_ORIGINS, {
-      previous: new Map<string, string>(),
-      retained: new Set<string>(),
-    })
-    expect(segments[0].color).toBeTruthy()
-  })
-
   it('falls back to the wrapping palette when every swatch is taken', () => {
     const many = DEFAULT_PALETTE.map((_, i) => segment(`w${i}`))
     const { segments } = assignColors([...many, segment('extra')], NO_ORIGINS, fresh)
-    expect(segments[segments.length - 1].color).toBeTruthy()
+    expect(segments[segments.length - 1].color).toBe(DEFAULT_PALETTE[0])
+  })
+
+  it('does not mutate the previous map', () => {
+    const previous = new Map<string, string>([['ana', DEFAULT_PALETTE[0]]])
+    const snapshot = new Map(previous)
+    assignColors([segment('ana')], NO_ORIGINS, { previous, retained: new Set<string>() })
+    expect(previous).toEqual(snapshot)
+  })
+
+  it('drops a sticky color a later wedge authors this pass', () => {
+    const first = assignColors([segment('ana')], NO_ORIGINS, fresh)
+    const anas = first.segments[0].color
+
+    const second = assignColors([segment('ana'), segment('beer', anas as string)], NO_ORIGINS, {
+      previous: first.colors,
+      retained: new Set<string>(),
+    })
+    expect(second.segments.find((s) => s.id === 'ana')?.color).not.toBe(
+      second.segments.find((s) => s.id === 'beer')?.color,
+    )
   })
 })
 
@@ -119,6 +131,25 @@ describe('assignColors choose', () => {
       choose: (s) => (s.id === 'ana' ? DEFAULT_PALETTE[0] : undefined),
     })
     expect(segments[1].color).not.toBe(DEFAULT_PALETTE[0])
+  })
+
+  it('lets the callback see a color authored on a later wedge', () => {
+    const authored = DEFAULT_PALETTE[0]
+    const { segments } = assignColors([segment('ana'), segment('beer', authored)], NO_ORIGINS, {
+      ...fresh,
+      choose: (_s, ctx) => DEFAULT_PALETTE.find((c) => !ctx.taken.has(c)),
+    })
+    expect(segments[0].color).not.toBe(segments[1].color)
+  })
+
+  it('releases the sticky entry when a chosen color replaces it', () => {
+    const first = assignColors([segment('ana')], NO_ORIGINS, fresh)
+    const second = assignColors([segment('ana')], NO_ORIGINS, {
+      previous: first.colors,
+      retained: new Set<string>(),
+      choose: () => '#123456',
+    })
+    expect(second.colors.has('ana')).toBe(false)
   })
 
   it('does not store a chosen color, so it can change', () => {
