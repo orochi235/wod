@@ -1,5 +1,5 @@
 import { pointAt } from '../wheel/geometry'
-import { arcLength, chord } from './fit'
+import { ARC_FILL, LINE_HEIGHT, arcLength, chord } from './fit'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
 import type { Glyph, SliceContext, SlicePart } from './types'
 
@@ -21,9 +21,6 @@ const MIN_ADVANCE = 0.3
  */
 const CAP_HEIGHT = 0.72
 const TAU = Math.PI * 2
-/** How much of the wedge's arc a run may claim, matching the curved budget. */
-const ARC_FILL = 0.85
-const LINE_HEIGHT = 1.2
 
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n))
 

@@ -7,14 +7,14 @@ const HUB_MARGIN = 0.28
 const RIM_MARGIN = 0.96
 /** How much of the available chord or arc a line of text may claim. */
 const CHORD_FILL = 0.82
-const ARC_FILL = 0.85
+export const ARC_FILL = 0.85
 /** A level disc is otherwise tangent to both the rim and its own wedge edges. */
 const DISC_FILL = 0.85
 /** Radial thickness a curved band claims, as a fraction of the radius. */
 const BAND = 0.34
 /** Radial thickness a tangential line claims. */
 const TANGENTIAL_BAND = 0.5
-const LINE_HEIGHT = 1.2
+export const LINE_HEIGHT = 1.2
 
 /** Down, never nearest: rounding a fitted size up puts it back over its budget. */
 const floor2 = (n: number): number => Math.floor(n * 100) / 100
