@@ -120,7 +120,7 @@ export type SlicePart = {
   band: [number, number]
   /** Default 'rimInward'. */
   direction?: 'rimInward' | 'hubOutward'
-  /** Letters keep their relative growth toward the rim. Default on. */
+  /** Letters keep their relative growth toward the rim. Default on, and moot on an arc. */
   fan?: boolean
   /** Widen each glyph to the room at its radius. Default 'none'. */
   stretch?: 'none' | 'fill' | number
