@@ -121,6 +121,46 @@ function restingTrack(segment: Segment): Track {
 }
 
 /**
+ * Track order is layout order, so a wedge that has left the roster has to keep
+ * the slot it held: appending it instead would swap it with every survivor
+ * behind it on the frame it departs, before its exit has animated at all.
+ */
+function inPlace(
+  next: Map<string, Track>,
+  previous: Map<string, Track>,
+  segments: Segment[],
+): Map<string, Track> {
+  const live = segments.map((segment) => segment.id).filter((id) => next.has(id))
+  const liveIds = new Set(live)
+  const held = [...next.keys()].filter((id) => !liveIds.has(id))
+  if (held.length === 0) return next
+
+  const heldIds = new Set(held)
+  const behind = new Map<string, string[]>()
+  const front: string[] = []
+  let anchor: string | null = null
+  for (const id of previous.keys()) {
+    if (liveIds.has(id)) anchor = id
+    else if (heldIds.has(id)) {
+      if (anchor === null) front.push(id)
+      else behind.set(anchor, [...(behind.get(anchor) ?? []), id])
+    }
+  }
+
+  const ordered = new Map<string, Track>()
+  const put = (id: string) => {
+    const track = next.get(id)
+    if (track) ordered.set(id, track)
+  }
+  front.forEach(put)
+  for (const id of live) {
+    put(id)
+    behind.get(id)?.forEach(put)
+  }
+  return ordered
+}
+
+/**
  * Diffs the composed roster against the tracks already drawn. A transition
  * starting on a wedge that is still animating takes that wedge's current sample
  * as its base and drops its own frame at 0, so the two interpolate into each
@@ -178,7 +218,9 @@ export function advance(input: AdvanceInput): Map<string, Track> {
   for (const [id, track] of tracks) {
     if (next.has(id)) continue
     if (track.phase === 'exiting') {
-      if (!isDone(track, now)) next.set(id, track)
+      // `arcs` is last frame's layout, so it still names the arc a wedge held
+      // right up to the frame its hold reaches zero, and drops it after.
+      if (!isDone(track, now)) next.set(id, { ...track, ghostArc: arcs.get(id) ?? track.ghostArc })
       continue
     }
     departing.push([id, track])
@@ -210,7 +252,7 @@ export function advance(input: AdvanceInput): Map<string, Track> {
     })
   })
 
-  return next
+  return inPlace(next, tracks, segments)
 }
 
 export type Drawn = {

@@ -5,7 +5,7 @@ import { advance, drawList, sampleTrack, settle } from './tracks'
 import type { Track } from './tracks'
 import type { Transitions } from './types'
 
-const segment = (id: string): Segment => ({ id, label: id, weight: 1 })
+const segment = (id: string, weight = 1): Segment => ({ id, label: id, weight })
 
 const enterOnly: Transitions = { enter: { id: 'fade', params: { staggerMs: 0 } } }
 const both: Transitions = {
@@ -162,6 +162,85 @@ describe('advance', () => {
     expect(renamed.get('ana')?.segment.label).toBe('Ana L.')
     expect(renamed.get('ana')?.startedAt).toBe(0)
   })
+
+  it('keeps a departing wedge in the slot it held', () => {
+    const start = advance(
+      input({ segments: [segment('ana'), segment('ben'), segment('cy')], now: 0 }),
+    )
+    const leaving = advance(
+      input({ tracks: start, segments: [segment('ana'), segment('cy')], now: 0 }),
+    )
+    expect([...leaving.keys()]).toEqual(['ana', 'ben', 'cy'])
+  })
+
+  it('keeps a departing wedge ahead of the roster it led', () => {
+    const start = advance(
+      input({ segments: [segment('ana'), segment('ben'), segment('cy')], now: 0 }),
+    )
+    const leaving = advance(
+      input({ tracks: start, segments: [segment('ben'), segment('cy')], now: 0 }),
+    )
+    expect([...leaving.keys()]).toEqual(['ana', 'ben', 'cy'])
+  })
+
+  it('keeps two departing wedges in their own separate slots', () => {
+    const start = advance(
+      input({
+        segments: [segment('ana'), segment('ben'), segment('cy'), segment('dee')],
+        now: 0,
+      }),
+    )
+    const leaving = advance(
+      input({ tracks: start, segments: [segment('ana'), segment('cy')], now: 0 }),
+    )
+    expect([...leaving.keys()]).toEqual(['ana', 'ben', 'cy', 'dee'])
+  })
+
+  it('keeps consecutive departing wedges in order behind their neighbor', () => {
+    const start = advance(
+      input({
+        segments: [segment('ana'), segment('ben'), segment('cy'), segment('dee')],
+        now: 0,
+      }),
+    )
+    const leaving = advance(
+      input({ tracks: start, segments: [segment('ana'), segment('dee')], now: 0 }),
+    )
+    expect([...leaving.keys()]).toEqual(['ana', 'ben', 'cy', 'dee'])
+  })
+
+  it('follows the composed order when the roster itself reorders', () => {
+    const start = advance(
+      input({ segments: [segment('ana'), segment('ben'), segment('cy')], now: 0 }),
+    )
+    const leaving = advance(
+      input({ tracks: start, segments: [segment('cy'), segment('ana')], now: 0 }),
+    )
+    // ben still follows ana, the neighbor it stood behind, to ana's new slot.
+    expect([...leaving.keys()]).toEqual(['cy', 'ana', 'ben'])
+  })
+
+  it('refreshes a shrinking wedge to its last non-zero arc', () => {
+    const shrinking: Track = {
+      ...restingFor('ben'),
+      phase: 'exiting',
+      frames: [
+        { at: 0, hold: 1 },
+        { at: 0.5, hold: 0 },
+      ],
+      declaresHold: true,
+      durationMs: 400,
+      ghostArc: { id: 'ben', start: 0, end: 1 },
+    }
+    const tracks = new Map<string, Track>([
+      ['ana', restingFor('ana')],
+      ['ben', shrinking],
+    ])
+    // A quarter in, ben still holds half its weight and so still has a real arc.
+    const laid = drawList(tracks, 100)
+    const next = advance(input({ tracks, segments: [segment('ana')], arcs: laid.arcs, now: 100 }))
+    expect(next.get('ben')?.ghostArc).toEqual(laid.arcs.get('ben'))
+  })
 })
 
 const restingFor = (id: string): Track => ({
@@ -191,7 +270,7 @@ describe('drawList', () => {
     ghostArc: null,
   })
 
-  it('lays out holding wedges by weight times hold', () => {
+  it('leaves a wedge that has released its arc out of the layout', () => {
     const tracks = new Map<string, Track>([
       ['ana', { ...holding('ana', 1), phase: 'present', frames: [], declaresHold: false }],
       ['ben', holding('ben', 0)],
@@ -200,6 +279,56 @@ describe('drawList', () => {
     // ben has decayed to hold 0 at p=1, so ana takes the whole circle.
     const ana = drawn.find((item) => item.segment.id === 'ana')
     expect(ana && ana.arc.end - ana.arc.start).toBeCloseTo(1)
+  })
+
+  it('lays out a holding wedge by its weight as well as its hold', () => {
+    const tracks = new Map<string, Track>([
+      ['ana', { ...restingFor('ana'), segment: segment('ana', 3) }],
+      ['ben', { ...holding('ben', 0), durationMs: 200, segment: segment('ben', 1) }],
+    ])
+    // ana holds 3; ben is halfway through releasing 1, so it lays out at 0.5.
+    const ben = drawList(tracks, 100).drawn.find((item) => item.segment.id === 'ben')
+    expect(ben && ben.arc.end - ben.arc.start).toBeCloseTo(0.5 / 3.5)
+  })
+
+  it('lays out live wedges in track order', () => {
+    const tracks = new Map<string, Track>([
+      ['ana', restingFor('ana')],
+      ['ben', restingFor('ben')],
+    ])
+    const { drawn } = drawList(tracks, 0)
+    expect(drawn.map((item) => item.segment.id)).toEqual(['ana', 'ben'])
+    expect(drawn[0].arc.start).toBe(0)
+  })
+
+  it('draws a reversing wedge once, at the arc it was laid', () => {
+    // Turned around mid-exit: still carrying the arc its exit froze, and taking
+    // its weight back up. Both halves of drawList can see it.
+    const reversing: Track = {
+      ...restingFor('ben'),
+      phase: 'entering',
+      frames: [{ at: 1, hold: 1 }],
+      base: { ...RESTING, hold: 0 },
+      durationMs: 200,
+      declaresHold: true,
+      ghostArc: { id: 'ben', start: 0.5, end: 1 },
+    }
+    const tracks = new Map<string, Track>([
+      ['ana', restingFor('ana')],
+      ['ben', reversing],
+    ])
+    const bens = drawList(tracks, 100).drawn.filter((item) => item.segment.id === 'ben')
+    expect(bens).toHaveLength(1)
+    expect(bens[0].presence.hold).toBeCloseTo(0.5)
+  })
+
+  it('leaves a released wedge out of the arcs it reports', () => {
+    const tracks = new Map<string, Track>([
+      ['ana', restingFor('ana')],
+      ['ben', { ...holding('ben', 0), ghostArc: { id: 'ben', start: 0.5, end: 1 } }],
+    ])
+    // A ghost re-reporting its frozen arc would freeze it against itself forever.
+    expect(drawList(tracks, 100).arcs.has('ben')).toBe(false)
   })
 
   it('shrinks a wedge that is still holding part of its weight', () => {
@@ -259,6 +388,74 @@ describe('drawList', () => {
     const before = JSON.stringify([...tracks.entries()])
     drawList(tracks, 100)
     expect(JSON.stringify([...tracks.entries()])).toBe(before)
+  })
+})
+
+describe('sampleTrack', () => {
+  it('hands back the shared resting presence for a settled wedge', () => {
+    // By identity, which is what freezing RESTING protects.
+    expect(sampleTrack(restingFor('ana'), 500)).toBe(RESTING)
+  })
+})
+
+describe('advance through drawList', () => {
+  it('draws a departed wedge at the arc it last held', () => {
+    const start = advance(input({ segments: [segment('ana'), segment('ben')], now: 0 }))
+    const before = drawList(start, 1000)
+    const leaving = advance(
+      input({ tracks: start, segments: [segment('ana')], arcs: before.arcs, now: 1000 }),
+    )
+    const ben = drawList(leaving, 1000).drawn.find((item) => item.segment.id === 'ben')
+    expect(ben?.arc).toEqual(before.arcs.get('ben'))
+  })
+
+  it('keeps the frozen arc when a wedge turns around mid-exit', () => {
+    const start = advance(input({ segments: [segment('ana'), segment('ben')], now: 0 }))
+    const before = drawList(start, 1000)
+    const leaving = advance(
+      input({ tracks: start, segments: [segment('ana')], arcs: before.arcs, now: 1000 }),
+    )
+    const back = advance(
+      input({
+        tracks: leaving,
+        segments: [segment('ana'), segment('ben')],
+        arcs: drawList(leaving, 1000).arcs,
+        now: 1100,
+      }),
+    )
+    expect(back.get('ben')?.ghostArc).toEqual(before.arcs.get('ben'))
+  })
+
+  it('moves no survivor on the frame a neighbor starts leaving', () => {
+    const start = advance(
+      input({ segments: [segment('ana'), segment('ben'), segment('cy')], now: 0 }),
+    )
+    const before = drawList(start, 0)
+    const leaving = advance(
+      input({
+        tracks: start,
+        segments: [segment('ana'), segment('cy')],
+        arcs: before.arcs,
+        now: 0,
+      }),
+    )
+    // A hold-declaring exit, standing in for Task 8's shrink. Everything else
+    // about the track is what advance built.
+    const ben = leaving.get('ben') as Track
+    const held = new Map(leaving)
+    held.set('ben', {
+      ...ben,
+      frames: [
+        { at: 0, hold: 1 },
+        { at: 1, hold: 0 },
+      ],
+      declaresHold: true,
+    })
+
+    const after = drawList(held, 0)
+    const at = (list: typeof after.drawn, id: string) => list.find((item) => item.segment.id === id)
+    expect(at(after.drawn, 'cy')?.arc).toEqual(at(before.drawn, 'cy')?.arc)
+    expect(at(after.drawn, 'ben')?.arc).toEqual(at(before.drawn, 'ben')?.arc)
   })
 })
 
