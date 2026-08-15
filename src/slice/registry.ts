@@ -1,5 +1,6 @@
 import type { Segment } from '../wheel/types'
 import { auto } from './layouts/auto'
+import { composed } from './layouts/composed'
 import { curved } from './layouts/curved'
 import { radial } from './layouts/radial'
 import { tangential } from './layouts/tangential'
@@ -10,9 +11,10 @@ export const SLICE_LAYOUTS: Record<SliceLayoutId, SliceLayout> = {
   radial,
   tangential,
   curved,
+  composed,
 }
 
-export const SLICE_LIST: SliceLayout[] = [auto, curved, tangential, radial]
+export const SLICE_LIST: SliceLayout[] = [auto, composed, curved, tangential, radial]
 
 export const DEFAULT_SLICE: SliceInstance = { id: 'auto', params: { ...auto.defaults } }
 

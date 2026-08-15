@@ -19,7 +19,7 @@ export type Orientation =
 
 export type ContentTransform = 'full' | 'firstName' | 'initials' | 'ellipsis'
 
-export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved'
+export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed'
 
 export type SliceParams = Record<string, unknown>
 

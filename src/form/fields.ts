@@ -17,3 +17,8 @@ export type Field =
    * plumbed through `provides`, which is a feature rather than this fix.
    */
   | { key: string; label: string; kind: 'segment' }
+  /**
+   * A repeating list of slice parts. `max` is how many slots the editor offers;
+   * the stored list is uncapped, so lifting the cap is a UI change.
+   */
+  | { key: string; label: string; kind: 'parts'; max: number }

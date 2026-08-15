@@ -153,6 +153,8 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
             </select>
           </PropertyRow>
         )
+      case 'parts':
+        return null
     }
   }
 

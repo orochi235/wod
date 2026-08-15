@@ -18,10 +18,19 @@ describe('getSlice', () => {
   it('lists every registered layout', () => {
     expect(SLICE_LIST.map((layout) => layout.id).sort()).toEqual([
       'auto',
+      'composed',
       'curved',
       'radial',
       'tangential',
     ])
+  })
+
+  it('resolves the composed layout by id', () => {
+    expect(getSlice('composed')?.id).toBe('composed')
+  })
+
+  it('offers the composed layout in the list', () => {
+    expect(SLICE_LIST.map((layout) => layout.id)).toContain('composed')
   })
 })
 
