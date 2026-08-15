@@ -1,7 +1,15 @@
 /** Any keyframe-like point on a 0…1 timeline. */
 export type At = { at: number }
 
-/** Finds the pair of points bracketing `p`, plus how far between them it sits. */
+/**
+ * Finds the pair of points bracketing `p`, plus how far between them it sits.
+ *
+ * Requires `points` sorted ascending by `at`; unsorted input returns nonsense
+ * rather than throwing. Where points share an offset, only a tie including the
+ * last point resolves to the later value — a tie at the front or in the middle
+ * resolves to the earlier one, because the first matching span wins and its
+ * bounds are inclusive.
+ */
 export function bracket<T extends At>(
   points: T[],
   p: number,
@@ -9,9 +17,6 @@ export function bracket<T extends At>(
   if (points.length === 0) return null
   const first = points[0]
   const last = points[points.length - 1]
-  // Checked before `p <= first.at`: when every point shares one offset,
-  // `first === last`, and a tie must go to the later keyframe to agree with
-  // the `span === 0` branch below, which already prefers `to`.
   if (p >= last.at) return { from: last, to: last, t: 1 }
   if (p <= first.at) return { from: first, to: first, t: 0 }
   for (let i = 0; i < points.length - 1; i++) {

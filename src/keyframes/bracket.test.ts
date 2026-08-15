@@ -30,4 +30,11 @@ describe('bracket', () => {
     expect(found?.to.value).toBe(20)
     expect(found?.t).toBe(1)
   })
+
+  it('resolves an interior tie to the earlier pair', () => {
+    const found = bracket([p(0, 1), p(0.5, 2), p(0.5, 3), p(1, 4)], 0.5)
+    expect(found?.from.value).toBe(1)
+    expect(found?.to.value).toBe(2)
+    expect(found?.t).toBe(1)
+  })
 })
