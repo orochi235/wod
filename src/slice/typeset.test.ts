@@ -223,6 +223,21 @@ describe('the stacked solve', () => {
     expect(Math.max(...glyphs.map((glyph) => glyph.size))).toBeLessThanOrEqual(12)
   })
 
+  it('steps an upright run by the line, not by the letter', () => {
+    // I and W differ hugely in advance. Stacked letters step by the line, so
+    // their slots must not: only the width cap may notice the difference.
+    const glyphs = glyphsOf({
+      content: { from: 'text', value: 'IIW' },
+      band: [0.3, 0.95],
+      fan: false,
+      maxSize: 20,
+    })
+    const gap = (a: number, b: number) => Math.abs(radiusOf(glyphs[a]) - radiusOf(glyphs[b]))
+    expect(gap(0, 1)).toBeCloseTo(gap(1, 2), 1)
+    // The step is size * (1 + TRACKING); this pins TRACKING itself.
+    expect(gap(0, 1)).toBeCloseTo(glyphs[0].size * 1.08, 1)
+  })
+
   it('keeps stacked letters upright on the wedge midline', () => {
     const ctx = context({ arc: { start: 0, end: 0.25 } })
     for (const glyph of glyphsOf({ content: { from: 'text', value: 'AB' } }, ctx)) {
