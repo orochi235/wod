@@ -6,7 +6,14 @@ export function paletteColor(index: number): string {
   return DEFAULT_PALETTE[index % DEFAULT_PALETTE.length]
 }
 
-/** The color the wheel actually paints, resolving the palette fallback. */
+/**
+ * An authored color, or the palette entry for the segment's position.
+ *
+ * No longer what the wheel paints: `usePresence` assigns an uncolored wedge a
+ * swatch by id and keeps it, so after a departure these disagree for every
+ * uncolored segment. A trick reading this for an `at: 0` keyframe starts from a
+ * color the wedge is not showing.
+ */
 export function effectiveColor(segments: Segment[], id: string): string | null {
   const index = segments.findIndex((s) => s.id === id)
   if (index === -1) return null

@@ -12,6 +12,7 @@ describe('effectiveColor', () => {
     expect(effectiveColor(segments, 'beer')).toBe('#ffd166')
   })
 
+  // By position, which is not how the wheel assigns one. See the docstring.
   it('falls back to the palette entry for the segment index', () => {
     expect(effectiveColor(segments, 'ana')).toBe('#f4a261')
   })

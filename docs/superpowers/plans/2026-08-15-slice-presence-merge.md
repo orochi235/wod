@@ -976,6 +976,46 @@ once dropped from `tracks`, never returns — so a discarded render cannot delet
 an entry a later one needs. `Wheel` neither states that dependency nor tests it.
 A future change to how `tracks.ts` evicts would break the memory silently.
 
+## What the final review left open
+
+**`effectiveColor` reports a color the wheel does not paint.** It resolves the
+palette by segment position; `usePresence.withColor` assigns by id and keeps the
+swatch, so after one departure they disagree for every uncolored wedge.
+`recolor`, `swap` and `takeover` each read it to build an `at: 0` keyframe, so a
+trick on a churned roster starts its animation from the wrong color and the wedge
+jumps as the spin begins. A live feed is exactly the case that churns.
+
+This predates the merge — it arrived with the branch's move to id-sticky colors,
+which deliberately ended the recolor-on-departure `main` had always had. The
+docstring and the test name now say what the function actually does. The fix is a
+decision about **where color gets assigned**: the sticky assignment lives in a
+`usePresence` ref, and trick resolution runs before render with no way to reach
+it, so making both agree probably means assigning at compose time and letting the
+resolved roster carry concrete colors. Its own plan.
+
+Also left, all minor:
+
+- **`restingDegs` and `levelRefs` in `useSpin` never prune**, though `Wheel` and
+  `usePresence` both prune their per-id maps. `Wheel` calls `levelRef` for every
+  drawn wedge, not only those with a level element, so both maps hold an entry
+  per participant for the session.
+- **`?? 0` in the spin loop is unreachable** — replacing it with a throw leaves
+  428 tests green. If the invariant ever breaks it substitutes 0°, tilting a
+  label by its whole angle. Skipping or asserting would be better than a
+  plausible-looking number.
+- **The "angle outlives the element" comment describes a hazard nobody could
+  reproduce.** Deleting the angle on detach leaves every test green, and React
+  commits a detach before the next render writes. Either it cannot happen and the
+  comment should go, or it can and it needs the test.
+- **`installClock` is duplicated** between `Wheel.test.tsx` and
+  `usePresence.test.tsx`. At a third copy, extract it.
+- **A level element is tilted mid-morph.** The counter-rotation is fixed at spin
+  start from the layout angle, which during a morphing spin comes from the landed
+  frame while the presence arc still comes from the displayed one. `main` was
+  right at the start and wrong at the landing; this inverts that, which is the
+  better trade — but the spec's "the layout angle is already what the settle is
+  about to produce" is exactly true only when no morph runs.
+
 ## Notes for whoever executes this
 
 **The merge is the risky task, and it is Task 1.** Everything after it is small and tested. If Task 1's suite does not go green, do not patch tests to make it — the two suites passing against one component is the whole proof that the merge is correct.
