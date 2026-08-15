@@ -256,4 +256,34 @@ describe('the presence clock', () => {
     expect(after).toBe(before)
     expect(after).toBeTruthy()
   })
+
+  it('reports a wedge it is still drawing after the roster drops it', () => {
+    const retained: { current: ReadonlySet<string> } = { current: new Set() }
+    const { rerender } = render(
+      <Wheel
+        segments={[segment('ana'), segment('ben')]}
+        transitions={transitions}
+        retainedRef={retained}
+      />,
+    )
+    expect([...retained.current].sort()).toEqual(['ana', 'ben'])
+
+    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
+    expect(retained.current.has('ben')).toBe(true)
+  })
+
+  it('drops a wedge from the report once its exit is done', () => {
+    const retained: { current: ReadonlySet<string> } = { current: new Set() }
+    const { rerender } = render(
+      <Wheel
+        segments={[segment('ana'), segment('ben')]}
+        transitions={transitions}
+        retainedRef={retained}
+      />,
+    )
+    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
+    clock.advance(401)
+    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
+    expect(retained.current.has('ben')).toBe(false)
+  })
 })

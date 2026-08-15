@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { RetainedIds } from '../wheel/colors'
 import type { Arc } from '../wheel/geometry'
 import { DEFAULT_PALETTE, paletteColor } from '../wheel/palette'
 import type { Segment } from '../wheel/types'
@@ -35,6 +36,7 @@ export function usePresence(
   segments: Segment[],
   transitions: Transitions | undefined,
   held: boolean,
+  retainedRef?: RetainedIds,
 ): Drawn[] {
   const tracks = useRef(new Map<string, Track>())
   const arcs = useRef(new Map<string, Arc>())
@@ -66,6 +68,10 @@ export function usePresence(
 
   const { drawn, arcs: laid } = drawList(tracks.current, now)
   arcs.current = laid
+
+  // Written during render for the same reason the lines above are: the assigner
+  // reads it on App's next render, and an effect would report a frame late.
+  if (retainedRef) retainedRef.current = new Set(tracks.current.keys())
 
   const running = [...tracks.current.values()].some((track) => !isDone(track, now))
 
