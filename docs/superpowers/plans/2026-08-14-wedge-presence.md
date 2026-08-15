@@ -1198,6 +1198,7 @@ applied to one presence, producing a style object React can hand to an element.
 **Files:**
 - Modify: `src/transition/css.ts`
 - Modify: `src/transition/css.test.ts`
+- Modify: `src/wheel/Wheel.css`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1209,24 +1210,24 @@ describe('styleOf', () => {
 
   it('emits nothing extra for a resting presence', () => {
     const style = styleOf(RESTING, target)
-    expect(style.transform).toBe('none')
-    expect(style.opacity).toBe(1)
+    expect(style['--wedge-transform']).toBe('none')
+    expect(style['--wedge-opacity']).toBe('1')
   })
 
   it('emits opacity and a transform together', () => {
     const style = styleOf({ ...RESTING, opacity: 0.5, scale: 0.9 }, target)
-    expect(style.opacity).toBe(0.5)
-    expect(style.transform).toContain('scale(0.9)')
+    expect(style['--wedge-opacity']).toBe('0.5')
+    expect(style['--wedge-transform']).toContain('scale(0.9)')
   })
 
   it('clips only when the aperture is closed', () => {
-    expect(styleOf(RESTING, target).clipPath).toBeUndefined()
-    expect(styleOf({ ...RESTING, aperture: 0.5 }, target).clipPath).toContain('circle(')
+    expect(styleOf(RESTING, target)['--wedge-clip']).toBeUndefined()
+    expect(styleOf({ ...RESTING, aperture: 0.5 }, target)['--wedge-clip']).toContain('circle(')
   })
 
   it('reuses the keyframe transform arithmetic', () => {
     const presence = { ...RESTING, offset: 1, offsetAngle: 45 }
-    expect(styleOf(presence, target).transform).toBe(
+    expect(styleOf(presence, target)['--wedge-transform']).toBe(
       transformOf({ at: 0, offset: 1, offsetAngle: 45 }, target),
     )
   })
@@ -1259,37 +1260,57 @@ Then append:
 
 ```ts
 export type PresenceStyle = {
-  transform: string
-  opacity: number
-  clipPath?: string
+  '--wedge-transform': string
+  '--wedge-opacity': string
+  '--wedge-clip'?: string
 }
 
 /**
- * One presence as inline style. `transformOf` and `clipOf` take a keyframe, and
- * a presence is a keyframe with every property present — so the arithmetic is
- * shared rather than reimplemented, and the two can never drift.
+ * One presence as custom properties. `transformOf` and `clipOf` take a keyframe,
+ * and a presence is a keyframe with every property present — so the arithmetic
+ * is shared rather than reimplemented, and the two can never drift.
  */
 export function styleOf(presence: Presence, target: EmitTarget): PresenceStyle {
   const frame: PresentationKeyframe = { at: 0, ...presence }
   const style: PresenceStyle = {
-    transform: transformOf(frame, target),
-    opacity: presence.opacity,
+    '--wedge-transform': transformOf(frame, target),
+    '--wedge-opacity': `${presence.opacity}`,
   }
-  if (presence.aperture < 1) style.clipPath = clipOf(frame)
+  if (presence.aperture < 1) style['--wedge-clip'] = clipOf(frame)
   return style
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [ ] **Step 4: Let the stylesheet consume them**
+
+In `src/wheel/Wheel.css`, extend the existing `.wheel__wedge` rule. The selector
+is currently shared with `.wheel__stage`; split the wedge out, since only the
+wedge carries a presence:
+
+```css
+.wheel__stage,
+.wheel__wedge {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+.wheel__wedge {
+  transform: var(--wedge-transform, none);
+  opacity: var(--wedge-opacity, 1);
+  clip-path: var(--wedge-clip, none);
+}
+```
+
+- [ ] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run src/transition/css.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/transition/css.ts src/transition/css.test.ts
-git commit -m "feat(transition): emit a sampled presence as style"
+git add src/transition/css.ts src/transition/css.test.ts src/wheel/Wheel.css
+git commit -m "feat(transition): emit a sampled presence as custom properties"
 ```
 
 ---
@@ -1356,7 +1377,7 @@ describe('wedge presence', () => {
   it('draws an arriving wedge from its transition start', () => {
     const { container } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
     const wedge = container.querySelector('[data-segment-id="ana"]') as SVGGElement
-    expect(wedge.style.opacity).toBe('0')
+    expect(wedge.style.getPropertyValue('--wedge-opacity')).toBe('0')
   })
 
   it('keeps drawing a wedge that leaves the roster', () => {
@@ -1389,7 +1410,7 @@ describe('wedge presence', () => {
     rerender(<Wheel segments={[segment('ana')]} transitions={transitions} held={true} />)
     expect(wedges(container)).toEqual(['ana'])
     const wedge = container.querySelector('[data-segment-id="ana"]') as SVGGElement
-    expect(wedge.style.opacity).toBe('1')
+    expect(wedge.style.getPropertyValue('--wedge-opacity')).toBe('1')
   })
 
   it('rests every wedge under reduced motion once the short fade is done', () => {
@@ -1567,9 +1588,9 @@ export function Wheel({
       </g>
 ```
 
-The inline `style` here is the sampled animation frame — a value that changes
-every frame and has no class to belong to. It is the exception the no-inline-styles
-rule exists to make rare, not a shortcut around a stylesheet.
+The `style` here carries only custom properties — the sampled numbers, which
+change every frame and have no class to belong to. Which CSS property each one
+drives is declared in `Wheel.css` by Task 6.
 
 - [ ] **Step 5: Tell the wheel about the spin**
 
@@ -2093,16 +2114,50 @@ started. Baseline at handoff: 58 test files, 757 tests, `npm run build` and
 | 2 Sample keyframes into a presence | `3e68bf9` | spec + quality, fixes applied |
 | 3 Give a transition its moment | `9e7e557` | spec + quality, fixes applied |
 | 4 Start, reverse, interrupt tracks | `ef22460` | spec + quality, fixes applied |
-| 5 Build the draw list | `ba98ba0`, `683690c` | **not independently reviewed** |
+| 5 Build the draw list | `ba98ba0`, `683690c`, `b9fcb88`, `34381e0` | spec + quality, fixes applied |
 
 `683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
 resting wedge. A consumer writing into a presence now throws at the write rather
 than silently corrupting the shared object for the session — Task 6 and Task 7
 consume presences, so they should build a new object rather than adjust one.
 
-Task 5 needs the two-stage review the others had before it is trusted. Its own
-mutation testing was thorough and is recorded in the commit, but no second pair
-of eyes has read it.
+Task 5's review found one defect that would have shipped visibly: `advance`
+appended a departing track after the surviving roster, and track order is layout
+order, so a wedge leaving from anywhere but the end swapped places with every
+survivor behind it on the departure frame — a jump cut where the reflow belongs.
+It bites only a `hold`-declaring exit, so `shrink` would have shipped wrong while
+Task 8's own prescribed test (`[ana, ben]`, `ben` departing) passed, that being
+the one arrangement where appending preserves order. Fixed in `b9fcb88` by
+keeping a departed wedge in the slot it held.
+
+The same commit refreshes an exiting wedge's frozen arc while it still holds one,
+so a transition whose `hold` reaches zero before its duration ends freezes at the
+arc it last occupied rather than the one it departed from. Latent for `shrink`,
+which releases at exactly p 1.
+
+Six rules were unprotected and now have mutation guards: the `weight` operand of
+the layout arithmetic, the ghost double-draw skip, the exclusion of ghosts from
+the reported arcs, live roster order, both `ghostArc` assignments, and `RESTING`
+being handed out by identity. Neither `advance` nor `drawList` had a single test
+that ran one into the other; three now do.
+
+Left alone deliberately, with reasons, for whoever picks up Tasks 8-10:
+
+- **A ghost is absent from the `arcs` map `drawList` returns**, so a wedge that
+  re-joins while holding no arc is told its angle is 0 rather than where it is
+  visibly sitting. Unreachable today: no registered transition reads `ctx.angle`.
+  The two reviewers split on whether including ghosts is the fix or the bug, so
+  the current exclusion is now pinned by a test rather than changed.
+- **`laid[index]` pairs `drawList`'s holding list with `layoutArcs`'s output by
+  position.** Correct — `arcs()` returns one `Arc` per item in order — but the
+  contract is not written down, and `Arc` already carries an `id` if it ever
+  needs to be keyed instead.
+- **A departing wedge that never held an arc is dropped from the draw list but
+  stays in the track map** for its full exit duration, so Task 7's `running`
+  check keeps the rAF loop alive for something invisible.
+- **`RESTING: Presence = Object.freeze(...)` widens `Readonly<Presence>` back to
+  `Presence`,** so the freeze is enforced at runtime only. Tasks 6-10 should not
+  assume the type checker will catch a write.
 
 Seven defects in this plan were found during execution, every one in the plan
 rather than in an implementation. Two would have shipped visible bugs: a
@@ -2120,11 +2175,13 @@ done.
 
 ## Open decisions
 
-- **Inline style on the wedge `<g>`** (Tasks 6-7). The sampled presence is
-  written as an inline `style`, against the repo's no-inline-styles rule. It is a
-  value that changes every frame with no stable class to hold it, which is the
-  same category as the transform WAAPI wrote before. CSS custom properties on the
-  group are the alternative and are cheaper to adopt now than later. Not decided.
+- **Inline style on the wedge `<g>`** (Tasks 6-7). **Settled: CSS custom
+  properties.** `styleOf` emits `--wedge-transform`, `--wedge-opacity` and
+  `--wedge-clip`; `.wheel__wedge` in `Wheel.css` consumes them beside the
+  `transform-box` and `transform-origin` rules already there. Only the animated
+  numbers are inline — which property each drives stays in the stylesheet. Tasks
+  6 and 7 below are written against the direct-inline form and need the
+  amendments noted in each.
 - **Enter/exit stagger asymmetry.** Arrivals stagger by absolute roster index
   (inherited from `useEnter`), departures by a batch-relative counter. One person
   joining a five-person meeting therefore waits four stagger intervals before
