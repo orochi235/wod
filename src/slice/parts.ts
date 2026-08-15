@@ -3,12 +3,16 @@ import type { ContentTransform, Frame, Orientation, PartContent, SlicePart } fro
 /** How many parts the editor offers. The data itself is uncapped. */
 export const MAX_PARTS = 3
 
+/**
+ * Type belongs in the outer half: a band that runs to the hub tapers itself
+ * into unreadability, because the chord there goes to zero.
+ */
+const DEFAULT_BAND: [number, number] = [0.45, 0.94]
+
 export const DEFAULT_PART: SlicePart = {
   content: { from: 'label' },
   orientation: 'stacked',
-  // Type belongs in the outer half: a band that runs to the hub tapers itself
-  // into unreadability, because the chord there goes to zero.
-  band: [0.45, 0.94],
+  band: DEFAULT_BAND,
 }
 
 const ORIENTATIONS: Orientation[] = [
@@ -48,10 +52,10 @@ function readContent(value: unknown): PartContent | null {
 const clampUnit = (n: number): number => Math.min(1, Math.max(0, n))
 
 function readBand(value: unknown): [number, number] {
-  if (!Array.isArray(value) || value.length < 2) return DEFAULT_PART.band
+  if (!Array.isArray(value) || value.length < 2) return [...DEFAULT_BAND]
   const [a, b] = value
-  if (typeof a !== 'number' || typeof b !== 'number') return DEFAULT_PART.band
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return DEFAULT_PART.band
+  if (typeof a !== 'number' || typeof b !== 'number') return [...DEFAULT_BAND]
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return [...DEFAULT_BAND]
   return [clampUnit(Math.min(a, b)), clampUnit(Math.max(a, b))]
 }
 

@@ -94,6 +94,49 @@ describe('readParts', () => {
     const part = { content: { from: 'label' }, orientation: 'stacked', band: [0.4, 0.9] }
     expect(readParts(Array.from({ length: MAX_PARTS + 2 }, () => part))).toHaveLength(MAX_PARTS + 2)
   })
+
+  it('keeps a valid label transform', () => {
+    const [part] = readParts([
+      {
+        content: { from: 'label', transform: 'initials' },
+        orientation: 'stacked',
+        band: [0.4, 0.9],
+      },
+    ])
+    expect(part.content).toEqual({ from: 'label', transform: 'initials' })
+  })
+
+  it('keeps a media part', () => {
+    const [part] = readParts([
+      { content: { from: 'media' }, orientation: 'archedRim', band: [0.4, 0.9] },
+    ])
+    expect(part.content).toEqual({ from: 'media' })
+  })
+
+  it('keeps each derived value', () => {
+    for (const value of ['weight', 'index', 'position']) {
+      const [part] = readParts([
+        { content: { from: 'derived', value }, orientation: 'stacked', band: [0.4, 0.9] },
+      ])
+      expect(part.content).toEqual({ from: 'derived', value })
+    }
+  })
+
+  it('drops a part whose derived value names nothing', () => {
+    const good = { content: { from: 'label' }, orientation: 'stacked', band: [0.4, 0.9] }
+    const bad = {
+      content: { from: 'derived', value: 'hue' },
+      orientation: 'stacked',
+      band: [0.4, 0.9],
+    }
+    expect(readParts([good, bad])).toEqual([good])
+  })
+
+  it('drops a text part with no string to set', () => {
+    const good = { content: { from: 'label' }, orientation: 'stacked', band: [0.4, 0.9] }
+    const bad = { content: { from: 'text' }, orientation: 'stacked', band: [0.4, 0.9] }
+    expect(readParts([good, bad])).toEqual([good])
+  })
 })
 
 describe('readPartList', () => {
