@@ -2104,9 +2104,29 @@ did not, there is nothing to commit and the plan is done.
 
 ## Where execution stopped
 
-Tasks 1-6 are committed on `feat/wedge-presence-impl`. Tasks 7-10 have not been
-started. Baseline: 58 test files, 777 tests, `npm run build` and
-`npx biome check .` clean.
+Tasks 1-7 are committed on `feat/wedge-presence-impl`, which has `main` merged
+in as of `3a6b9f4`. Tasks 8-10 have not been started. Baseline: 58 test files,
+798 tests, `npm run build` and `npx biome check .` clean. Verified in a browser:
+wedges paint, the custom properties resolve to real computed values, and a `fly`
+entrance travels along each wedge's own radius.
+
+Task 7 departed from the plan in three places, each recorded in its commits:
+
+- **`held` comes from `useSpin`, not from `isSpinning`.** `6bae2a1` on `main`
+  decoupled the landed-frame hold from the spin, so `isSpinning` would have let
+  the wheel animate against a roster `useSpin` is deliberately ignoring. `held`
+  is now on `UseSpinResult` as a real public surface.
+- **`settle` takes the roster, not the tracks.** Resting whatever was mid-flight
+  left a departed wedge drawn forever when the hold arrived in the same render
+  as its departure, because a held wheel never diffs the roster at all.
+- **Sampled progress is eased.** `useEnter` passed `ease-out` to `animate()`, and
+  a keyframe list carries no easing, so sampling on a linear clock would have
+  flattened every arrival. `EASINGS` moved to `keyframes/easing.ts` on the
+  precedent `bracket` set. Landed in its own commit from the render wiring,
+  since it shifts values six earlier tests pin.
+
+Tasks 8-10 should read the amended Task 7 above rather than trusting the
+prescribed code: the `Wheel.tsx` and `App.tsx` snippets there predate all three.
 
 Task 6 landed one thing the plan did not call for. Nothing linked the property
 names `styleOf` emits to the `var()` calls in `Wheel.css`, and jsdom never
@@ -2124,7 +2144,8 @@ vitest config narrows its CSS stub so that import returns the file. Note the
 | 3 Give a transition its moment | `9e7e557` | spec + quality, fixes applied |
 | 4 Start, reverse, interrupt tracks | `ef22460` | spec + quality, fixes applied |
 | 5 Build the draw list | `ba98ba0`, `683690c`, `b9fcb88`, `34381e0` | spec + quality, fixes applied |
-| 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa`, `ac9f1e2` | spec + quality, fixes applied |
+| 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa`, `adcb8bf` | spec + quality, fixes applied |
+| 7 Run the clock and draw it | `3b7db08`, `991a602` | **not independently reviewed** |
 
 `683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
 resting wedge. A consumer writing into a presence now throws at the write rather
