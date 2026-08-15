@@ -125,6 +125,8 @@ export type SlicePart = {
   fan?: boolean
   /** Widen each glyph to the room at its radius. Default 'none'. */
   stretch?: 'none' | 'fill' | number
+  /** How a glyph the chord cannot hold gives way. Default 'proportional'. */
+  shrink?: 'proportional' | 'condense'
   /** How the run is drawn. Default 'glyphs'. Only 'glyphs' is implemented. */
   shape?: 'glyphs' | 'outline'
   /** A registry id. Absent means the theme's default face. Not yet read. */

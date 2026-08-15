@@ -21,6 +21,23 @@ const MIN_ADVANCE = 0.3
  */
 const CAP_HEIGHT = 0.72
 const TAU = Math.PI * 2
+/**
+ * A run solved to exactly its space lands a float or two over it, and without
+ * this it would give up a rung it never needed to.
+ */
+const FIT_SLACK = 1e-6
+/**
+ * What a run gives up, cheapest first, to stay inside the space it was given
+ * before the size floor starts pushing it out. Combinations rather than a
+ * stack: dropping the fan is the bigger concession, and it buys back the
+ * tracking that the rung before it spent.
+ */
+const LADDER: { tracked: boolean; fan: boolean }[] = [
+  { tracked: true, fan: true },
+  { tracked: false, fan: true },
+  { tracked: true, fan: false },
+  { tracked: false, fan: false },
+]
 
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n))
 
@@ -39,11 +56,14 @@ function solveRadial(
   part: SlicePart,
   ctx: SliceContext,
   maxSize: number,
+  fan: boolean,
 ): Solved {
   const width = ctx.arc.end - ctx.arc.start
   const [inner, outer] = part.band
   const length = (outer - inner) * ctx.radius
-  const fan = part.fan ?? true
+  // Condensing takes the chord out of the height solve: the band decides how
+  // tall a glyph is and the across-wedge squeeze answers the chord on its own.
+  const capped = part.shrink !== 'condense'
   const inward = (part.direction ?? 'rimInward') === 'rimInward'
   const sign = inward ? -1 : 1
 
@@ -62,7 +82,8 @@ function solveRadial(
       const nominal = unit * weights[i] * steps[i]
       const centre = Math.max(edge + (sign * nominal) / 2, 1)
       const room = chord(width, centre) * GLYPH_CHORD_FILL
-      const size = Math.max(MIN_SIZE, Math.min(unit * weights[i], maxSize, room / across[i]))
+      const cap = capped ? room / across[i] : Number.POSITIVE_INFINITY
+      const size = Math.max(MIN_SIZE, Math.min(unit * weights[i], maxSize, cap))
       const extent = size * steps[i]
       radii.push(edge + (sign * extent) / 2)
       sizes.push(size)
@@ -76,16 +97,34 @@ function solveRadial(
   return { sizes, radii }
 }
 
-function stretchOf(part: SlicePart, size: number, radius: number, across: number, width: number) {
-  const stretch = part.stretch ?? 'none'
-  if (stretch === 'none') return 1
-  if (stretch === 'fill') {
-    const room = chord(width, Math.max(radius, 1)) * GLYPH_CHORD_FILL
-    const taken = across * size
-    return taken > 0 ? clamp(room / taken, 1, MAX_STRETCH) : 1
-  }
-  return clamp(stretch, 1 / MAX_STRETCH, MAX_STRETCH)
+/** What an authored `stretch` asks for on its own, before the chord is consulted. */
+function authoredStretch(part: SlicePart): number {
+  return typeof part.stretch === 'number' ? clamp(part.stretch, 1 / MAX_STRETCH, MAX_STRETCH) : 1
 }
+
+/**
+ * The factor on the axis that crosses the wedge. `stretch` may widen a glyph
+ * with room to spare and `shrink: 'condense'` may narrow one without, so a part
+ * that asks for both gets whichever the chord demands.
+ */
+function acrossFactor(
+  part: SlicePart,
+  size: number,
+  radius: number,
+  across: number,
+  width: number,
+) {
+  const authored = authoredStretch(part)
+  const upper = part.stretch === 'fill' ? MAX_STRETCH : authored
+  const lower = part.shrink === 'condense' ? 1 / MAX_STRETCH : authored
+  const taken = across * size
+  if (lower === upper || !(taken > 0)) return authored
+  const room = chord(width, Math.max(radius, 1)) * GLYPH_CHORD_FILL
+  return clamp(room / taken, lower, upper)
+}
+
+const spanOf = (sizes: number[], steps: number[]): number =>
+  sizes.reduce((sum, size, i) => sum + size * steps[i], 0)
 
 /** `stacked` and `taperedRadial`: a run set along the radius. */
 export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string): Glyph[] {
@@ -95,18 +134,27 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
   const stacked = part.orientation === 'stacked'
   const inward = (part.direction ?? 'rimInward') === 'rimInward'
   const maxSize = part.maxSize ?? DEFAULT_MAX_SIZE
+  const fanned = part.fan ?? true
+  const length = (part.band[1] - part.band[0]) * ctx.radius
   const advances = chars.map((char) => Math.max(ctx.measure(char, 1), MIN_ADVANCE))
 
-  // Upright letters step by the line; quarter-turned ones step by the advance.
-  const steps = chars.map((_, i) => (stacked ? 1 : advances[i]) + TRACKING)
   // What already spans the wedge, per unit of size — the axis stretch works on.
   const across = chars.map((_, i) => (stacked ? advances[i] : CAP_HEIGHT))
 
-  const { sizes, radii } = solveRadial(steps, across, part, ctx, maxSize)
+  let steps: number[] = []
+  let solved: Solved = { sizes: [], radii: [] }
+  for (const rung of LADDER) {
+    if (rung.fan && !fanned) continue
+    // Upright letters step by the line; quarter-turned ones step by the advance.
+    steps = chars.map((_, i) => (stacked ? 1 : advances[i]) + (rung.tracked ? TRACKING : 0))
+    solved = solveRadial(steps, across, part, ctx, maxSize, rung.fan)
+    if (spanOf(solved.sizes, steps) <= length + FIT_SLACK) break
+  }
+  const { sizes, radii } = solved
 
   return chars.map((char, i) => {
     const [x, y] = pointAt(mid, radii[i])
-    const factor = round(stretchOf(part, sizes[i], radii[i], across[i], width))
+    const factor = round(acrossFactor(part, sizes[i], radii[i], across[i], width))
     return {
       char,
       x,
@@ -129,22 +177,38 @@ export function runAlongArc(part: SlicePart, ctx: SliceContext, text: string): G
   // The only radius used as a divisor: at zero, every coordinate becomes NaN.
   const baseline = Math.max(((inner + outer) / 2) * ctx.radius, 1)
   const advances = chars.map((char) => Math.max(ctx.measure(char, 1), MIN_ADVANCE))
-  const demand = advances.reduce((sum, advance) => sum + advance + TRACKING, 0)
 
   const run = arcLength(width, baseline) * ARC_FILL
   const thickness = ((outer - inner) * ctx.radius) / LINE_HEIGHT
   const maxSize = part.maxSize ?? DEFAULT_MAX_SIZE
-  const size = Math.max(MIN_SIZE, Math.min(maxSize, thickness, demand > 0 ? run / demand : 0))
+  const condense = part.shrink === 'condense'
+  const authored = authoredStretch(part)
 
-  const factor =
-    typeof part.stretch === 'number' ? clamp(part.stretch, 1 / MAX_STRETCH, MAX_STRETCH) : 1
+  // Nothing narrows on an arc, so the tracking is the only rung there is.
+  let tracking = TRACKING
+  let demand = 0
+  let size = 0
+  let factor = authored
+  for (const tracked of [TRACKING, 0]) {
+    tracking = tracked
+    demand = advances.reduce((sum, advance) => sum + advance + tracked, 0)
+    const fit = demand > 0 ? run / demand : 0
+    const height = condense ? Number.POSITIVE_INFINITY : fit
+    size = Math.max(MIN_SIZE, Math.min(maxSize, thickness, height))
+    // Same axis as an authored stretch, so it is the same factor.
+    factor =
+      condense && size * demand > 0
+        ? clamp(run / (size * demand), 1 / MAX_STRETCH, authored)
+        : authored
+    if (size * demand * factor <= run + FIT_SLACK) break
+  }
 
-  let along = -(size * demand) / 2
+  let along = -(size * demand * factor) / 2
   return chars.map((char, i) => {
-    const step = size * (advances[i] + TRACKING)
+    const step = size * (advances[i] + tracking) * factor
     const turn = mid + (along + step / 2) / (TAU * baseline)
     along += step
     const [x, y] = pointAt(turn, baseline)
-    return { char, x, y, size: round(size), rotate: round(turn * 360), scale: [factor, 1] }
+    return { char, x, y, size: round(size), rotate: round(turn * 360), scale: [round(factor), 1] }
   })
 }

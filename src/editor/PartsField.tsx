@@ -49,6 +49,11 @@ const STRETCHES = [
   { value: 'custom', label: 'A chosen amount' },
 ]
 
+const SHRINKS = [
+  { value: 'proportional', label: 'The whole letter' },
+  { value: 'condense', label: 'Its width only' },
+]
+
 const stretchValue = (part: SlicePart): string =>
   typeof part.stretch === 'number' ? 'custom' : (part.stretch ?? 'none')
 
@@ -183,6 +188,12 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                   onChange={(next) => edit(index, { stretch: next })}
                 />
               ) : null}
+              <SelectRow
+                label="When it must shrink"
+                value={part.shrink ?? 'proportional'}
+                options={SHRINKS}
+                onChange={(next) => edit(index, { shrink: next as SlicePart['shrink'] })}
+              />
               <SliderRow
                 label="Max size"
                 min={10}

@@ -218,6 +218,37 @@ describe('the stacked solve', () => {
     expect(Math.min(...glyphs.map((glyph) => glyph.size))).toBe(9)
   })
 
+  it('gives up its tracking before the floor pushes it out of its band', () => {
+    // 46 units of band for five letters: 9 apiece fits, 9 apiece plus tracking
+    // does not, so the floor would bind on a run that has room to sit.
+    const glyphs = glyphsOf({
+      content: { from: 'text', value: 'ANTON' },
+      band: [0.5, 0.73],
+      fan: false,
+    })
+    expect(Math.min(...glyphs.map((glyph) => glyph.size))).toBeGreaterThan(9)
+    expect(radialSpan(glyphs, 1)).toBeCloseTo(46, 0)
+  })
+
+  it('gives up its fan before the floor pushes it out of its band', () => {
+    // Fanned, the innermost letters of a band this deep are solved below the
+    // floor, and every one the floor lifts is one the band did not budget for.
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'ABCDEFGHIJ' }, band: [0.05, 0.95] })
+    expect(new Set(glyphs.map((glyph) => glyph.size)).size).toBe(1)
+    // Tracking comes back once the fan is what gave way: the rungs are tried in
+    // order of what they cost, not stacked.
+    expect(radialSpan(glyphs, 1.08)).toBeCloseTo(180, 0)
+  })
+
+  it('accepts the overflow when no rung of the ladder fits', () => {
+    const value = 'SCHWARZENEGGERBERGSTEIN'
+    const glyphs = glyphsOf({ content: { from: 'text', value }, band: [0.7, 0.8] })
+    // Every letter still drawn, and at the floor — the run leaves its band
+    // rather than dropping one.
+    expect(glyphs).toHaveLength(value.length)
+    expect(radialSpan(glyphs, 1)).toBeGreaterThan(20)
+  })
+
   it('never exceeds the part max size', () => {
     const glyphs = glyphsOf({ content: { from: 'text', value: 'AB' }, maxSize: 12, fan: false })
     expect(Math.max(...glyphs.map((glyph) => glyph.size))).toBeLessThanOrEqual(12)
@@ -327,6 +358,64 @@ describe('stretch', () => {
   })
 })
 
+describe('shrink', () => {
+  /** Narrow enough that the chord is the only thing that can bind. */
+  const narrow = () => context({ arc: { start: 0, end: 0.02 } })
+
+  const wide = (overrides: Partial<SlicePart> = {}): Partial<SlicePart> => ({
+    content: { from: 'text', value: 'WWWW' },
+    band: [0.3, 0.9],
+    fan: false,
+    maxSize: 60,
+    ...overrides,
+  })
+
+  it('takes the whole glyph down by default', () => {
+    const glyphs = glyphsOf(wide(), narrow())
+    expect(glyphs[0].scale).toEqual([1, 1])
+    expect(glyphs[0].size).toBeLessThan(60)
+  })
+
+  it('condensing keeps the height the band solved and squeezes across instead', () => {
+    const condensed = glyphsOf(wide({ shrink: 'condense' }), narrow())
+    const proportional = glyphsOf(wide(), narrow())
+    expect(condensed[0].size).toBeGreaterThan(proportional[0].size)
+    expect(condensed[0].scale[0]).toBeLessThan(1)
+    expect(condensed[0].scale[1]).toBe(1)
+  })
+
+  it('condensing fills the band the chord cap leaves a run floating in', () => {
+    // (0.9 - 0.3) * 200 units of band.
+    expect(radialSpan(glyphsOf(wide({ shrink: 'condense' }), narrow()), 1.08)).toBeCloseTo(120, 0)
+    expect(radialSpan(glyphsOf(wide(), narrow()), 1.08)).toBeLessThan(100)
+  })
+
+  it('squeezes the other axis for a quarter-turned glyph', () => {
+    const glyphs = glyphsOf(
+      wide({ shrink: 'condense', orientation: 'taperedRadial' }),
+      context({ arc: { start: 0, end: 0.008 } }),
+    )
+    expect(glyphs[0].scale[0]).toBe(1)
+    expect(glyphs[0].scale[1]).toBeLessThan(1)
+  })
+
+  it('never squeezes past a third, so a long name cannot collapse to a line', () => {
+    for (const glyph of glyphsOf(wide({ shrink: 'condense' }), narrow())) {
+      expect(glyph.scale[0]).toBeGreaterThanOrEqual(0.33)
+    }
+  })
+
+  it('lets the chord decide for a part that asks to stretch and to condense', () => {
+    const both = wide({
+      shrink: 'condense',
+      stretch: 'fill',
+      content: { from: 'text', value: 'II' },
+    })
+    expect(glyphsOf(both, narrow())[0].scale[0]).toBeLessThan(1)
+    expect(glyphsOf(both, context({ arc: { start: 0, end: 0.25 } }))[0].scale[0]).toBeGreaterThan(1)
+  })
+})
+
 describe('the arched rim run', () => {
   const wide = () => context({ arc: { start: 0, end: 0.25 } })
   const arched = (overrides: Partial<SlicePart> = {}, ctx: SliceContext = wide()): Glyph[] =>
@@ -373,6 +462,42 @@ describe('the arched rim run', () => {
     )
     expect(glyphs).toHaveLength(value.length)
     expect(glyphs[0].size).toBe(9)
+  })
+
+  it('condensing keeps the size its band gave and narrows the letters to the arc', () => {
+    const tight = () => context({ arc: { start: 0, end: 0.04 } })
+    const condensed = arched(
+      { content: { from: 'text', value: 'BANKRUPT' }, shrink: 'condense' },
+      tight(),
+    )
+    const proportional = arched({ content: { from: 'text', value: 'BANKRUPT' } }, tight())
+    expect(condensed[0].size).toBeGreaterThan(proportional[0].size)
+    expect(condensed[0].scale[0]).toBeLessThan(1)
+    expect(condensed[0].scale[1]).toBe(1)
+  })
+
+  it('spaces a condensed run by the narrowed letter, not the wide one', () => {
+    const glyphs = arched(
+      { content: { from: 'text', value: 'BANKRUPT' }, shrink: 'condense' },
+      context({ arc: { start: 0, end: 0.04 } }),
+    )
+    const gap = Math.hypot(glyphs[1].x - glyphs[0].x, glyphs[1].y - glyphs[0].y)
+    // An advance apiece plus the tracking, at this size. Spacing the run by
+    // that unsqueezed is the bug this pins: it would overrun the very arc the
+    // condense was for.
+    const unsqueezed = glyphs[0].size * 0.58
+    expect(gap).toBeLessThan(unsqueezed)
+    expect(gap / unsqueezed).toBeCloseTo(glyphs[0].scale[0], 1)
+  })
+
+  it('gives up its tracking before the floor pushes it past its arc', () => {
+    // An arc that holds five letters at 9.8 untracked and 8.5 tracked, so the
+    // floor is what would bind on a run that has room to sit.
+    const glyphs = arched(
+      { content: { from: 'text', value: 'ABCDE' } },
+      context({ arc: { start: 0, end: 0.0265 } }),
+    )
+    expect(glyphs[0].size).toBeGreaterThan(9)
   })
 
   it('leaves a fill alone, having no narrowing room to fill', () => {

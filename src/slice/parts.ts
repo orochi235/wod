@@ -83,6 +83,7 @@ function readPart(value: unknown): SlicePart | null {
   if (typeof value.fan === 'boolean') part.fan = value.fan
   const stretch = readStretch(value.stretch)
   if (stretch !== undefined) part.stretch = stretch
+  if (value.shrink === 'proportional' || value.shrink === 'condense') part.shrink = value.shrink
   if (value.shape === 'glyphs' || value.shape === 'outline') part.shape = value.shape
   if (typeof value.font === 'string' && value.font !== '') part.font = value.font
   if (typeof value.maxSize === 'number' && Number.isFinite(value.maxSize) && value.maxSize > 0) {
