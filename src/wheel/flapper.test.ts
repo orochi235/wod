@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_DEFLECTION_DEG, deflectionDeg, pegCrossings } from './flapper'
+import { MAX_DEFLECTION_DEG, deflectionDeg, pegCrossings, settledDeflection } from './flapper'
 
 // Four pegs, at 12, 3, 6 and 9 o'clock in wheel-local turns.
 const pegs = [0, 0.25, 0.5, 0.75]
@@ -27,6 +27,30 @@ describe('deflectionDeg', () => {
 
   it('treats the wheel as circular', () => {
     expect(deflectionDeg(360, pegs)).toBeCloseTo(deflectionDeg(0, pegs))
+  })
+})
+
+describe('settledDeflection', () => {
+  it('follows the pegs while the wheel is turning', () => {
+    expect(settledDeflection(0, 18, 0.4)).toBe(18)
+  })
+
+  it('falls back toward upright once the wheel is still', () => {
+    const stopped = settledDeflection(18, 18, 0)
+    expect(stopped).toBeLessThan(18)
+    expect(stopped).toBeGreaterThan(0)
+  })
+
+  it('reaches upright rather than creeping toward it', () => {
+    let deflection = MAX_DEFLECTION_DEG
+    // A second of frames: an arm still propped after that reads as stuck, which
+    // is the whole thing this exists to stop.
+    for (let frame = 0; frame < 60; frame++) deflection = settledDeflection(deflection, 22, 0)
+    expect(deflection).toBe(0)
+  })
+
+  it('stays upright once it gets there', () => {
+    expect(settledDeflection(0, 22, 0)).toBe(0)
   })
 })
 

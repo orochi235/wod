@@ -9,7 +9,7 @@ import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
 import { SliceElements } from './SliceElements'
 import type { RetainedIds } from './colors'
-import { deflectionDeg, pegCrossings } from './flapper'
+import { deflectionDeg, pegCrossings, settledDeflection } from './flapper'
 import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
 import { panelPath } from './panel'
@@ -114,7 +114,7 @@ export function Wheel({
   const lastAngleRef = useRef<number | null>(null)
 
   useWheelAngle(ownRotorRef, hasFlapper, (angle, speed) => {
-    setDeflection(deflectionDeg(angle, pegs))
+    setDeflection((current) => settledDeflection(current, deflectionDeg(angle, pegs), speed))
     const previous = lastAngleRef.current
     lastAngleRef.current = angle
     if (previous === null || theme.flapper === 'silent') return
