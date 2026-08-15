@@ -1,8 +1,13 @@
 import type { Ref } from 'react'
+import { useMemo } from 'react'
+import { createFit } from '../slice/fit'
+import { createMeasure } from '../slice/measure'
+import { getSlice, resolveInstance } from '../slice/registry'
+import type { SliceInstance } from '../slice/types'
 import type { Transitions } from '../transition/types'
 import { useEnter } from '../transition/useEnter'
+import { SliceElements } from './SliceElements'
 import { arcPath, arcs } from './geometry'
-import { fitLabel } from './label'
 import { paletteColor } from './palette'
 import type { Segment } from './types'
 import './Wheel.css'
@@ -13,6 +18,16 @@ export type WheelProps = {
   rotationDeg?: number
   rotorRef?: Ref<SVGGElement>
   transitions?: Transitions
+  /** The wheel's default layout. A segment's own `slice` beats it. */
+  slice?: SliceInstance
+  /**
+   * Geometry the layouts resolve against, when it differs from what is drawn.
+   * A morph changes weights every frame; resolving against those would pop
+   * labels between orientations mid-spin.
+   */
+  layoutFrom?: Segment[]
+  /** Registers a level group by segment id so a spin can counter-rotate it. */
+  levelRef?: (id: string, restingDeg: number) => (element: SVGGElement | null) => void
 }
 
 /**
@@ -34,12 +49,21 @@ export function Wheel({
   rotationDeg = 0,
   rotorRef,
   transitions,
+  slice,
+  layoutFrom,
+  levelRef,
 }: WheelProps) {
   const layout = arcs(segments)
   const half = radius + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
 
   const wedgeRef = useEnter(segments, transitions?.enter, radius)
+
+  // One measurer per wheel, so the string cache outlives a render.
+  const measure = useMemo(() => createMeasure(), [])
+  const fit = useMemo(() => createFit(measure), [measure])
+
+  const resolveArcs = layoutFrom ? arcs(layoutFrom) : layout
 
   return (
     <svg className="wheel" viewBox={viewBox} role="img" aria-label="wheel">
@@ -54,11 +78,20 @@ export function Wheel({
             if (d === '') return null
 
             const color = segment.color ?? paletteColor(index)
-            const fitted = fitLabel(segment.label, width, radius)
-            const midDeg = (arc.start + width / 2) * 360
-            // Radial text reads upside down when its baseline points leftward on
-            // screen. Flip those segments so every label reads left-to-right.
-            const flipped = Math.cos(((midDeg + 90) * Math.PI) / 180) < 0
+            const instance = resolveInstance(segment, slice)
+            const authored = getSlice(instance.id)
+            const resolveArc = resolveArcs[index] ?? arc
+            const elements = authored
+              ? authored.draw(instance.params, {
+                  segment,
+                  arc: { start: resolveArc.start, end: resolveArc.end },
+                  radius,
+                  index,
+                  count: segments.length,
+                  measure,
+                  fit,
+                })
+              : []
 
             return (
               <g
@@ -68,17 +101,13 @@ export function Wheel({
                 ref={wedgeRef(segment.id)}
               >
                 <path className="wheel__segment" d={d} fill={color} />
-                {fitted && (
-                  <text
-                    className="wheel__label"
-                    fontSize={fitted.fontSize}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    transform={`rotate(${midDeg}) translate(0 ${-radius * 0.62}) rotate(90)${flipped ? ' rotate(180)' : ''}`}
-                  >
-                    {fitted.text}
-                  </text>
-                )}
+                <SliceElements
+                  elements={elements}
+                  arc={arc}
+                  radius={radius}
+                  id={segment.id}
+                  levelRef={levelRef?.(segment.id, -(arc.start + width / 2) * 360)}
+                />
               </g>
             )
           })}

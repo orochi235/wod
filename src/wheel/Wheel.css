@@ -30,3 +30,11 @@
   transform-box: view-box;
   transform-origin: 0 0;
 }
+
+/* The counter-rotation has to pivot on the label itself. Without these, a CSS
+   transform on an SVG element resolves its origin against the viewBox and the
+   label orbits the hub instead of holding still. */
+.wheel__level {
+  transform-box: fill-box;
+  transform-origin: center;
+}

@@ -89,6 +89,15 @@ export function arcPath(start: number, end: number, radius: number): string {
   return `M 0 0 L ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1} Z`
 }
 
+/** A clockwise arc at `radius`, for text to run along. */
+export function concentricPath(start: number, end: number, radius: number): string {
+  const [x0, y0] = pointOnCircle(start, radius)
+  const [x1, y1] = pointOnCircle(end, radius)
+  const largeArc = end - start > 0.5 ? 1 : 0
+  const r = round(radius)
+  return `M ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1}`
+}
+
 const wrapTurn = (turn: number): number => {
   let t = turn % 1
   if (t < 0) t += 1
