@@ -268,7 +268,23 @@ describe('the tapered radial solve', () => {
       { orientation: 'taperedRadial', content: { from: 'text', value: 'AB' } },
       ctx,
     )
-    for (const glyph of glyphs) expect(glyph.rotate).toBeCloseTo(-45)
+    for (const glyph of glyphs) expect(Math.abs(glyph.rotate - 45)).toBeCloseTo(90)
+  })
+
+  it('turns its baseline the way the run steps, so the word is not reversed', () => {
+    const ctx = context({ arc: { start: 0, end: 0.25 } })
+    // Where the next glyph sits, versus where this glyph's own advance points.
+    const reads = (direction: 'rimInward' | 'hubOutward') => {
+      const glyphs = glyphsOf(
+        { orientation: 'taperedRadial', content: { from: 'text', value: 'AB' }, direction },
+        ctx,
+      )
+      const step = { x: glyphs[1].x - glyphs[0].x, y: glyphs[1].y - glyphs[0].y }
+      const turn = (glyphs[0].rotate * Math.PI) / 180
+      return step.x * Math.cos(turn) + step.y * Math.sin(turn)
+    }
+    expect(reads('rimInward')).toBeGreaterThan(0)
+    expect(reads('hubOutward')).toBeGreaterThan(0)
   })
 })
 

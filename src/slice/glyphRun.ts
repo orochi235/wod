@@ -93,6 +93,7 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
   const width = ctx.arc.end - ctx.arc.start
   const mid = ctx.arc.start + width / 2
   const stacked = part.orientation === 'stacked'
+  const inward = (part.direction ?? 'rimInward') === 'rimInward'
   const maxSize = part.maxSize ?? DEFAULT_MAX_SIZE
   const advances = chars.map((char) => Math.max(ctx.measure(char, 1), MIN_ADVANCE))
 
@@ -111,7 +112,9 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
       x,
       y,
       size: round(sizes[i]),
-      rotate: round(mid * 360 + (stacked ? 0 : -90)),
+      // A quarter-turned run reads along its own baseline, so the baseline has
+      // to point the way the run steps or the word comes out reversed.
+      rotate: round(mid * 360 + (stacked ? 0 : inward ? 90 : -90)),
       scale: stacked ? [factor, 1] : [1, factor],
     }
   })
