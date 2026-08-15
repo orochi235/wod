@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { Wheel } from './Wheel'
 import type { Segment } from './types'
 
@@ -7,6 +7,59 @@ const segments: Segment[] = [
   { id: 'a', label: 'Ana', weight: 1, color: '#ff0000' },
   { id: 'b', label: 'Ben', weight: 1, color: '#00ff00' },
 ]
+
+/**
+ * A hand-pumped rAF clock, so a test can watch a transition mid-flight rather
+ * than only on the frame it starts. Mirrors the one in usePresence.test.tsx,
+ * which exists for the same reason.
+ */
+function installClock() {
+  const queue = new Map<number, FrameRequestCallback>()
+  let next = 1
+  let now = 0
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+    const id = next++
+    queue.set(id, cb)
+    return id
+  })
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+    queue.delete(id)
+  })
+  const clock = vi.spyOn(performance, 'now').mockImplementation(() => now)
+
+  return {
+    advance(ms: number) {
+      now += ms
+      const due = [...queue.entries()]
+      queue.clear()
+      act(() => {
+        for (const [, cb] of due) cb(now)
+      })
+    },
+    restore() {
+      vi.unstubAllGlobals()
+      clock.mockRestore()
+    },
+  }
+}
+
+/**
+ * One label for every wedge, so two wedges of equal arc fit identically and a
+ * test can compare them. "Cal Whitmore" curves at size 26 across a quarter of
+ * the wheel and at roughly 16 across a seventh, which is the gap these tests
+ * read.
+ */
+const roster = (ids: string[]): Segment[] =>
+  ids.map((id) => ({ id, label: 'Cal Whitmore', weight: 1 }))
+
+/** Arriving and leaving both animate the arc, which is what moves a fit. */
+const opening = {
+  enter: { id: 'shrink' as const, params: { durationMs: 400, staggerMs: 0 } },
+  exit: { id: 'shrink' as const, params: { durationMs: 400, staggerMs: 0 } },
+}
+
+const labelSize = (container: HTMLElement, id: string) =>
+  container.querySelector(`[data-segment-id="${id}"] text.wheel__label`)?.getAttribute('font-size')
 
 describe('Wheel', () => {
   it('renders one path per weighted segment', () => {
@@ -120,5 +173,26 @@ describe('Wheel', () => {
     const { container } = render(<Wheel segments={[{ id: 'ana', label: 'Ana', weight: 1 }]} />)
     const stage = container.querySelector('.wheel__stage')
     expect(stage?.querySelector('.wheel__rotor')).not.toBeNull()
+  })
+
+  it('fits a label against the layout arc, not the arc it is drawn at', () => {
+    const clock = installClock()
+    try {
+      // Three at rest, then a fourth joins: only the newcomer's arc is moving,
+      // so its layout arc (a quarter of the wheel) and its presence arc
+      // (0.5/3.5 of it, halfway through a shrink) disagree.
+      const { container, rerender } = render(
+        <Wheel segments={roster(['ana', 'ben', 'cy'])} transitions={opening} />,
+      )
+      clock.advance(1000)
+
+      rerender(<Wheel segments={roster(['ana', 'ben', 'cy', 'cal'])} transitions={opening} />)
+      clock.advance(200)
+
+      // Both hold a quarter of the layout; only `cal` is drawn at half of one.
+      expect(labelSize(container, 'cal')).toBe(labelSize(container, 'ana'))
+    } finally {
+      clock.restore()
+    }
   })
 })
