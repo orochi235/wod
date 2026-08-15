@@ -30,6 +30,26 @@ Also deferred to the second plan, per the spec: outline mode, the font registry,
 
 ---
 
+## Task order, and two type members that travel with their consumers
+
+**Execute in this order: 1, 2, 3, 4, 8, 5, 6, 7, 9, 10, 11, 12, 13.** Task 8 moves ahead
+of Task 5 because Task 5 is the first task to emit a `glyphRun`, and a `glyphRun` that
+nothing renders does not compile.
+
+A type member cannot land before the code that consumes it — the build goes red and stays
+red across a commit, which is exactly what a task boundary is supposed to rule out. Two
+members are therefore *not* in Task 1:
+
+| Member | Lands in | Because |
+| --- | --- | --- |
+| `'composed'` on `SliceLayoutId` | Task 7 | `SLICE_LAYOUTS` is a `Record<SliceLayoutId, SliceLayout>`, so the id and the registry entry are one change. |
+| `glyphRun` on `Drawn` | Task 8 | `SliceElements` narrows by elimination — after `raw`, `path` and `curvedText` it assumes the rest carries `anchor`/`size`. The union member and the render branch are one change. |
+
+`Orientation` widens in Task 1 regardless: its only exhaustive consumer is `budget`, which
+Task 1 gives a default arm.
+
+---
+
 ### Task 1: Widen the slice types
 
 **Files:**
@@ -38,10 +58,11 @@ Also deferred to the second plan, per the spec: outline mode, the font registry,
 
 No test of its own: types are checked by `npm run build` and exercised by every task after this one.
 
-- [ ] **Step 1: Widen `Orientation` and `SliceLayoutId`**
+- [ ] **Step 1: Widen `Orientation`**
 
-In `src/slice/types.ts`, replace the existing `Orientation` and `SliceLayoutId` lines
-(leave `ContentTransform` between them exactly as it is):
+In `src/slice/types.ts`, replace the existing `Orientation` line. **Leave
+`ContentTransform` and `SliceLayoutId` exactly as they are** — `SliceLayoutId` gains
+`'composed'` in Task 7, with the registry entry that requires it:
 
 ```ts
 /**
@@ -55,10 +76,6 @@ export type Orientation =
   | 'stacked'
   | 'taperedRadial'
   | 'archedRim'
-```
-
-```ts
-export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed'
 ```
 
 - [ ] **Step 2: Add `PartContent`, `SlicePart` and `FontId`**
@@ -100,7 +117,12 @@ export type SlicePart = {
 }
 ```
 
-- [ ] **Step 3: Add the `Glyph` type and the `glyphRun` element kind**
+- [ ] **Step 3: Add the `Glyph` type**
+
+`Glyph` is added here and consumed from Task 8 on. It is an exported type with no use
+inside this commit, which is fine: `noUnusedLocals` flags unused locals and imports, not
+unused exports. The `glyphRun` member of `Drawn` does **not** go in — it lands in Task 8
+with the render branch.
 
 In `src/slice/types.ts`, immediately above `type Drawn`:
 
@@ -119,12 +141,6 @@ export type Glyph = {
   /** The glyph's own axes, after `rotate`. Stretch lives here. */
   scale: [number, number]
 }
-```
-
-and add a member to the `Drawn` union, after the `curvedText` line:
-
-```ts
-  | { kind: 'glyphRun'; glyphs: Glyph[] }
 ```
 
 - [ ] **Step 4: Give `budget` an arm for the orientations it does not serve**
@@ -1239,7 +1255,16 @@ git commit -m "set a run on an arc just inside the rim"
 
 ### Task 7: The `composed` layout
 
+`SLICE_LAYOUTS` is a `Record<SliceLayoutId, SliceLayout>`, so the id and the registry
+entry are one change: add `'composed'` to `SliceLayoutId` in `src/slice/types.ts` as the
+first step of this task, not before it.
+
+```ts
+export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed'
+```
+
 **Files:**
+- Modify: `src/slice/types.ts`
 - Create: `src/slice/layouts/composed.ts`
 - Modify: `src/slice/registry.ts`
 - Modify: `src/form/fields.ts`
@@ -1426,11 +1451,29 @@ git commit -m "register a composed layout that draws a list of parts"
 
 ---
 
-### Task 8: Render `glyphRun`
+### Task 8: Render `glyphRun` — run this after Task 4, before Task 5
+
+Task 5 is the first task to emit a `glyphRun`, so the union member and its render branch
+have to be in place first.
 
 **Files:**
+- Modify: `src/slice/types.ts`
 - Modify: `src/wheel/SliceElements.tsx`
 - Test: `src/wheel/SliceElements.test.tsx`
+
+- [ ] **Step 0: Add the union member**
+
+`SliceElements` narrows `SliceElement` by elimination: after the `raw`, `path` and
+`curvedText` branches it assumes what remains carries `anchor` and `size`. Adding
+`glyphRun` breaks six accesses there, which is why the member and the branch are one
+change. In the `Drawn` union in `src/slice/types.ts`, after the `curvedText` line:
+
+```ts
+  | { kind: 'glyphRun'; glyphs: Glyph[] }
+```
+
+`npm run build` is red between this step and Step 3. That is the whole reason they are one
+task.
 
 - [ ] **Step 1: Write the failing test**
 

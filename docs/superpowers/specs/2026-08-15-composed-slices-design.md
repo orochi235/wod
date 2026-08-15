@@ -188,6 +188,10 @@ class is what groups them in the picker.
   multiples of its pixel grid, so it wants short words and the size cap left high.
 - **Luckiest Guy** — chunky cartoon brush caps. The closest thing here to a game-show
   face that is not woodtype.
+- **Archivo Black** — heavy grotesque, wider than Anton. Where Anton is the condensed
+  default, this is the one to reach for when the wedge is fat enough to hold it.
+- **Changa One** — condensed heavy with flat terminals. Narrower than Anton, so it is
+  what a fourteen-letter name falls back to before the size floor does.
 
 *Woodtype and slab* — the show's own register:
 
@@ -202,6 +206,14 @@ class is what groups them in the picker.
 - **Cinzel** — inscriptional Roman capitals. Formal, and light, so it needs stretch.
 - **Bodoni Moda** — Didone with an optical size axis. The variable axis is not exposed;
   the registry names one instance.
+- **Playfair Display** — high-contrast transitional serif. Less brittle than the Didones
+  at wedge sizes, and the one serif here that holds a lowercase name.
+
+*Sans* — a workhorse rather than a wedge face, for a caption or a small part:
+
+- **Overpass** — a Highway Gothic derivative, and the only neutral face here. Nothing
+  about it is a game show, which is the point: it is what a second part is set in when
+  the first part is already shouting.
 
 *Script* — for a caption or a single word, never a roster of names:
 
