@@ -281,6 +281,19 @@ describe('parts', () => {
     expect(container.querySelector('.wheel__sheen')).toBeNull()
   })
 
+  it('points at the winner with the notch under the flat look', () => {
+    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    expect(container.querySelectorAll('.wheel__pointer')).toHaveLength(1)
+    expect(container.querySelectorAll('.wheel__flapper')).toHaveLength(0)
+  })
+
+  // Both name the winner, so a look that hangs a flapper drops the notch.
+  it('points at the winner with the flapper instead under a look that has one', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    expect(container.querySelectorAll('.wheel__flapper')).toHaveLength(1)
+    expect(container.querySelectorAll('.wheel__pointer')).toHaveLength(0)
+  })
+
   it('casts a shadow only for a look that asks for one', () => {
     const { container } = render(<Wheel segments={segments} theme={wof} />)
     expect(container.querySelector('.wheel__body--shadow')).not.toBeNull()

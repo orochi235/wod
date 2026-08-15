@@ -19,6 +19,7 @@ export const wof: Theme = {
     sheen: true,
     peg: true,
     hub: true,
+    pointer: false,
     flapper: true,
   },
   metrics: {
