@@ -2104,9 +2104,18 @@ did not, there is nothing to commit and the plan is done.
 
 ## Where execution stopped
 
-Tasks 1-5 are committed on `feat/wedge-presence-impl`. Tasks 6-10 have not been
-started. Baseline at handoff: 58 test files, 757 tests, `npm run build` and
+Tasks 1-6 are committed on `feat/wedge-presence-impl`. Tasks 7-10 have not been
+started. Baseline: 58 test files, 777 tests, `npm run build` and
 `npx biome check .` clean.
+
+Task 6 landed one thing the plan did not call for. Nothing linked the property
+names `styleOf` emits to the `var()` calls in `Wheel.css`, and jsdom never
+applies the stylesheet, so renaming on both the emitting side and its test would
+have left the suite green and every wedge unanimated. `css.test.ts` now reads
+`Wheel.css` as a `?raw` import and asserts it binds each emitted property; the
+vitest config narrows its CSS stub so that import returns the file. Note the
+`include` pattern must not anchor with `$` — `?raw` makes the module id
+`Wheel.css?raw`.
 
 | Task | Commit | Reviewed |
 | --- | --- | --- |
@@ -2115,6 +2124,7 @@ started. Baseline at handoff: 58 test files, 757 tests, `npm run build` and
 | 3 Give a transition its moment | `9e7e557` | spec + quality, fixes applied |
 | 4 Start, reverse, interrupt tracks | `ef22460` | spec + quality, fixes applied |
 | 5 Build the draw list | `ba98ba0`, `683690c`, `b9fcb88`, `34381e0` | spec + quality, fixes applied |
+| 6 Emit a presence as style | `d316587`, `bc1f458`, `30bbfaa` | not yet reviewed |
 
 `683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
 resting wedge. A consumer writing into a presence now throws at the write rather
