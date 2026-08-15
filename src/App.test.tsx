@@ -472,3 +472,113 @@ describe('App reveal', () => {
     }
   })
 })
+
+/**
+ * A landed wheel holds its frame, which is right while the landing is still
+ * being announced and wrong for the rest of the meeting: the roster keeps
+ * arriving and the wheel keeps ignoring it. These pin the two ways out.
+ */
+describe('App landed wheel', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  const onWheel = (label: string) =>
+    within(screen.getByRole('img', { name: 'wheel' })).queryByText(label)
+
+  /** A wheel whose only static wedge is the guaranteed winner. */
+  const seedWinner = (reveal?: Reveal) => {
+    const segment: Segment = { id: 'solo', label: 'Solo', weight: 1 }
+    if (reveal !== undefined) segment.reveal = reveal
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({ ...DEFAULT_PRESET, segments: [segment], tricks: [], branches: [] }),
+    )
+  }
+
+  it('offers no reset until something has landed', () => {
+    seedWinner()
+    render(<App />)
+    expect(screen.getByRole('button', { name: /reset/i })).toBeDisabled()
+  })
+
+  it('takes the live roster back on reset', async () => {
+    const harness = installSpinHarness()
+    try {
+      seedWinner()
+      const { container } = render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+      expect(container.querySelector('.app__result')).toHaveTextContent('Solo')
+
+      await publish([{ id: 'zoe', label: 'Zoe' }])
+      // Held: the frame the spin drew outlives a roster that arrived under it.
+      expect(onWheel('Zoe')).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /reset/i }))
+
+      expect(onWheel('Zoe')).toBeInTheDocument()
+      expect(container.querySelector('.app__result')).toHaveTextContent('')
+      expect(screen.getByRole('button', { name: /reset/i })).toBeDisabled()
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('takes the live roster back when a reveal is dismissed', async () => {
+    const harness = installSpinHarness()
+    try {
+      seedWinner({ headline: 'Free beer' })
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      await publish([{ id: 'zoe', label: 'Zoe' }])
+      expect(onWheel('Zoe')).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('dialog'))
+
+      // Dismissing is the operator saying the landing has been seen, so the
+      // wheel goes back to tracking the room without waiting for a spin.
+      expect(onWheel('Zoe')).toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('keeps announcing the winner after a dismissed reveal releases the wheel', async () => {
+    const harness = installSpinHarness()
+    try {
+      seedWinner({ headline: 'Free beer' })
+      const { container } = render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+      await userEvent.click(screen.getByRole('dialog'))
+
+      // Release hands back the geometry, not the result. Clearing the announced
+      // winner here would erase the answer the spin exists to produce.
+      expect(container.querySelector('.app__result')).toHaveTextContent('Solo')
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('holds a landing with no reveal until the operator resets it', async () => {
+    const harness = installSpinHarness()
+    try {
+      seedWinner()
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      await publish([{ id: 'zoe', label: 'Zoe' }])
+
+      // No reveal means no dismissal, so nothing has said the landing is over.
+      // Releasing on landing instead would wipe the landed frame the instant a
+      // roster change that arrived mid-spin was applied.
+      expect(onWheel('Zoe')).not.toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
+  })
+})

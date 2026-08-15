@@ -35,6 +35,15 @@ export type UseSpinResult = {
   isSpinning: boolean
   landing: Landing | null
   spin: (override?: SpinOverride) => void
+  /**
+   * Hands the geometry back to the live segments without redrawing: the landed
+   * frame stays until something actually replaces it. For a consumer that knows
+   * the landing has been seen — a dismissed reveal — where waiting for the next
+   * spin would leave a live roster off the wheel indefinitely.
+   */
+  release: () => void
+  /** Release, and drop the landing and its frame outright. */
+  reset: () => void
   rotorRef: RefObject<SVGGElement | null>
 }
 
@@ -57,18 +66,31 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
   const [displaySegments, setDisplaySegments] = useState(segments)
   const [isSpinning, setIsSpinning] = useState(false)
   const [landing, setLanding] = useState<Landing | null>(null)
+  // Whether a spin still owns the geometry. Tracked apart from `landing` so a
+  // consumer can hand the wheel back to the roster while still announcing who
+  // won.
+  const [held, setHeld] = useState(false)
 
   useEffect(() => {
     // Resync only when the caller actually swaps the array, and never while a
     // spin owns the geometry — running or landed. A live roster republishes
     // mid-spin, and applying that would wipe the landed frame, which is the
     // whole visual payoff when weights morph. Nothing is lost by dropping the
-    // swap: the next spin takes ownership and draws from the live prop itself.
+    // swap: whatever releases the hold draws from the live prop itself.
     if (lastSegmentsRef.current === segments) return
-    if (isSpinning || landing !== null) return
+    if (isSpinning || held) return
     lastSegmentsRef.current = segments
     setDisplaySegments(segments)
-  }, [segments, isSpinning, landing])
+  }, [segments, isSpinning, held])
+
+  const release = useCallback(() => setHeld(false), [])
+
+  const reset = useCallback(() => {
+    setHeld(false)
+    setLanding(null)
+    lastSegmentsRef.current = segments
+    setDisplaySegments(segments)
+  }, [segments])
 
   const stopTracks = useCallback(() => {
     if (frameRef.current !== null) {
@@ -112,6 +134,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
       spinningRef.current = true
       setIsSpinning(true)
       setLanding(null)
+      setHeld(true)
       setDisplaySegments(spinSegments)
       // The spin, not the effect, is what resolves a swap that arrived while the
       // wheel was held. Mark the props synced here so a later idle render does
@@ -177,10 +200,12 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
           if (!mountedRef.current || animationRef.current !== animation) return
           spinningRef.current = false
           setIsSpinning(false)
+          // No landing came of it, so nothing is worth holding the wheel for.
+          setHeld(false)
         })
     },
     [segments, config, stopTracks],
   )
 
-  return { displaySegments, isSpinning, landing, spin, rotorRef }
+  return { displaySegments, isSpinning, landing, spin, release, reset, rotorRef }
 }

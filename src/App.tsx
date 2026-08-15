@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
@@ -59,12 +59,25 @@ export function App() {
     [preset.spin, resolved.morphs],
   )
 
-  const { displaySegments, isSpinning, landing, spin, rotorRef } = useSpin(
+  const { displaySegments, isSpinning, landing, spin, release, reset, rotorRef } = useSpin(
     resolved.segments,
     config,
   )
 
   const { shown, dismiss } = useReveal(landing)
+
+  // A reveal that opened and closed is the one signal the show page gets that a
+  // landing has been seen, so it is what hands the wheel back to the roster.
+  // Covers a hold timing out as well as a click, which wrapping `dismiss` would
+  // not. A winner with no reveal raises nothing to close and holds until Reset.
+  const revealedId = useRef<number | null>(null)
+  useEffect(() => {
+    if (shown !== null) {
+      revealedId.current = landing?.id ?? null
+      return
+    }
+    if (landing !== null && revealedId.current === landing.id) release()
+  }, [shown, landing, release])
 
   const onSpin = useCallback(() => {
     const resolution = resolveScriptedSpin(
@@ -104,6 +117,14 @@ export function App() {
           disabled={isSpinning || isEmpty || shown !== null}
         >
           Spin
+        </button>
+        <button
+          className="app__button"
+          type="button"
+          onClick={reset}
+          disabled={landing === null || isSpinning}
+        >
+          Reset
         </button>
         <a className="app__button" href="#/edit">
           Edit
