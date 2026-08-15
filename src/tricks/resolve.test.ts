@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { composeBase } from '../compose/compose'
+import type { Origin } from '../compose/types'
 import { landingSegments } from '../wheel/morph'
+import { paletteColor } from '../wheel/palette'
 import type { Segment } from '../wheel/types'
 import { getRecipe } from './registry'
 import { resolveTricks, wedgeOwners } from './resolve'
@@ -10,6 +12,8 @@ const people: Segment[] = [
   { id: 'ana', label: 'Ana', weight: 1 },
   { id: 'ben', label: 'Ben', weight: 1 },
 ]
+
+const peopleColored = people.map((segment, index) => ({ ...segment, color: paletteColor(index) }))
 
 const base = composeBase({ statics: people, feeds: [], items: {}, overrides: {} })
 
@@ -39,7 +43,7 @@ const grayEveryone: Trick = {
 describe('resolveTricks', () => {
   it('returns the original segments when no tricks are enabled', () => {
     const result = resolveTricks(base, [], 1000)
-    expect(result.segments).toEqual(people)
+    expect(result.segments).toEqual(peopleColored)
     expect(result.morphs).toEqual([])
   })
 
@@ -61,14 +65,14 @@ describe('resolveTricks', () => {
 
   it('contributes nothing for a disabled trick', () => {
     const result = resolveTricks(base, [{ ...beerTakeover, enabled: false }], 1000)
-    expect(result.segments).toEqual(people)
+    expect(result.segments).toEqual(peopleColored)
     expect(result.morphs).toEqual([])
   })
 
   it('ignores a trick naming an unknown recipe', () => {
     const bogus = { ...beerTakeover, recipe: 'nonsense' } as unknown as Trick
     const result = resolveTricks(base, [bogus], 1000)
-    expect(result.segments).toEqual(people)
+    expect(result.segments).toEqual(peopleColored)
     expect(result.morphs).toEqual([])
   })
 
@@ -119,6 +123,44 @@ describe('trick data that names something on Object.prototype', () => {
       expect(resolveTricks(base, [trick], 1000).morphs).toEqual([])
     })
   }
+})
+
+describe('resolveTricks color assignment', () => {
+  const base = {
+    segments: [
+      { id: 'ana', label: 'Ana', weight: 1 },
+      { id: 'ben', label: 'Ben', weight: 1 },
+    ],
+    origins: new Map<string, Origin>([
+      ['ana', { kind: 'static' }],
+      ['ben', { kind: 'static' }],
+    ]),
+  }
+
+  it('gives every wedge a concrete color', () => {
+    const resolved = resolveTricks(base, [], 1000)
+    for (const segment of resolved.segments) expect(segment.color).toBeTruthy()
+  })
+
+  it('returns the assignment it made', () => {
+    const resolved = resolveTricks(base, [], 1000)
+    expect(resolved.colors.get('ana')).toBe(resolved.segments[0].color)
+  })
+
+  it('keeps a wedge on its color when the roster shrinks', () => {
+    const first = resolveTricks(base, [], 1000)
+    const bens = first.segments.find((s) => s.id === 'ben')?.color
+
+    const shrunk = {
+      segments: [base.segments[1]],
+      origins: new Map<string, Origin>([['ben', { kind: 'static' }]]),
+    }
+    const second = resolveTricks(shrunk, [], 1000, 0, null, {
+      previous: first.colors,
+      retained: new Set<string>(),
+    })
+    expect(second.segments[0].color).toBe(bens)
+  })
 })
 
 describe('wedgeOwners', () => {

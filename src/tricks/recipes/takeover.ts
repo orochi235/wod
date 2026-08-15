@@ -1,6 +1,5 @@
 import type { WedgeIndex } from '../../compose/types'
 import { parseHex } from '../../wheel/morph'
-import { effectiveColor } from '../../wheel/palette'
 import type { Morph, MorphKeyframe, Segment } from '../../wheel/types'
 import { readEasing, readOptionalString, readString, readUnit } from '../params'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
@@ -107,10 +106,7 @@ export const takeover: Recipe = {
     const takesAll = takesWholeCircle(endShare, othersTotal)
     const endWeight = takesAll ? 1 : (endShare * othersTotal) / (1 - endShare)
 
-    // The color the wheel actually paints, which is what the fade has to start
-    // from. `wedge.color` is undefined for any segment left to the palette, and
-    // reading that directly would silently drop the requested end color.
-    const baseColor = effectiveColor(ctx.segments, id)
+    const baseColor = wedge.color
 
     const grow: MorphKeyframe[] = [
       { at: 0, weight: wedge.weight },
@@ -150,7 +146,7 @@ export const takeover: Recipe = {
     const othersTotal = others.reduce((sum, segment) => sum + segment.weight, 0)
 
     const writes: Write[] = [{ segmentId: id, property: 'weight' }]
-    if (readOptionalString(params, 'endColor') && effectiveColor(ctx.segments, id)) {
+    if (readOptionalString(params, 'endColor')) {
       writes.push({ segmentId: id, property: 'color' })
     }
     if (takesWholeCircle(readUnit(params, 'endShare', 1), othersTotal)) {

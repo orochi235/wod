@@ -387,6 +387,42 @@ describe('feed', () => {
   })
 })
 
+describe('wedge colors', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('keeps a wedge on its color when another leaves the feed', async () => {
+    const { container } = render(<App />)
+    await publish([
+      { id: 'ana', label: 'Ana' },
+      { id: 'ben', label: 'Ben' },
+      { id: 'cy', label: 'Cy' },
+    ])
+
+    const fillOf = (id: string) =>
+      container.querySelector(`[data-segment-id="sim:${id}"] .wheel__segment`)?.getAttribute('fill')
+
+    const before = fillOf('cy')
+    expect(before).toBeTruthy()
+
+    await publish([
+      { id: 'ana', label: 'Ana' },
+      { id: 'cy', label: 'Cy' },
+    ])
+    expect(fillOf('cy')).toBe(before)
+  })
+
+  it('lets a caller choose a wedge color', async () => {
+    const { container } = render(<App chooseColor={() => '#123456'} />)
+    await publish([{ id: 'ana', label: 'Ana' }])
+    const fill = container
+      .querySelector('[data-segment-id="sim:ana"] .wheel__segment')
+      ?.getAttribute('fill')
+    expect(fill).toBe('#123456')
+  })
+})
+
 describe('churn during a spin', () => {
   beforeEach(() => {
     window.localStorage.clear()

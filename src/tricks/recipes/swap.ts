@@ -1,4 +1,3 @@
-import { effectiveColor } from '../../wheel/palette'
 import type { Morph } from '../../wheel/types'
 import { readString, readUnit } from '../params'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
@@ -15,12 +14,9 @@ function pair(params: TrickParams, ctx: RecipeContext) {
   const winner = ctx.segments.find((segment) => segment.id === ctx.winnerId)
   const other = ctx.segments.find((segment) => segment.id === otherId)
   if (!winner || !other) return null
-  // `effectiveColor`, not `segment.color`: a wedge with no explicit color takes
-  // one from the palette, and passing undefined through would leave the color
-  // half of the swap silently doing nothing while the labels traded.
-  const winnerColor = effectiveColor(ctx.segments, winner.id)
-  const otherColor = effectiveColor(ctx.segments, other.id)
-  if (winnerColor === null || otherColor === null) return null
+  const winnerColor = winner.color
+  const otherColor = other.color
+  if (winnerColor === undefined || otherColor === undefined) return null
   return { winner, other, winnerColor, otherColor }
 }
 

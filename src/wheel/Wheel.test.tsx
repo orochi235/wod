@@ -271,16 +271,6 @@ describe('Wheel', () => {
       clock.restore()
     }
   })
-
-  it('colors a wedge that authored no color', () => {
-    const { container } = render(<Wheel segments={roster(['ana', 'ben'])} />)
-    const fills = [...container.querySelectorAll('path.wheel__segment')].map((path) =>
-      path.getAttribute('fill'),
-    )
-    expect(fills).toHaveLength(2)
-    expect(fills.every((fill) => fill !== null && fill !== '')).toBe(true)
-    expect(new Set(fills).size).toBe(2)
-  })
 })
 
 describe('parts', () => {
@@ -289,6 +279,19 @@ describe('parts', () => {
     expect(container.querySelector('.wheel__rim')).toBeNull()
     expect(container.querySelector('.wheel__hub')).toBeNull()
     expect(container.querySelector('.wheel__sheen')).toBeNull()
+  })
+
+  it('points at the winner with the notch under the flat look', () => {
+    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    expect(container.querySelectorAll('.wheel__pointer')).toHaveLength(1)
+    expect(container.querySelectorAll('.wheel__flapper')).toHaveLength(0)
+  })
+
+  // Both name the winner, so a look that hangs a flapper drops the notch.
+  it('points at the winner with the flapper instead under a look that has one', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    expect(container.querySelectorAll('.wheel__flapper')).toHaveLength(1)
+    expect(container.querySelectorAll('.wheel__pointer')).toHaveLength(0)
   })
 
   it('casts a shadow only for a look that asks for one', () => {
