@@ -1,24 +1,31 @@
 # Fonts
 
-**What this is:** the faces the wheel sets type in, served from this app rather
-than from a font CDN.
+**What this is:** the catalogue of faces the wheel can set type in, served from
+this app rather than from a font CDN.
 
 **Why they are here:** a wheel that stops setting type when a third party is
-unreachable is not a wheel, and a later plan parses these same binaries to warp
-glyph outlines — one file, so the metrics cannot disagree with what is painted.
+unreachable is not a wheel, and outline mode parses these same binaries to warp
+glyph outlines — one file per face, so what is measured, what is painted and
+what is warped cannot disagree.
 
-| File | Face | Covers |
-| --- | --- | --- |
-| `bevan-latin.woff2` | Bevan 400 | Latin |
-| `bevan-latin-ext.woff2` | Bevan 400 | Latin Extended |
+**Why TrueType and not WOFF2:** opentype.js cannot read WOFF2 without a Brotli
+decompressor, and a second smaller copy for the stylesheet would be a second
+source of metrics. A face costs three to five times its WOFF2, and only a wheel
+that names it pays.
 
-Split on `unicode-range` the way Google Fonts serves them, so a latin roster
-never downloads the extended file. `OFL.txt` is Bevan's license; it is SIL Open
-Font License 1.1 and must ship with the binaries.
+`licenses/<id>.txt` is that face's license — SIL Open Font License 1.1 for most
+of them, Apache 2.0 for a few — and it must ship with the binary.
 
-To refresh, take the `src` URLs out of
-`https://fonts.googleapis.com/css2?family=Bevan` and re-download both files.
-The `@font-face` rules that name them live in `src/wheel/Wheel.css`, and the
-family string is pinned to `FONT_STACK` in `src/slice/measure.ts` by a test —
-the wheel measures every label on a canvas in that face, so the two drifting
-apart mis-sizes every wedge silently.
+## Adding or refreshing a face
+
+Add an entry to `src/slice/fonts/catalog.ts`, then:
+
+```sh
+node scripts/fonts.mjs           # the whole catalogue
+node scripts/fonts.mjs rye anton # or just these
+node scripts/specimens.mjs       # rebake the picker's previews
+```
+
+The script downloads each `.ttf` here, its license into `licenses/`, and
+regenerates `src/wheel/fonts.css` — the `@font-face` rules that name them.
+Nothing here is hand-edited.

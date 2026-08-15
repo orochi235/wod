@@ -20,11 +20,9 @@ describe('Wheel.css', () => {
     expect(css).toContain(`font-weight: ${FONT_WEIGHT};`)
   })
 
-  it('serves the default face itself rather than reaching for a CDN', () => {
-    expect(css).toContain('@font-face')
-    expect(css).toMatch(/src: url\(['"]?\/fonts\//)
-    expect(css).not.toContain('fonts.gstatic.com')
-    expect(css).not.toContain('fonts.googleapis.com')
+  // Where the faces themselves are declared; fonts.css.test.ts checks them.
+  it('pulls in the catalogue', () => {
+    expect(css).toContain('@import "./fonts.css";')
   })
 
   it('binds each part class to a rule', () => {
