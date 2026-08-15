@@ -61,10 +61,11 @@ describe('advance', () => {
   })
 
   it('starts an interrupting transition from the current sample', () => {
-    // Enter is 400ms of fade; interrupt it a quarter of the way in.
+    // Enter is 400ms of fade; interrupt it a quarter of the way in, which
+    // ease-out has already carried to 1 - 0.75² of the way through.
     const entering = advance(input({ now: 0 }))
     const exiting = advance(input({ tracks: entering, segments: [], now: 100 }))
-    expect(exiting.get('ana')?.base.opacity).toBeCloseTo(0.25)
+    expect(exiting.get('ana')?.base.opacity).toBeCloseTo(0.4375)
   })
 
   it('drops a declared zero frame when interrupting', () => {
@@ -88,10 +89,10 @@ describe('advance', () => {
     const arriving = back.get('ana')
     expect(arriving?.phase).toBe('entering')
     expect(back.size).toBe(1)
-    // A quarter of the way out, so it turns around from 0.75 rather than
-    // restarting its arrival at the 0 its entrance declares.
-    expect(leaving && sampleTrack(leaving, 1100).opacity).toBeCloseTo(0.75)
-    expect(arriving && sampleTrack(arriving, 1100).opacity).toBeCloseTo(0.75)
+    // A quarter of the way out, so it turns around from where it stands rather
+    // than restarting its arrival at the 0 its entrance declares.
+    expect(leaving && sampleTrack(leaving, 1100).opacity).toBeCloseTo(0.5625)
+    expect(arriving && sampleTrack(arriving, 1100).opacity).toBeCloseTo(0.5625)
   })
 
   it('promotes a finished entrance to present', () => {
@@ -131,7 +132,7 @@ describe('advance', () => {
     )
     const ben = exiting.get('ben')
     expect(ben?.delayMs).toBe(100)
-    expect(ben && sampleTrack(ben, 150).opacity).toBeCloseTo(0.25)
+    expect(ben && sampleTrack(ben, 150).opacity).toBeCloseTo(0.4375)
   })
 
   it('defaults hold by phase when the transition declares none', () => {
@@ -286,9 +287,9 @@ describe('drawList', () => {
       ['ana', { ...restingFor('ana'), segment: segment('ana', 3) }],
       ['ben', { ...holding('ben', 0), durationMs: 200, segment: segment('ben', 1) }],
     ])
-    // ana holds 3; ben is halfway through releasing 1, so it lays out at 0.5.
+    // ana holds 3; ben has released three quarters of its 1, so it holds 0.25.
     const ben = drawList(tracks, 100).drawn.find((item) => item.segment.id === 'ben')
-    expect(ben && ben.arc.end - ben.arc.start).toBeCloseTo(0.5 / 3.5)
+    expect(ben && ben.arc.end - ben.arc.start).toBeCloseTo(0.25 / 3.25)
   })
 
   it('lays out live wedges in track order', () => {
@@ -319,7 +320,7 @@ describe('drawList', () => {
     ])
     const bens = drawList(tracks, 100).drawn.filter((item) => item.segment.id === 'ben')
     expect(bens).toHaveLength(1)
-    expect(bens[0].presence.hold).toBeCloseTo(0.5)
+    expect(bens[0].presence.hold).toBeCloseTo(0.75)
   })
 
   it('leaves a released wedge out of the arcs it reports', () => {
@@ -336,9 +337,10 @@ describe('drawList', () => {
       ['ana', restingFor('ana')],
       ['ben', { ...holding('ben', 0), durationMs: 200 }],
     ])
-    // ben is halfway through releasing its arc, so it lays out at half a weight.
+    // Halfway through in wall-clock, which ease-out has carried to 0.75 of the
+    // release, so ben still holds a quarter of its weight against ana's one.
     const ben = drawList(tracks, 100).drawn.find((item) => item.segment.id === 'ben')
-    expect(ben && ben.arc.end - ben.arc.start).toBeCloseTo(1 / 3)
+    expect(ben && ben.arc.end - ben.arc.start).toBeCloseTo(0.25 / 1.25)
   })
 
   it('draws a wedge at zero hold on its frozen arc', () => {
@@ -392,6 +394,15 @@ describe('drawList', () => {
 })
 
 describe('sampleTrack', () => {
+  it('eases progress out rather than running it linear', () => {
+    // The WAAPI path passed `ease-out` to animate(); a keyframe list carries no
+    // easing of its own, so dropping this would silently flatten every motion.
+    const entering = advance(input({ now: 0 }))
+    const ana = entering.get('ana')
+    expect(ana && sampleTrack(ana, 200).opacity).toBeCloseTo(0.75)
+    expect(ana && sampleTrack(ana, 100).opacity).toBeCloseTo(0.4375)
+  })
+
   it('hands back the shared resting presence for a settled wedge', () => {
     // By identity, which is what freezing RESTING protects.
     expect(sampleTrack(restingFor('ana'), 500)).toBe(RESTING)

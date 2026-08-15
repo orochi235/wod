@@ -1,3 +1,4 @@
+import { EASINGS } from '../keyframes/easing'
 import { readNumber } from '../tricks/params'
 import { type Arc, arcs as layoutArcs } from '../wheel/geometry'
 import type { Segment } from '../wheel/types'
@@ -54,9 +55,12 @@ function progressOf(track: Track, now: number): number {
 
 export function sampleTrack(track: Track, now: number): Presence {
   if (track.phase === 'present') return RESTING
+  // Eased here because nothing in a keyframe list carries easing, and the WAAPI
+  // path this replaced passed `ease-out` to animate().
+  const p = EASINGS.easeOut(progressOf(track, now))
   // A wedge waiting out its stagger delay sits at p 0, which is its interrupted
   // sample once a zero frame has been dropped and its declared start otherwise.
-  const presence = samplePresence(track.frames, progressOf(track, now), track.base)
+  const presence = samplePresence(track.frames, p, track.base)
   if (!track.declaresHold) presence.hold = track.phase === 'exiting' ? 0 : 1
   return presence
 }

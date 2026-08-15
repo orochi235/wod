@@ -1,12 +1,8 @@
 import { bracket } from '../keyframes/bracket'
-import type { EasingName, Media, Morph, MorphKeyframe, Reveal, Segment } from './types'
+import { EASINGS } from '../keyframes/easing'
+import type { Media, Morph, MorphKeyframe, Reveal, Segment } from './types'
 
-export const EASINGS: Record<EasingName, (t: number) => number> = {
-  linear: (t) => t,
-  easeIn: (t) => t * t,
-  easeOut: (t) => 1 - (1 - t) * (1 - t),
-  easeInOut: (t) => (t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t)),
-}
+export { EASINGS }
 
 export function parseHex(color: string): [number, number, number] | null {
   const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim())

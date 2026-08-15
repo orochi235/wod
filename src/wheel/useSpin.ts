@@ -33,6 +33,12 @@ export type UseSpinResult = {
   /** Segments as they currently appear, with any in-flight morph applied. */
   displaySegments: Segment[]
   isSpinning: boolean
+  /**
+   * Whether a spin owns the geometry — running, or landed and not yet released.
+   * Outlives `isSpinning`, so a consumer that draws against the roster has to
+   * read this rather than infer it from a spin being in flight.
+   */
+  held: boolean
   landing: Landing | null
   spin: (override?: SpinOverride) => void
   /**
@@ -207,5 +213,5 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
     [segments, config, stopTracks],
   )
 
-  return { displaySegments, isSpinning, landing, spin, release, reset, rotorRef }
+  return { displaySegments, isSpinning, held, landing, spin, release, reset, rotorRef }
 }
