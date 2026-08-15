@@ -3,4 +3,5 @@ dist
 .DS_Store
 *.local
 .playwright-shots/
+.superpowers/
 .claude/worktrees/

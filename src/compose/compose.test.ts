@@ -192,3 +192,17 @@ describe('wedgeIndexOf', () => {
     expect(index.has('sim:ana')).toBe(false)
   })
 })
+
+describe('slice overrides', () => {
+  it('applies a slice override to a feed wedge', () => {
+    const composition = compose({ ana: { slice: { id: 'curved', params: {} } } })
+    const wedge = composition.segments.find((segment) => segment.id === wedgeId('sim', 'ana'))
+    expect(wedge?.slice).toEqual({ id: 'curved', params: {} })
+  })
+
+  it('leaves a feed wedge with no slice when nothing overrides it', () => {
+    const composition = compose()
+    const wedge = composition.segments.find((segment) => segment.id === wedgeId('sim', 'ben'))
+    expect(wedge?.slice).toBeUndefined()
+  })
+})

@@ -55,19 +55,52 @@ describe('Wheel', () => {
     expect(container.querySelectorAll('path.wheel__segment')).toHaveLength(0)
   })
 
-  it('flips labels that would otherwise read upside down', () => {
+  it('gives every wedge the same handedness, whatever half it sits on', () => {
     const four: Segment[] = ['n', 'e', 's', 'w'].map((id) => ({
       id,
       label: id.toUpperCase(),
       weight: 1,
+      slice: { id: 'radial' as const, params: {} },
     }))
     const { container } = render(<Wheel segments={four} />)
     const transforms = [...container.querySelectorAll('text.wheel__label')].map(
       (t) => t.getAttribute('transform') ?? '',
     )
-    const flipped = transforms.filter((t) => t.includes('rotate(180)'))
-    expect(flipped.length).toBeGreaterThan(0)
-    expect(flipped.length).toBeLessThan(transforms.length)
+    expect(transforms).toHaveLength(4)
+    // A per-position flip is what makes a label's orientation depend on who
+    // else is on the wheel, which a live roster changes constantly.
+    expect(transforms.every((t) => t.endsWith('rotate(-90)'))).toBe(true)
+  })
+
+  it('draws a label through the resolved layout', () => {
+    const { container } = render(
+      <Wheel segments={[{ id: 'a', label: 'Willie Dustice', weight: 1 }]} />,
+    )
+    expect(container.textContent).toContain('Willie Dustice')
+  })
+
+  it('honors a per-segment layout override', () => {
+    const { container } = render(
+      <Wheel
+        segments={[
+          { id: 'a', label: 'Todd Bonzalez', weight: 1, slice: { id: 'radial', params: {} } },
+        ]}
+      />,
+    )
+    expect(container.querySelector('textPath')).toBeNull()
+  })
+
+  it('resolves layouts against layoutFrom when given one', () => {
+    const drawn: Segment[] = [
+      { id: 'a', label: 'Scott Dourque', weight: 0.02 },
+      { id: 'b', label: 'Shown Furcotte', weight: 100 },
+    ]
+    const settled: Segment[] = [
+      { id: 'a', label: 'Scott Dourque', weight: 1 },
+      { id: 'b', label: 'Shown Furcotte', weight: 1 },
+    ]
+    const { container } = render(<Wheel segments={drawn} layoutFrom={settled} />)
+    expect(container.textContent).toContain('Scott Dourque')
   })
 
   it('tags each wedge with its segment id, so a transition can find it', () => {

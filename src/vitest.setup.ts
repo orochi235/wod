@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom/vitest'
 
+// jsdom has no 2d context and reports "Not implemented" to the console for every
+// call. Text measurement asks once per wheel and falls back to its estimate on a
+// null, which is the intended path here — the report is noise, not a finding.
+HTMLCanvasElement.prototype.getContext = () => null
+
 // jsdom 25's Blob implements only slice/size/type — no text(), arrayBuffer(),
 // or stream(). Blob.text() is browser baseline, so the gap belongs to the test
 // environment, not to the code under test. FileReader is implemented, so the

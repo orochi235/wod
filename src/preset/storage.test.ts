@@ -932,3 +932,49 @@ describe('transitions', () => {
     expect(preset.transitions?.enter).toEqual({ id: 'fade', params: {} })
   })
 })
+
+describe('slice layouts', () => {
+  const withSlice = (slice: unknown) =>
+    parsePreset(JSON.stringify({ ...DEFAULT_PRESET, version: 4, slice }))
+
+  it('keeps a known layout with its params', () => {
+    expect(withSlice({ id: 'curved', params: { anchor: 0.8 } }).slice).toEqual({
+      id: 'curved',
+      params: { anchor: 0.8 },
+    })
+  })
+
+  it('drops an unknown layout id', () => {
+    expect(withSlice({ id: 'spiral', params: {} }).slice).toBeUndefined()
+  })
+
+  it('drops a prototype key rather than resolving it', () => {
+    expect(withSlice({ id: 'constructor', params: {} }).slice).toBeUndefined()
+  })
+
+  it('defaults missing params to an empty object', () => {
+    expect(withSlice({ id: 'auto' }).slice).toEqual({ id: 'auto', params: {} })
+  })
+
+  it('reads a per-segment layout', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        ...DEFAULT_PRESET,
+        version: 4,
+        segments: [{ id: 'a', label: 'Karl Dandleton', weight: 1, slice: { id: 'radial' } }],
+      }),
+    )
+    expect(preset.segments[0].slice).toEqual({ id: 'radial', params: {} })
+  })
+
+  it('reads a layout off an item override', () => {
+    const preset = parsePreset(
+      JSON.stringify({
+        ...DEFAULT_PRESET,
+        version: 4,
+        overrides: { truk: { slice: { id: 'curved' } } },
+      }),
+    )
+    expect(preset.overrides.truk.slice).toEqual({ id: 'curved', params: {} })
+  })
+})

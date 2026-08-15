@@ -1,3 +1,5 @@
+import type { SliceInstance } from '../slice/types'
+
 export type Media = { kind: 'emoji' | 'image' | 'gif'; value: string }
 
 export type Reveal = {
@@ -17,6 +19,8 @@ export type Segment = {
   color?: string
   media?: Media
   reveal?: Reveal
+  /** Overrides the wheel's layout for this wedge alone. */
+  slice?: SliceInstance
 }
 
 /** CSS cubic-bezier control points, in the order CSS writes them: x1, y1, x2, y2. */

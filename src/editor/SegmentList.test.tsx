@@ -262,3 +262,49 @@ describe('SegmentList reordering', () => {
     expect(screen.getByText('unnamed wedge')).toBeInTheDocument()
   })
 })
+
+describe('layout override', () => {
+  it('sets a layout override from the row', async () => {
+    const onChange = vi.fn()
+    render(
+      <SegmentList
+        segments={[{ id: 'a', label: 'Dean Wesrey', weight: 1 }]}
+        base={baseOf([])}
+        tricks={[]}
+        showOwners={false}
+        selectedTrickId={null}
+        onChange={onChange}
+        onSelectTrick={vi.fn()}
+      />,
+    )
+
+    await userEvent.selectOptions(screen.getByLabelText('Layout of Dean Wesrey'), 'radial')
+
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({ slice: { id: 'radial', params: expect.any(Object) } }),
+    ])
+  })
+
+  it('clears the override back to the wheel default', async () => {
+    const onChange = vi.fn()
+    render(
+      <SegmentList
+        segments={[
+          { id: 'a', label: 'Dean Wesrey', weight: 1, slice: { id: 'radial', params: {} } },
+        ]}
+        base={baseOf([])}
+        tricks={[]}
+        showOwners={false}
+        selectedTrickId={null}
+        onChange={onChange}
+        onSelectTrick={vi.fn()}
+      />,
+    )
+
+    await userEvent.selectOptions(screen.getByLabelText('Layout of Dean Wesrey'), '')
+
+    expect(onChange).toHaveBeenCalledWith([
+      expect.not.objectContaining({ slice: expect.anything() }),
+    ])
+  })
+})

@@ -391,3 +391,21 @@
   font-size: 0.8rem;
   opacity: 0.7;
 }
+
+.fit-report {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8rem;
+}
+
+.fit-report__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+
+.fit-report__row--degraded .fit-report__drawn {
+  font-weight: 600;
+}

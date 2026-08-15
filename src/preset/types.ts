@@ -1,4 +1,5 @@
 import type { FeedConfig, ItemOverride } from '../feed/types'
+import type { SliceInstance } from '../slice/types'
 import type { Transitions } from '../transition/types'
 import type { Trick } from '../tricks/types'
 import type { Curve, Direction, Segment, Settle } from '../wheel/types'
@@ -64,4 +65,6 @@ export type Preset = {
   branches: BranchNode[]
   /** Absent means no transition at that moment, which is the behavior that predates them. */
   transitions?: Transitions
+  /** The wheel's default slice layout. Absent means the built-in `auto`. */
+  slice?: SliceInstance
 }

@@ -1,6 +1,7 @@
 import { PropertyPanel } from '@weasel-js/labkit'
 import { Button } from '@weasel-js/labkit/weasel-ui'
 import type { Composition } from '../compose/types'
+import { SLICE_LIST, getSlice } from '../slice/registry'
 import { wedgeOwners } from '../tricks/resolve'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
@@ -121,6 +122,24 @@ export function SegmentList({
               reveal={segment.reveal}
               onChange={(reveal) => replace(index, { reveal })}
             />
+            <select
+              className="segment-list__slice"
+              aria-label={`Layout of ${segment.label}`}
+              value={segment.slice?.id ?? ''}
+              onChange={(event) => {
+                const chosen = getSlice(event.target.value)
+                replace(index, {
+                  slice: chosen ? { id: chosen.id, params: { ...chosen.defaults } } : undefined,
+                })
+              }}
+            >
+              <option value="">Wheel default</option>
+              {SLICE_LIST.map((layout) => (
+                <option key={layout.id} value={layout.id}>
+                  {layout.name}
+                </option>
+              ))}
+            </select>
           </li>
         ))}
 

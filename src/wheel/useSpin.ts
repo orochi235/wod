@@ -1,7 +1,7 @@
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { applyMorphs, landingSegments } from './morph'
-import { rotationTrack } from './rotation'
+import { invertTrack, rotationTrack } from './rotation'
 import type { SelectionStrategy } from './selection'
 import { cryptoRng, weightedRandom } from './selection'
 import { planSpin } from './spin'
@@ -32,6 +32,12 @@ export type Landing = { id: number; winner: Segment }
 export type UseSpinResult = {
   /** Segments as they currently appear, with any in-flight morph applied. */
   displaySegments: Segment[]
+  /**
+   * The geometry layouts resolve against. A morph changes weights every frame,
+   * and re-walking a layout's ladder on each of them pops labels between
+   * orientations mid-spin, so a held wheel resolves against where it will land.
+   */
+  layoutSegments: Segment[]
   isSpinning: boolean
   /**
    * Whether a spin owns the geometry — running, or landed and not yet released.
@@ -51,6 +57,8 @@ export type UseSpinResult = {
   /** Release, and drop the landing and its frame outright. */
   reset: () => void
   rotorRef: RefObject<SVGGElement | null>
+  /** Registers a level group by segment id so a spin can counter-rotate it. */
+  levelRef: (id: string, restingDeg: number) => (element: SVGGElement | null) => void
 }
 
 export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult {
@@ -70,6 +78,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
   const landingCountRef = useRef(0)
 
   const [displaySegments, setDisplaySegments] = useState(segments)
+  const [layoutSegments, setLayoutSegments] = useState(segments)
   const [isSpinning, setIsSpinning] = useState(false)
   const [landing, setLanding] = useState<Landing | null>(null)
   // Whether a spin still owns the geometry. Tracked apart from `landing` so a
@@ -87,7 +96,28 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
     if (isSpinning || held) return
     lastSegmentsRef.current = segments
     setDisplaySegments(segments)
+    setLayoutSegments(segments)
   }, [segments, isSpinning, held])
+
+  // Registered by the wheel: a spin needs the elements themselves, and only the
+  // renderer knows where they are.
+  const levels = useRef(new Map<string, { element: SVGGElement; restingDeg: number }>()).current
+  const levelRefs = useRef(new Map<string, (element: SVGGElement | null) => void>()).current
+
+  const levelRef = useCallback(
+    (id: string, restingDeg: number) => {
+      let ref = levelRefs.get(id)
+      if (!ref) {
+        ref = (element) => {
+          if (element) levels.set(id, { element, restingDeg })
+          else levels.delete(id)
+        }
+        levelRefs.set(id, ref)
+      }
+      return ref
+    },
+    [levels, levelRefs],
+  )
 
   const release = useCallback(() => setHeld(false), [])
 
@@ -96,6 +126,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
     setLanding(null)
     lastSegmentsRef.current = segments
     setDisplaySegments(segments)
+    setLayoutSegments(segments)
   }, [segments])
 
   const stopTracks = useCallback(() => {
@@ -142,6 +173,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
       setLanding(null)
       setHeld(true)
       setDisplaySegments(spinSegments)
+      setLayoutSegments(landedFrame)
       // The spin, not the effect, is what resolves a swap that arrived while the
       // wheel was held. Mark the props synced here so a later idle render does
       // not replay them as still pending. Deliberately the prop array rather
@@ -162,6 +194,17 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
         fill: 'forwards',
       })
       animationRef.current = animation
+
+      // Level elements hold their orientation by running the rotor's rotation
+      // backwards on the same timeline. No per-frame work, and no drift: both
+      // come from one track.
+      for (const { element, restingDeg } of levels.values()) {
+        element.animate(invertTrack(track, restingDeg), {
+          duration: track.durationMs,
+          easing: track.easing,
+          fill: 'forwards',
+        })
+      }
 
       // Track 2: geometry. Independent of rotation; only regenerates paths.
       if (morphs.length > 0 && durationMs > 0) {
@@ -210,8 +253,19 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
           setHeld(false)
         })
     },
-    [segments, config, stopTracks],
+    [segments, config, stopTracks, levels],
   )
 
-  return { displaySegments, isSpinning, held, landing, spin, release, reset, rotorRef }
+  return {
+    displaySegments,
+    layoutSegments,
+    isSpinning,
+    held,
+    landing,
+    spin,
+    release,
+    reset,
+    rotorRef,
+    levelRef,
+  }
 }

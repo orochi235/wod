@@ -1,9 +1,14 @@
 import type { Ref } from 'react'
+import { useMemo } from 'react'
+import { createFit } from '../slice/fit'
+import { createMeasure } from '../slice/measure'
+import { getSlice, resolveInstance } from '../slice/registry'
+import type { SliceInstance } from '../slice/types'
 import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
-import { arcPath } from './geometry'
-import { fitLabel } from './label'
+import { SliceElements } from './SliceElements'
+import { arcPath, arcs } from './geometry'
 import type { Segment } from './types'
 import './Wheel.css'
 
@@ -13,6 +18,16 @@ export type WheelProps = {
   rotationDeg?: number
   rotorRef?: Ref<SVGGElement>
   transitions?: Transitions
+  /** The wheel's default layout. A segment's own `slice` beats it. */
+  slice?: SliceInstance
+  /**
+   * Geometry the layouts resolve against, when it differs from what is drawn.
+   * A morph changes weights every frame; resolving against those would pop
+   * labels between orientations mid-spin.
+   */
+  layoutFrom?: Segment[]
+  /** Registers a level group by segment id so a spin can counter-rotate it. */
+  levelRef?: (id: string, restingDeg: number) => (element: SVGGElement | null) => void
   /**
    * Something other than the roster owns the geometry, so presences settle and
    * stay settled. Takes the condition rather than the cause: a running spin and
@@ -34,55 +49,75 @@ const POINTER_BASE = POINTER_LENGTH - POINTER_BITE
 // Two extra units so the base is not sitting exactly on the clip edge.
 const VIEWBOX_PAD = POINTER_BASE + 2
 
+const midDeg = (arc: { start: number; end: number }): number =>
+  (arc.start + (arc.end - arc.start) / 2) * 360
+
 export function Wheel({
   segments,
   radius = 200,
   rotationDeg = 0,
   rotorRef,
   transitions,
+  slice,
+  layoutFrom,
+  levelRef,
   held = false,
 }: WheelProps) {
   const drawn = usePresence(segments, transitions, held)
   const half = radius + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
 
+  // One measurer per wheel, so the string cache outlives a render.
+  const measure = useMemo(() => createMeasure(), [])
+  const fit = useMemo(() => createFit(measure), [measure])
+
+  const layoutArcs = new Map(arcs(layoutFrom ?? segments).map((arc) => [arc.id, arc]))
+
   return (
     <svg className="wheel" viewBox={viewBox} role="img" aria-label="wheel">
       <g className="wheel__stage">
         <g className="wheel__rotor" transform={`rotate(${rotationDeg})`} ref={rotorRef}>
-          {drawn.map(({ segment, arc, presence }) => {
-            const width = arc.end - arc.start
+          {drawn.map(({ segment, arc: presenceArc, presence }, index) => {
+            const width = presenceArc.end - presenceArc.start
             if (!(width > 0)) return null
 
-            const d = arcPath(arc.start, arc.end, radius)
+            const d = arcPath(presenceArc.start, presenceArc.end, radius)
             if (d === '') return null
 
-            const fitted = fitLabel(segment.label, width, radius)
-            const midDeg = (arc.start + width / 2) * 360
-            // Radial text reads upside down when its baseline points leftward on
-            // screen. Flip those segments so every label reads left-to-right.
-            const flipped = Math.cos(((midDeg + 90) * Math.PI) / 180) < 0
-            const style = styleOf(presence, { angle: midDeg, radius, pivot: radius * 0.6 })
+            const layoutArc = layoutArcs.get(segment.id) ?? presenceArc
+            const instance = resolveInstance(segment, slice)
+            const authored = getSlice(instance.id)
+            const elements = authored
+              ? authored.draw(instance.params, {
+                  segment,
+                  arc: { start: layoutArc.start, end: layoutArc.end },
+                  radius,
+                  index,
+                  count: drawn.length,
+                  measure,
+                  fit,
+                })
+              : []
 
             return (
               <g
                 key={segment.id}
                 className="wheel__wedge"
                 data-segment-id={segment.id}
-                style={style}
+                style={styleOf(presence, {
+                  angle: midDeg(presenceArc),
+                  radius,
+                  pivot: radius * 0.6,
+                })}
               >
                 <path className="wheel__segment" d={d} fill={segment.color} />
-                {fitted && (
-                  <text
-                    className="wheel__label"
-                    fontSize={fitted.fontSize}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    transform={`rotate(${midDeg}) translate(0 ${-radius * 0.62}) rotate(90)${flipped ? ' rotate(180)' : ''}`}
-                  >
-                    {fitted.text}
-                  </text>
-                )}
+                <SliceElements
+                  elements={elements}
+                  arc={presenceArc}
+                  radius={radius}
+                  id={segment.id}
+                  levelRef={levelRef?.(segment.id, -midDeg(presenceArc))}
+                />
               </g>
             )
           })}
