@@ -48,7 +48,7 @@ describe('useWheelAngle', () => {
     const ref = useRef<SVGGElement>(null)
     useWheelAngle(ref, true, onSample)
     return (
-      <svg>
+      <svg aria-label="probe" role="img">
         <g ref={ref} />
       </svg>
     )

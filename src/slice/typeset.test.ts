@@ -233,11 +233,13 @@ describe('the stacked solve', () => {
   it('gives up its fan before the floor pushes it out of its band', () => {
     // Fanned, the innermost letters of a band this deep are solved below the
     // floor, and every one the floor lifts is one the band did not budget for.
-    const glyphs = glyphsOf({ content: { from: 'text', value: 'ABCDEFGHIJ' }, band: [0.05, 0.95] })
+    // Held off the hub deliberately: nearer than this the wedge's own width is
+    // what caps the innermost letter, and uniform sizes stop meaning the fan.
+    const glyphs = glyphsOf({ content: { from: 'text', value: 'ABCDEFGHIJ' }, band: [0.35, 0.95] })
     expect(new Set(glyphs.map((glyph) => glyph.size)).size).toBe(1)
-    // Tracking comes back once the fan is what gave way: the rungs are tried in
-    // order of what they cost, not stacked.
-    expect(radialSpan(glyphs, 1.08)).toBeCloseTo(180, 0)
+    // Tracking comes back once the fan is what gave way: the concessions are
+    // tried in order of what they cost, not stacked.
+    expect(radialSpan(glyphs, 1.08)).toBeCloseTo(120, 0)
   })
 
   it('accepts the overflow when no concession is enough', () => {
@@ -316,6 +318,75 @@ describe('the tapered radial solve', () => {
     }
     expect(reads('rimInward')).toBeGreaterThan(0)
     expect(reads('hubOutward')).toBeGreaterThan(0)
+  })
+})
+
+describe('the chord at a glyph own radius', () => {
+  // The wedge the browser pass caught this on, and the run it caught it with.
+  const narrow = () => context({ arc: { start: 0, end: 27.7 / 360 } })
+
+  /**
+   * What a face actually paints across its baseline, per em. Measured off the
+   * shipped face on a canvas: 0.79 for capitals, 0.99 once a descender is in.
+   * Deliberately not the constant the solve reserves against — checking the
+   * drawing with the layout's own assumption is what let this ship.
+   */
+  const INK_EXTENT = 0.99
+
+  /**
+   * How far past its wedge's own edge a run's worst corner reaches, in degrees.
+   * A glyph is a box in two axes — one along the radius, one across the wedge —
+   * and the corner that crosses first is an inner one, where the wedge is
+   * narrower than at the centre the size was solved against.
+   */
+  function overflowDeg(glyphs: Glyph[], part: SlicePart, ctx: SliceContext): number {
+    const stacked = part.orientation === 'stacked'
+    const halfDeg = 180 * (ctx.arc.end - ctx.arc.start)
+
+    return glyphs.reduce((worst, glyph) => {
+      const advance = measure(glyph.char, 1)
+      const across = (stacked ? advance : INK_EXTENT) * glyph.size
+      const along = (stacked ? INK_EXTENT : advance) * glyph.size
+      // Stretch moves the axis that crosses the wedge, whichever one that is.
+      const acrossHalf = (across * (stacked ? glyph.scale[0] : glyph.scale[1])) / 2
+      const inner = Math.max(Math.hypot(glyph.x, glyph.y) - along / 2, 0.01)
+      const cornerDeg = (Math.atan2(acrossHalf, inner) * 180) / Math.PI
+      return Math.max(worst, cornerDeg - halfDeg)
+    }, 0)
+  }
+
+  const ana = (overrides: Partial<SlicePart> = {}): Partial<SlicePart> => ({
+    content: { from: 'text', value: 'ANA' },
+    orientation: 'taperedRadial',
+    band: [0.2, 0.95],
+    ...overrides,
+  })
+
+  it('holds a tapered run inside its wedge', () => {
+    const part = ana()
+    expect(overflowDeg(glyphsOf(part, narrow()), part as SlicePart, narrow())).toBeLessThanOrEqual(
+      0,
+    )
+  })
+
+  it('holds a tapered run inside its wedge when it fills the width', () => {
+    const part = ana({ stretch: 'fill' })
+    expect(overflowDeg(glyphsOf(part, narrow()), part as SlicePart, narrow())).toBeLessThanOrEqual(
+      0,
+    )
+  })
+
+  it('holds a stacked run inside its wedge when it fills the width', () => {
+    const part = ana({ orientation: 'stacked', stretch: 'fill' })
+    expect(overflowDeg(glyphsOf(part, narrow()), part as SlicePart, narrow())).toBeLessThanOrEqual(
+      0,
+    )
+  })
+
+  it('holds a wide letter in, on the fat wedge that lets it grow', () => {
+    const part = ana({ content: { from: 'text', value: 'WWW' }, stretch: 'fill' })
+    const ctx = context({ arc: { start: 0, end: 0.2 } })
+    expect(overflowDeg(glyphsOf(part, ctx), part as SlicePart, ctx)).toBeLessThanOrEqual(0)
   })
 })
 

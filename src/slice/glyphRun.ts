@@ -5,7 +5,7 @@ import type { Glyph, SliceContext, SlicePart } from './types'
 
 /** Added to every glyph's step so letters do not touch. A fraction of the size. */
 const TRACKING = 0.08
-/** How much of the chord at a glyph's radius it may claim. */
+/** How much of the room at a glyph's own corners it may claim. */
 const GLYPH_CHORD_FILL = 0.86
 const MAX_STRETCH = 3
 /** Re-weighting converges well inside this; it is a bound, not a tuning knob. */
@@ -16,10 +16,13 @@ const FAN_PASSES = 6
  */
 const MIN_ADVANCE = 0.3
 /**
- * How much of the em a capital spans vertically, for a quarter-turned glyph.
- * One value for every face until a font registry supplies a real one.
+ * How much of the em a glyph paints across its baseline. Ascender to descender,
+ * not the cap height: the solve does not know whether a descender is coming, and
+ * reserving for the capital is what let a filled run cross its wedge's edges.
+ * Measured on the shipped face — 0.79 for capitals, 0.99 once a descender is in
+ * — and one value for every face until a font registry supplies a real one.
  */
-const CAP_HEIGHT = 0.72
+export const GLYPH_EXTENT = 1
 const TAU = Math.PI * 2
 /**
  * A run solved to exactly its space lands a float or two over it, and without
@@ -42,6 +45,35 @@ const CONCESSIONS: { tracked: boolean; fan: boolean }[] = [
 
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n))
 
+/** Half the angle a wedge subtends. At a half turn or more it has no sides left. */
+const halfAngleOf = (width: number): number => Math.PI * Math.min(width, 0.5)
+
+/**
+ * The room across the wedge for a glyph centred at `radius` that reaches
+ * `alongHalf` toward the hub. Two things a chord at the centre radius gets
+ * wrong, in opposite directions: the wedge is narrower at the inner corners,
+ * which is where a glyph crosses an edge first, and the sides are straight, so
+ * the room at a given depth is the tangent rather than the chord.
+ */
+function roomAcross(width: number, radius: number, alongHalf: number): number {
+  const half = halfAngleOf(width)
+  if (half >= Math.PI / 2) return Number.POSITIVE_INFINITY
+  return 2 * Math.max(radius - alongHalf, 1) * Math.tan(half) * GLYPH_CHORD_FILL
+}
+
+/**
+ * The largest size whose across-wedge extent still fits at its own inner
+ * corners. Closed form rather than a search: growing a glyph moves the corner
+ * it has to fit at, so `roomAcross` depends on the size being solved for.
+ */
+function sizeWithin(width: number, radius: number, across: number, along: number): number {
+  const half = halfAngleOf(width)
+  if (half >= Math.PI / 2) return Number.POSITIVE_INFINITY
+  const reach = Math.tan(half) * GLYPH_CHORD_FILL
+  const demand = across + along * reach
+  return demand > 0 ? (2 * radius * reach) / demand : Number.POSITIVE_INFINITY
+}
+
 const round = (n: number): number => Math.round(n * 100) / 100
 
 type Solved = { sizes: number[]; radii: number[] }
@@ -54,6 +86,7 @@ type Solved = { sizes: number[]; radii: number[] }
 function solveRadial(
   steps: number[],
   across: number[],
+  along: number[],
   part: SlicePart,
   ctx: SliceContext,
   maxSize: number,
@@ -82,8 +115,7 @@ function solveRadial(
     for (let i = 0; i < steps.length; i++) {
       const nominal = unit * weights[i] * steps[i]
       const centre = Math.max(edge + (sign * nominal) / 2, 1)
-      const room = chord(width, centre) * GLYPH_CHORD_FILL
-      const cap = capped ? room / across[i] : Number.POSITIVE_INFINITY
+      const cap = capped ? sizeWithin(width, centre, across[i], along[i]) : Number.POSITIVE_INFINITY
       const size = Math.max(MIN_SIZE, Math.min(unit * weights[i], maxSize, cap))
       const extent = size * steps[i]
       radii.push(edge + (sign * extent) / 2)
@@ -113,6 +145,7 @@ function acrossFactor(
   size: number,
   radius: number,
   across: number,
+  along: number,
   width: number,
 ) {
   const authored = authoredStretch(part)
@@ -120,7 +153,7 @@ function acrossFactor(
   const lower = part.shrink === 'condense' ? 1 / MAX_STRETCH : authored
   const taken = across * size
   if (lower === upper || !(taken > 0)) return authored
-  const room = chord(width, Math.max(radius, 1)) * GLYPH_CHORD_FILL
+  const room = roomAcross(width, Math.max(radius, 1), (along * size) / 2)
   return clamp(room / taken, lower, upper)
 }
 
@@ -140,7 +173,9 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
   const advances = chars.map((char) => Math.max(ctx.measure(char, 1), MIN_ADVANCE))
 
   // What already spans the wedge, per unit of size — the axis stretch works on.
-  const across = chars.map((_, i) => (stacked ? advances[i] : CAP_HEIGHT))
+  const across = chars.map((_, i) => (stacked ? advances[i] : GLYPH_EXTENT))
+  // The other axis, which decides how far toward the hub a glyph's corners reach.
+  const along = chars.map((_, i) => (stacked ? GLYPH_EXTENT : advances[i]))
 
   let steps: number[] = []
   let solved: Solved = { sizes: [], radii: [] }
@@ -148,14 +183,14 @@ export function runAlongRadius(part: SlicePart, ctx: SliceContext, text: string)
     if (concession.fan && !fanned) continue
     // Upright letters step by the line; quarter-turned ones step by the advance.
     steps = chars.map((_, i) => (stacked ? 1 : advances[i]) + (concession.tracked ? TRACKING : 0))
-    solved = solveRadial(steps, across, part, ctx, maxSize, concession.fan)
+    solved = solveRadial(steps, across, along, part, ctx, maxSize, concession.fan)
     if (spanOf(solved.sizes, steps) <= length + FIT_SLACK) break
   }
   const { sizes, radii } = solved
 
   return chars.map((char, i) => {
     const [x, y] = pointAt(mid, radii[i])
-    const factor = round(acrossFactor(part, sizes[i], radii[i], across[i], width))
+    const factor = round(acrossFactor(part, sizes[i], radii[i], across[i], along[i], width))
     return {
       char,
       x,
