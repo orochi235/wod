@@ -2,11 +2,14 @@ import type { FitSpec, Measure, Placement } from './types'
 
 const TAU = Math.PI * 2
 
-/** Fraction of the radius a radial run may occupy. */
-const RADIAL_RUN = 0.75
+/** Where a radial run may start and stop, as fractions of the radius. */
+const HUB_MARGIN = 0.28
+const RIM_MARGIN = 0.96
 /** How much of the available chord or arc a line of text may claim. */
-const CHORD_FILL = 0.86
-const ARC_FILL = 0.9
+const CHORD_FILL = 0.82
+const ARC_FILL = 0.85
+/** A level disc is otherwise tangent to both the rim and its own wedge edges. */
+const DISC_FILL = 0.85
 /** Radial thickness a curved band claims, as a fraction of the radius. */
 const BAND = 0.34
 /** Radial thickness a tangential line claims. */
@@ -22,6 +25,16 @@ const chord = (turns: number, radius: number): number =>
 
 const arcLength = (turns: number, radius: number): number => TAU * radius * turns
 
+/**
+ * Radial text centers on this run, not on the layout's anchor: centering it
+ * further out and spending the whole budget puts half the label past the rim.
+ */
+function radialRun(radius: number): { center: number; length: number } {
+  const inner = radius * HUB_MARGIN
+  const outer = radius * RIM_MARGIN
+  return { center: (inner + outer) / 2, length: outer - inner }
+}
+
 export type Budget = {
   /** How far the text may run, along whatever direction the orientation uses. */
   length: number
@@ -29,14 +42,21 @@ export type Budget = {
   natural: number
 }
 
+/** Where a placement actually sits, which for radial is not the layout's anchor. */
+export function anchorFor(spec: Omit<FitSpec, 'text'>): number {
+  if (spec.frame === 'wheel' && spec.orientation === 'radial') {
+    return radialRun(spec.radius).center / spec.radius
+  }
+  return spec.anchor
+}
+
 export function budget(spec: Omit<FitSpec, 'text'>): Budget {
-  const anchorRadius = spec.radius * spec.anchor
+  const anchorRadius = spec.radius * anchorFor(spec)
   switch (spec.orientation) {
-    case 'radial':
-      return {
-        length: spec.radius * RADIAL_RUN,
-        natural: chord(spec.width, anchorRadius) * 0.8,
-      }
+    case 'radial': {
+      const run = radialRun(spec.radius)
+      return { length: run.length, natural: chord(spec.width, run.center) * 0.8 }
+    }
     case 'tangential':
       return {
         length: chord(spec.width, anchorRadius) * CHORD_FILL,
@@ -58,7 +78,7 @@ export function levelRoom(spec: Omit<FitSpec, 'text'>): number {
   const anchorRadius = spec.radius * spec.anchor
   const toSide = anchorRadius * Math.sin(Math.PI * Math.min(spec.width, 0.5))
   const toRim = spec.radius - anchorRadius
-  return Math.max(0, Math.min(toSide, toRim, anchorRadius))
+  return Math.max(0, Math.min(toSide, toRim, anchorRadius) * DISC_FILL)
 }
 
 /**
@@ -86,7 +106,7 @@ export function createFit(measure: Measure): (spec: FitSpec) => Placement | null
     if (!(size >= spec.minSize)) return null
     return {
       orientation: spec.orientation,
-      anchor: spec.anchor,
+      anchor: anchorFor(spec),
       size: floor2(size),
       text: spec.text,
     }

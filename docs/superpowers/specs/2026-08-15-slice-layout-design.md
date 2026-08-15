@@ -61,12 +61,19 @@ they look:
 
 | Orientation | Length budget | Thickness budget | Wins on |
 | --- | --- | --- | --- |
-| `radial` | radial extent, ~0.75R — **independent of arc width** | chord `2r·sin(πw)` | narrow arcs |
+| `radial` | the hub-to-rim run — **independent of arc width** | chord `2r·sin(πw)` | narrow arcs |
 | `tangential` | chord at the anchor radius | radial extent | fat arcs, short labels |
 | `curved` | arc length `2πr·w` — **grows with radius** | band thickness | fat arcs, long labels |
 
 In `level` frame, orientation collapses: text is horizontal, and the only budget
 is the rotation-invariant disc.
+
+Radial is the one orientation that ignores the anchor. A radial line is centered
+on where it sits, so anchoring it near the rim and then spending a full budget
+puts half the label outside the wheel; it centers on the hub-to-rim run instead.
+Every budget also keeps a margin — a line that exactly fills its arc reads as one
+continuous string across the wedge boundary, and a level disc tangent to the rim
+touches it.
 
 ## The ladder
 

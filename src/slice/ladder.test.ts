@@ -62,18 +62,23 @@ describe('walkLadder', () => {
     expect(resolved?.content).toBe('full')
   })
 
-  it('falls past the full-name rungs on a sliver', () => {
-    // Radial's length budget ignores arc width, so a full name survives a
-    // narrower arc than it looks like it should. Initials only win once the
-    // chord is too short to give radial a legible size at all.
-    const resolved = walkLadder(
-      'Glenallen Mixon',
-      LADDERS.shrinkNameInitials,
-      { ...base, width: 0.012 },
-      fit,
-      measure,
-    )
-    expect(resolved?.content).toBe('initials')
+  it('falls past the full-name rungs before it gives up', () => {
+    // Scanned rather than pinned to one width: which arc first defeats a full
+    // name depends on every fill constant, and a fixture tuned to the exact
+    // crossing is a test that breaks on any retune without a bug behind it.
+    const contents = []
+    for (let width = 0.3; width > 0.0005; width *= 0.92) {
+      contents.push(
+        walkLadder('Glenallen Mixon', LADDERS.shrinkNameInitials, { ...base, width }, fit, measure)
+          ?.content ?? null,
+      )
+    }
+
+    const firstShortened = contents.findIndex((content) => content !== 'full' && content !== null)
+    const firstNothing = contents.indexOf(null)
+    expect(contents[0]).toBe('full')
+    expect(firstShortened).toBeGreaterThan(0)
+    expect(firstNothing).toBeGreaterThan(firstShortened)
   })
 
   it('returns null only when every rung fails', () => {

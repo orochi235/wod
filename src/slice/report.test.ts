@@ -17,17 +17,26 @@ describe('fitReport', () => {
   })
 
   it('marks a wedge that had to shorten', () => {
-    const rows = fitReport(
-      [
-        { id: 'a', label: 'Sleve McDichael', weight: 100 },
-        { id: 'b', label: 'Todd Bonzalez', weight: 1.2 },
-      ],
-      undefined,
-      200,
-      measure,
-    )
-    expect(rows[1].degraded).toBe(true)
-    expect(rows[1].drawn).not.toBe('Todd Bonzalez')
+    // Scanned, not pinned: the weight that first defeats a full name moves with
+    // every fill constant, and only the shortened-before-nothing order is a rule.
+    const shortened = []
+    for (let weight = 8; weight > 0.05; weight *= 0.9) {
+      const [, row] = fitReport(
+        [
+          { id: 'a', label: 'Sleve McDichael', weight: 100 },
+          { id: 'b', label: 'Todd Bonzalez', weight },
+        ],
+        undefined,
+        200,
+        measure,
+      )
+      shortened.push(row.drawn)
+    }
+
+    expect(shortened[0]).toBe('Todd Bonzalez')
+    const first = shortened.findIndex((drawn) => drawn !== 'Todd Bonzalez' && drawn !== null)
+    expect(first).toBeGreaterThan(0)
+    expect(shortened.indexOf(null)).toBeGreaterThan(first)
   })
 
   it('marks a wedge that draws nothing', () => {

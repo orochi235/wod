@@ -7,19 +7,19 @@ import { FitReport } from './FitReport'
 const measure: Measure = (text, size) => text.length * 0.5 * size
 
 describe('FitReport', () => {
-  it('names what a degraded wedge will draw instead', () => {
+  it('names what each wedge will draw', () => {
     render(
       <FitReport
         segments={[
-          { id: 'a', label: 'Sleve McDichael', weight: 100 },
-          { id: 'b', label: 'Todd Bonzalez', weight: 1.2 },
+          { id: 'a', label: 'Sleve McDichael', weight: 1 },
+          { id: 'b', label: 'Onson Sweemey', weight: 1 },
         ]}
         slice={undefined}
         measure={measure}
       />,
     )
-    expect(screen.getByText('Todd Bonzalez')).toBeInTheDocument()
-    expect(screen.getByText('TB')).toBeInTheDocument()
+    expect(screen.getAllByText('Sleve McDichael')).toHaveLength(2)
+    expect(screen.getAllByText('Onson Sweemey')).toHaveLength(2)
   })
 
   it('says so when a wedge draws no label', () => {

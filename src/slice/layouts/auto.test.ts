@@ -24,9 +24,15 @@ describe('auto', () => {
     expect(element).toMatchObject({ kind: 'curvedText', text: 'Sleve McDichael' })
   })
 
-  it('degrades to initials rather than drawing nothing on a sliver', () => {
-    const [element] = auto.draw(auto.defaults, context({ arc: { start: 0, end: 0.012 } }))
-    expect(element).toMatchObject({ text: 'SM' })
+  it('degrades to a shortened label before it draws nothing', () => {
+    const drawn = []
+    for (let width = 0.3; width > 0.0005; width *= 0.92) {
+      const [element] = auto.draw(auto.defaults, context({ arc: { start: 0, end: width } }))
+      drawn.push(element && 'text' in element ? element.text : null)
+    }
+
+    expect(drawn).toContain('SM')
+    expect(drawn.indexOf('SM')).toBeLessThan(drawn.indexOf(null))
   })
 
   it('draws nothing when even initials will not fit', () => {
