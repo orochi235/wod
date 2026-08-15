@@ -12,6 +12,8 @@ import { isRigVisible } from '../rig/visibility'
 import { findConflicts } from '../tricks/conflicts'
 import { resolveTricks } from '../tricks/resolve'
 import { Wheel } from '../wheel/Wheel'
+import { flat } from '../wheel/themes/flat'
+import { getTheme } from '../wheel/themes/registry'
 import type { Segment, SpinConfig } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
@@ -136,7 +138,10 @@ export function Editor() {
     [preset.spin, resolved.morphs],
   )
 
-  const { displaySegments, isSpinning, spin, rotorRef } = useSpin(resolved.segments, spinConfig)
+  const { displaySegments, layoutSegments, isSpinning, spin, rotorRef, levelRef } = useSpin(
+    resolved.segments,
+    spinConfig,
+  )
   const [scrubbed, setScrubbed] = useState<Segment[] | null>(null)
   // Handing the wheel back to the scrubber the moment `isSpinning` goes false
   // would erase the landing — the one frame the whole trick exists to produce.
@@ -158,7 +163,8 @@ export function Editor() {
   }, [spin, base, preset.tricks, preset.spin.motion.durationMs])
 
   // A spin owns the geometry, running or landed; otherwise the scrubber does.
-  const shown = isSpinning || spun ? displaySegments : (scrubbed ?? resolved.segments)
+  const spinOwns = isSpinning || spun
+  const shown = spinOwns ? displaySegments : (scrubbed ?? resolved.segments)
 
   return (
     <LabShell
@@ -227,7 +233,19 @@ export function Editor() {
           )}
         </section>
         <section className="editor__column editor__column--center">
-          <Wheel segments={shown} rotorRef={rotorRef} />
+          <Wheel
+            segments={shown}
+            layoutFrom={spinOwns ? layoutSegments : undefined}
+            slice={preset.slice}
+            rotorRef={rotorRef}
+            levelRef={levelRef}
+            transitions={preset.transitions}
+            held={spinOwns}
+            theme={getTheme(preset.theme ?? '') ?? flat}
+            // The show window is the one that makes noise. Two windows clicking
+            // over each other is not a preview of anything.
+            muted
+          />
           <Transport
             segments={resolved.segments}
             morphs={resolved.morphs}

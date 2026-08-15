@@ -408,6 +408,94 @@ describe('Editor spin', () => {
   })
 })
 
+describe('Editor preview', () => {
+  beforeEach(() => {
+    resetUnlocked()
+  })
+
+  const wheel = () => screen.getByRole('img', { name: 'wheel' })
+
+  const hasCurved = () => wheel().querySelector('textPath') !== null
+
+  /**
+   * A preset that leaves `auto` nothing to decide: the cast is named rather
+   * than drawn at random, and the stored layout is the one orientation that
+   * emits no `textPath`. An editor ignoring `slice` falls back to `auto`, which
+   * curves both of these on a half-wheel wedge.
+   */
+  function seedTwoShortNames() {
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({
+        version: 5,
+        name: 'standup',
+        segments: [
+          { id: 'ana', label: 'Ana', weight: 1 },
+          { id: 'ben', label: 'Ben', weight: 1 },
+        ],
+        feeds: [],
+        overrides: {},
+        tricks: [],
+        slice: { id: 'radial', params: { frame: 'wheel', anchor: 0.7, maxSize: 26 } },
+        spin: {
+          target: { kind: 'fair' },
+          motion: { durationMs: 4500, turns: 6, direction: 'cw' },
+        },
+        branches: [],
+      }),
+    )
+  }
+
+  it('wears the look the operator picked', async () => {
+    render(<Editor />)
+    expect(wheel().querySelector('.wheel__rim')).toBeNull()
+
+    await userEvent.selectOptions(screen.getByLabelText('Wheel'), 'wof')
+
+    expect(wheel().querySelector('.wheel__rim')).not.toBeNull()
+  })
+
+  it('sets its labels the way the slice panel says', async () => {
+    seedTwoShortNames()
+    render(<Editor />)
+    expect(hasCurved()).toBe(false)
+
+    await userEvent.selectOptions(screen.getByLabelText('Layout'), 'curved')
+
+    expect(hasCurved()).toBe(true)
+  })
+
+  it('runs the armed exit on a wedge that leaves', async () => {
+    render(<Editor />)
+    await userEvent.selectOptions(screen.getByLabelText('Wedges leaving'), 'shrink')
+
+    await userEvent.click(screen.getByRole('button', { name: `Join ${JOINABLE}` }))
+    expect(within(wheel()).getByText(JOINABLE)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: `Remove ${JOINABLE}` }))
+
+    // The shrink has barely started, so an editor that armed it still draws her.
+    expect(within(wheel()).getByText(JOINABLE)).toBeInTheDocument()
+  })
+
+  it('holds a level frame level while the preview spins', async () => {
+    seedTwoShortNames()
+    const harness = installSpinHarness()
+    try {
+      render(<Editor />)
+      await userEvent.selectOptions(screen.getByLabelText('Layout'), 'curved')
+      await userEvent.selectOptions(screen.getByLabelText('Frame'), 'level')
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+
+      // The rotor's own track, plus one counter-rotation per level group. Only
+      // the rotor animating means the level groups were never registered.
+      expect(harness.keyframes.length).toBeGreaterThan(1)
+    } finally {
+      harness.restore()
+    }
+  })
+})
+
 describe('Editor locked', () => {
   beforeEach(() => {
     window.localStorage.clear()
