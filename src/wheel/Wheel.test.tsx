@@ -361,6 +361,22 @@ describe('parts', () => {
     }
   })
 
+  it('hangs a flapper above the rim when a look asks for one', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    expect(container.querySelector('.wheel__flapper')).not.toBeNull()
+  })
+
+  it('leaves it off under the flat look', () => {
+    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    expect(container.querySelector('.wheel__flapper')).toBeNull()
+  })
+
+  it('keeps the flapper outside the rotor, which turns underneath it', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const flapper = container.querySelector('.wheel__flapper')
+    expect(flapper?.closest('.wheel__rotor')).toBeNull()
+  })
+
   it('turns the pegs with the wheel, not with a wedge', () => {
     // A peg belongs to the rim. A wedge flying in from off-screen must not drag
     // one across the screen with it.

@@ -1,5 +1,5 @@
 import type { Ref } from 'react'
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { createFit } from '../slice/fit'
 import { createMeasure } from '../slice/measure'
 import { getSlice, resolveInstance } from '../slice/registry'
@@ -8,6 +8,7 @@ import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
 import { SliceElements } from './SliceElements'
+import { deflectionDeg } from './flapper'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
 import { panelPath } from './panel'
 import { pegAngles } from './pegs'
@@ -16,6 +17,7 @@ import type { Theme } from './theme'
 import { styleOfTheme } from './themeStyle'
 import { flat } from './themes/flat'
 import type { Segment } from './types'
+import { useWheelAngle } from './useWheelAngle'
 import './Wheel.css'
 
 export type WheelProps = {
@@ -83,6 +85,14 @@ export function Wheel({
   const half = radius + rim + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
 
+  const ownRotorRef = useRef<SVGGElement>(null)
+  const [deflection, setDeflection] = useState(0)
+  const hasFlapper = partOn(theme, 'flapper')
+
+  useWheelAngle(ownRotorRef, hasFlapper, (angle) => {
+    setDeflection(deflectionDeg(angle, pegs))
+  })
+
   // One measurer per wheel, so the string cache outlives a render.
   const measure = useMemo(() => createMeasure(), [])
   const fit = useMemo(() => createFit(measure), [measure])
@@ -120,7 +130,15 @@ export function Wheel({
         )}
         {partOn(theme, 'face') && <circle className="wheel__face" r={radius} />}
         <g className="wheel__stage">
-          <g className="wheel__rotor" transform={`rotate(${rotationDeg})`} ref={rotorRef}>
+          <g
+            className="wheel__rotor"
+            transform={`rotate(${rotationDeg})`}
+            ref={(node) => {
+              ownRotorRef.current = node
+              if (typeof rotorRef === 'function') rotorRef(node)
+              else if (rotorRef) rotorRef.current = node
+            }}
+          >
             {drawn.map(({ segment, arc: presenceArc, presence }, index) => {
               const width = presenceArc.end - presenceArc.start
               if (!(width > 0)) return null
@@ -211,6 +229,17 @@ export function Wheel({
         className="wheel__pointer"
         points={`0,${-radius + POINTER_BITE} ${-POINTER_HALF_WIDTH},${-radius - POINTER_BASE} ${POINTER_HALF_WIDTH},${-radius - POINTER_BASE}`}
       />
+      {hasFlapper && (
+        <g
+          className="wheel__flapper"
+          transform={`translate(0 ${-(radius + theme.metrics.rimWidth + 20)}) rotate(${deflection})`}
+        >
+          <rect x={-6} y={-10} width={12} height={11} rx={2.5} />
+          <path
+            d={`M -6.5 -1 L 6.5 -1 L 2.6 ${theme.metrics.rimWidth + 26} L -2.6 ${theme.metrics.rimWidth + 26} Z`}
+          />
+        </g>
+      )}
     </svg>
   )
 }

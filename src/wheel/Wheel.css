@@ -103,4 +103,7 @@
   fill: var(--wheel-flapper-fill, none);
   stroke: var(--wheel-flapper-stroke, none);
   stroke-width: 1;
+  transform-box: view-box;
+  transform-origin: 0 0;
+  transition: transform 60ms ease-out;
 }
