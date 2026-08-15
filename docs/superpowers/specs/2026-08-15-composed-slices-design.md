@@ -164,7 +164,8 @@ wedge is fitted from it, and a stale one shows a slightly wrong preview rather t
 setting a name two different ways. Regenerating the specimens is a script run when a face
 is added, and its output is committed.
 
-Twelve faces to start, all OFL. Nothing is loaded until a part names it, so a plain wheel
+A catalogue rather than a shortlist, all OFL — the count is expected to move, which is
+why nothing here is a union type. Nothing is loaded until a part names it, so a plain wheel
 fetches one face and a look that never reaches for the woodtype never pays for it. The
 class is what groups them in the picker.
 
@@ -177,6 +178,16 @@ class is what groups them in the picker.
 - **Black Ops One** — stencil. Reads as a prize rather than a name.
 - **Gravitas One** — fat Didone. Extreme stroke contrast, so it thins out below about
   sixteen units and wants the outer band.
+- **Abril Fatface** — the other fat Didone, wider and rounder than Gravitas One. Same
+  caveat about the hairlines, and it needs more chord to hold a letter.
+- **Righteous** — geometric, wide, art-deco. Even strokes, so it holds up small where the
+  Didones do not.
+- **Geologica** — variable grotesque, and the only variable face here. The registry names
+  one instance; the axes are not exposed.
+- **Press Start 2P** — a bitmap face. Very wide per character and legible only at whole
+  multiples of its pixel grid, so it wants short words and the size cap left high.
+- **Luckiest Guy** — chunky cartoon brush caps. The closest thing here to a game-show
+  face that is not woodtype.
 
 *Woodtype and slab* — the show's own register:
 
@@ -198,6 +209,12 @@ class is what groups them in the picker.
   glyph mode's worst case and outline mode's best argument.
 - **Shadows Into Light** — thin handwriting. Below the largest sizes it disappears
   against a busy wedge.
+- **Satisfy** — casual brush, heavier than Shadows Into Light and so the safer default
+  where a wedge has to stay readable.
+- **Permanent Marker** — marker capitals. Unjoined, which makes it the one script that
+  sets acceptably in glyph mode.
+- **Great Vibes** — formal calligraphy with long joins and swashes. The strongest case
+  for outline mode and the worst case without it.
 
 Because outline mode can only warp a face we bundle, `font` is an id from the registry
 and never a raw family string: a free string would let a part silently render unwarped.
