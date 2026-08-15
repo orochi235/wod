@@ -138,21 +138,43 @@ what the wedge says.
 ## Which face
 
 Faces live in a registry, on the precedent `src/slice/registry.ts` and
-`src/transition/registry.ts` set: an id, a display name, and the file to load. A part
-carries `font?: FontId` and falls back to the theme's default, so adding a third face is
-a registry entry and a file — no type changes, and a wedge can reach for any bundled face
-rather than only the ones its theme nominated.
+`src/transition/registry.ts` set: an id, a display name, a class (display, slab,
+woodtype, script) for grouping the picker, and the file to load. A part carries
+`font?: FontId` and falls back to the theme's default, so adding a face is a registry
+entry and a file — and a wedge can reach for any bundled face rather than only the ones
+its theme nominated.
 
-Two faces to start, both OFL:
+**Built for a couple of dozen faces, not four.** That shapes three things now, because
+retrofitting them later is churn. `FontId` is a validated string rather than a
+hand-written union — twenty ids in a union type is a merge conflict waiting to happen,
+and an unknown id resolves to the theme's default instead of failing to compile. Nothing
+is statically imported: the registry maps an id to a URL, so the bundle does not grow
+with the catalogue. And the files are self-hosted rather than pulled from a font CDN —
+the parser has to fetch the same binary the stylesheet uses, and a wheel that stops
+setting type when a third party is unreachable is not a wheel.
 
-- **Anton** — the default. Condensed, heavy, and the only candidate that stays legible at
-  fourteen letters in one wedge.
-- **Rye** — the woodtype, for short authored words like BANKRUPT. Its inline detail
-  muddies at small sizes, which is why it is not the default and why nothing long should
-  be set in it. Bevan is the fallback choice if that proves too fragile.
+The picker draws its menu in the UI font and loads a face when it is chosen. Twenty
+previews would otherwise fetch twenty files to render a dropdown nobody has picked from
+yet.
+
+Four faces to start, all OFL. Nothing is loaded until a part names it, so a plain wheel
+fetches one face and a look that never reaches for the woodtype never pays for it:
+
+- **Anton** — the default. Condensed, heavy, and the one that stays legible at fourteen
+  letters in a wedge.
+- **Rye** — western woodtype with inline detail and spurred serifs. The BANKRUPT face.
+  Muddies at small sizes, so it suits short authored words rather than names.
+- **Bevan** — condensed slab. The woodtype that survives a long name.
+- **Alfa Slab One** — the boldest and clearest of the slabs, and the widest, so it wants
+  short words or fat wedges.
 
 Because outline mode can only warp a face we bundle, `font` is an id from the registry
 and never a raw family string: a free string would let a part silently render unwarped.
+
+**A theme names the default face**, so the choice belongs to the look rather than to
+every part. `wof` defaults to Anton; a carnival look can default to Rye and get woodtype
+everywhere without touching a single slice. A part's own `font` overrides it, which is
+how one wedge says BANKRUPT in Rye on a wheel set in Anton.
 
 ## Modules
 
@@ -166,6 +188,7 @@ and never a raw family string: a free string would let a part silently render un
 | `src/slice/layouts/auto.ts` | Unchanged in spirit: still chooses an orientation by what fits. |
 | `src/slice/types.ts` | `SlicePart`, `PartContent`, the widened `Orientation`, `composed` on `SliceLayoutId`, the `glyphRun` element kind. |
 | `src/slice/SliceElements.tsx` | Renders `glyphRun`. No filters inside a wedge — the group is rewritten every frame. |
+| `src/wheel/theme.ts` | `Theme` gains `font?: FontId` — the look's default face. |
 | `src/editor/RecipeForm.tsx` | A repeating parts field, three slots. |
 | `src/preset/storage.ts` | `readSlice` validates parts. |
 
