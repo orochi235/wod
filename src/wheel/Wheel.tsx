@@ -9,6 +9,7 @@ import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
 import { SliceElements } from './SliceElements'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
+import { panelPath } from './panel'
 import { pegAngles } from './pegs'
 import { partOn } from './theme'
 import type { Theme } from './theme'
@@ -154,6 +155,26 @@ export function Wheel({
                   })}
                 >
                   <path className="wheel__segment" d={d} fill={segment.color} />
+                  {partOn(theme, 'divider') && (
+                    <line
+                      className="wheel__divider"
+                      x1={0}
+                      y1={0}
+                      x2={pointAt(presenceArc.start, radius)[0]}
+                      y2={pointAt(presenceArc.start, radius)[1]}
+                    />
+                  )}
+                  {partOn(theme, 'panel') &&
+                    (() => {
+                      const panel = panelPath(
+                        presenceArc.start,
+                        presenceArc.end,
+                        radius,
+                        theme.metrics.panel,
+                        Math.min(0.011, width * 0.13),
+                      )
+                      return panel === '' ? null : <path className="wheel__panel" d={panel} />
+                    })()}
                   <SliceElements
                     elements={elements}
                     arc={presenceArc}

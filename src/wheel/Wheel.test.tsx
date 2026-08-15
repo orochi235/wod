@@ -341,6 +341,26 @@ describe('parts', () => {
     expect(container.querySelectorAll('.wheel__peg')).toHaveLength(8)
   })
 
+  it('draws a panel and a divider inside each wedge', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const wedge = container.querySelector('.wheel__wedge')
+    expect(wedge?.querySelector('.wheel__panel')).not.toBeNull()
+    expect(wedge?.querySelector('.wheel__divider')).not.toBeNull()
+  })
+
+  it('draws neither under the flat look', () => {
+    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    expect(container.querySelector('.wheel__panel')).toBeNull()
+    expect(container.querySelector('.wheel__divider')).toBeNull()
+  })
+
+  it('keeps every filter off the wedge, which is rewritten every frame', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    for (const node of container.querySelectorAll('.wheel__wedge *')) {
+      expect(node.getAttribute('filter')).toBeNull()
+    }
+  })
+
   it('turns the pegs with the wheel, not with a wedge', () => {
     // A peg belongs to the rim. A wedge flying in from off-screen must not drag
     // one across the screen with it.
