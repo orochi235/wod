@@ -1,10 +1,13 @@
 import type { Composition, Origin } from '../compose/types'
+import { EMPTY_COLOR_STATE, assignColors } from '../wheel/colors'
+import type { ColorState } from '../wheel/colors'
 import type { Morph, Segment } from '../wheel/types'
 import { getRecipe } from './registry'
 import type { Trick } from './types'
 
 export type ResolvedTricks = Composition & {
   morphs: Morph[]
+  colors: Map<string, string>
 }
 
 /**
@@ -23,6 +26,7 @@ export function resolveTricks(
   durationMs: number,
   roll = 0,
   winnerId: string | null = null,
+  colorState: ColorState = EMPTY_COLOR_STATE,
 ): ResolvedTricks {
   const active = tricks.filter((trick) => trick.enabled && getRecipe(trick.recipe) !== null)
 
@@ -40,6 +44,10 @@ export function resolveTricks(
     }
   }
 
+  // Between the passes on purpose: pass 1 has appended every wedge a trick
+  // invents, and pass 2 is the first thing that reads a color.
+  const { segments: colored, colors } = assignColors(segments, origins, colorState)
+
   // Pass 2: resolve.
   const morphs: Morph[] = []
   for (const trick of active) {
@@ -48,7 +56,7 @@ export function resolveTricks(
     morphs.push(
       ...recipe.resolve(trick.params, {
         trickId: trick.id,
-        segments,
+        segments: colored,
         origins,
         durationMs,
         roll,
@@ -57,7 +65,7 @@ export function resolveTricks(
     )
   }
 
-  return { segments, origins, morphs }
+  return { segments: colored, origins, morphs, colors }
 }
 
 /**
