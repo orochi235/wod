@@ -323,4 +323,30 @@ describe('parts', () => {
     const { container } = render(<Wheel segments={segments} />)
     expect(container.querySelector('.wheel__rim')).toBeNull()
   })
+
+  it('puts one peg on each wedge boundary', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    expect(container.querySelectorAll('.wheel__peg')).toHaveLength(2)
+  })
+
+  it('follows the roster as it grows', () => {
+    const three = [...segments, { id: 'cy', label: 'Cy', weight: 1 }]
+    const { container } = render(<Wheel segments={three} theme={wof} />)
+    expect(container.querySelectorAll('.wheel__peg')).toHaveLength(3)
+  })
+
+  it('spaces a fixed count evenly instead, when a look asks for that', () => {
+    const fixed = { ...wof, pegs: { kind: 'fixed' as const, count: 8 } }
+    const { container } = render(<Wheel segments={segments} theme={fixed} />)
+    expect(container.querySelectorAll('.wheel__peg')).toHaveLength(8)
+  })
+
+  it('turns the pegs with the wheel, not with a wedge', () => {
+    // A peg belongs to the rim. A wedge flying in from off-screen must not drag
+    // one across the screen with it.
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const peg = container.querySelector('.wheel__peg')
+    expect(peg?.closest('.wheel__wedge')).toBeNull()
+    expect(peg?.closest('.wheel__rotor')).not.toBeNull()
+  })
 })

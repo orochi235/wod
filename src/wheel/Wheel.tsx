@@ -8,7 +8,8 @@ import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
 import { SliceElements } from './SliceElements'
-import { type Arc, arcPath, arcs } from './geometry'
+import { type Arc, arcPath, arcs, pointAt } from './geometry'
+import { pegAngles } from './pegs'
 import { partOn } from './theme'
 import type { Theme } from './theme'
 import { styleOfTheme } from './themeStyle'
@@ -71,6 +72,12 @@ export function Wheel({
   theme = flat,
 }: WheelProps) {
   const drawn = usePresence(segments, transitions, held)
+  const pegs = partOn(theme, 'peg')
+    ? pegAngles(
+        theme.pegs,
+        drawn.map((item) => item.arc),
+      )
+    : []
   const rim = partOn(theme, 'rim') ? theme.metrics.rimWidth : 0
   const half = radius + rim + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
@@ -155,6 +162,18 @@ export function Wheel({
                     levelRef={levelRef?.(segment.id, -midDeg(layoutArc))}
                   />
                 </g>
+              )
+            })}
+            {pegs.map((turn) => {
+              const [cx, cy] = pointAt(turn, radius + theme.metrics.rimWidth / 2)
+              return (
+                <circle
+                  key={turn}
+                  className="wheel__peg"
+                  cx={cx}
+                  cy={cy}
+                  r={theme.metrics.pegRadius}
+                />
               )
             })}
           </g>
