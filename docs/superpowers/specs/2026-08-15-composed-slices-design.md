@@ -29,6 +29,8 @@ type SlicePart = {
   fan?: boolean
   /** Widen each glyph to the room at its radius. Default 'none'. */
   stretch?: 'none' | 'fill' | number
+  /** How a glyph the chord cannot hold gives way. Default 'proportional'. */
+  shrink?: 'proportional' | 'condense'
   /** How the run is drawn. Default 'glyphs'. */
   shape?: 'glyphs' | 'outline'
   /** A registry id. Absent means the theme's default face. */
@@ -89,6 +91,23 @@ the wedge. Stretch is capped near 3× so a short word cannot smear.
 Height and width are independent: height comes from the band solve, width from the chord.
 That separation is what lets a name fill a wedge without the letters ballooning, and it is
 why `stretch` is its own field rather than a mode of `fan`.
+
+**How a word that must shrink gives way is the author's choice.** The chord cap is what
+binds on a long name in a narrow wedge, and by default it takes the whole glyph down — so
+the letters lose height as well as width. That has a consequence worth stating plainly,
+because it is invisible until someone looks: the fit unit is `bandLength / Σ(weight ×
+step)`, so the run fills its band exactly when every glyph takes its share. A glyph the
+chord capped takes less, and the run then stops short of the band's inner edge. A long
+name on a narrow wedge does not merely shrink; it shrinks and then floats.
+
+`shrink: 'condense'` keeps the height the band solve gave and squeezes only the axis that
+crosses the wedge. The run fills its band, the letters keep their size down the radius,
+and the word narrows the way a condensed face narrows — which is the whole reason the
+default face is condensed. `'proportional'` is the default and is today's behaviour.
+
+Condensing and stretching are the same axis in opposite directions, which is why they are
+one mechanism and not two: `stretch` may widen a glyph that has room to spare, `shrink`
+may narrow one that has not. A part that asks for both gets whichever the chord demands.
 
 ## Two shapes for a run
 
