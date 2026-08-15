@@ -30,3 +30,9 @@
   transform-box: view-box;
   transform-origin: 0 0;
 }
+
+.wheel__wedge {
+  transform: var(--wedge-transform, none);
+  opacity: var(--wedge-opacity, 1);
+  clip-path: var(--wedge-clip, none);
+}

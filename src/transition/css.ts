@@ -1,4 +1,4 @@
-import type { PresentationKeyframe } from './types'
+import type { Presence, PresentationKeyframe } from './types'
 
 export type EmitTarget = {
   /** The element's own angle, degrees clockwise from 12 o'clock. Zero at wheel scope. */
@@ -61,6 +61,28 @@ export function clipOf(frame: PresentationKeyframe): string {
  * element's computed style, which is a different animation from the authored
  * one. Every property any frame mentions is therefore emitted on all of them.
  */
+export type PresenceStyle = {
+  '--wedge-transform': string
+  '--wedge-opacity': string
+  '--wedge-clip'?: string
+}
+
+/**
+ * One presence as custom properties, which `.wheel__wedge` binds to the
+ * properties they drive. `transformOf` and `clipOf` take a keyframe, and a
+ * presence is a keyframe with every property present, so the arithmetic here is
+ * the keyframe path's rather than a second copy of it.
+ */
+export function styleOf(presence: Presence, target: EmitTarget): PresenceStyle {
+  const frame: PresentationKeyframe = { at: 0, ...presence }
+  const style: PresenceStyle = {
+    '--wedge-transform': transformOf(frame, target),
+    '--wedge-opacity': `${presence.opacity}`,
+  }
+  if (presence.aperture < 1) style['--wedge-clip'] = clipOf(frame)
+  return style
+}
+
 export function toKeyframes(frames: PresentationKeyframe[], target: EmitTarget): Keyframe[] {
   const hasOpacity = frames.some((frame) => frame.opacity !== undefined)
   const hasAperture = frames.some((frame) => frame.aperture !== undefined)

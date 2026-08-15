@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { toKeyframes, transformOf } from './css'
+import { styleOf, toKeyframes, transformOf } from './css'
+import { RESTING } from './sample'
 
 const target = { angle: 90, radius: 200, pivot: 120 }
 
@@ -92,5 +93,39 @@ describe('toKeyframes', () => {
     for (const frame of toKeyframes([{ at: 0, offset: 1 }, { at: 1 }], target)) {
       expect(typeof frame.transform).toBe('string')
     }
+  })
+})
+
+describe('styleOf', () => {
+  it('emits nothing extra for a resting presence', () => {
+    const style = styleOf(RESTING, target)
+    expect(style['--wedge-transform']).toBe('none')
+    expect(style['--wedge-opacity']).toBe('1')
+  })
+
+  it('emits opacity and a transform together', () => {
+    const style = styleOf({ ...RESTING, opacity: 0.5, scale: 0.9 }, target)
+    expect(style['--wedge-opacity']).toBe('0.5')
+    expect(style['--wedge-transform']).toContain('scale(0.9)')
+  })
+
+  it('clips only when the aperture is closed', () => {
+    expect(styleOf(RESTING, target)['--wedge-clip']).toBeUndefined()
+    expect(styleOf({ ...RESTING, aperture: 0.5 }, target)['--wedge-clip']).toContain('circle(')
+  })
+
+  it('reuses the keyframe transform arithmetic', () => {
+    const presence = { ...RESTING, offset: 1, offsetAngle: 45 }
+    expect(styleOf(presence, target)['--wedge-transform']).toBe(
+      transformOf({ at: 0, offset: 1, offsetAngle: 45 }, target),
+    )
+  })
+
+  it('reads back off an element as the property the stylesheet consumes', () => {
+    const node = document.createElement('div')
+    for (const [key, value] of Object.entries(styleOf({ ...RESTING, opacity: 0.25 }, target))) {
+      node.style.setProperty(key, value)
+    }
+    expect(node.style.getPropertyValue('--wedge-opacity')).toBe('0.25')
   })
 })
