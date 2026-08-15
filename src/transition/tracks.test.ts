@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Segment } from '../wheel/types'
 import { RESTING } from './sample'
-import { advance, sampleTrack, settle } from './tracks'
+import { advance, drawList, sampleTrack, settle } from './tracks'
+import type { Track } from './tracks'
 import type { Transitions } from './types'
 
 const segment = (id: string): Segment => ({ id, label: id, weight: 1 })
@@ -160,6 +161,104 @@ describe('advance', () => {
     )
     expect(renamed.get('ana')?.segment.label).toBe('Ana L.')
     expect(renamed.get('ana')?.startedAt).toBe(0)
+  })
+})
+
+const restingFor = (id: string): Track => ({
+  id,
+  phase: 'present',
+  segment: segment(id),
+  frames: [],
+  base: RESTING,
+  startedAt: 0,
+  delayMs: 0,
+  durationMs: 0,
+  declaresHold: false,
+  ghostArc: null,
+})
+
+describe('drawList', () => {
+  const holding = (id: string, hold: number): Track => ({
+    id,
+    phase: 'exiting',
+    segment: segment(id),
+    frames: [{ at: 1, hold }],
+    base: { ...RESTING, hold: 1 },
+    startedAt: 0,
+    delayMs: 0,
+    durationMs: 100,
+    declaresHold: true,
+    ghostArc: null,
+  })
+
+  it('lays out holding wedges by weight times hold', () => {
+    const tracks = new Map<string, Track>([
+      ['ana', { ...holding('ana', 1), phase: 'present', frames: [], declaresHold: false }],
+      ['ben', holding('ben', 0)],
+    ])
+    const { drawn } = drawList(tracks, 100)
+    // ben has decayed to hold 0 at p=1, so ana takes the whole circle.
+    const ana = drawn.find((item) => item.segment.id === 'ana')
+    expect(ana && ana.arc.end - ana.arc.start).toBeCloseTo(1)
+  })
+
+  it('shrinks a wedge that is still holding part of its weight', () => {
+    const tracks = new Map<string, Track>([
+      ['ana', restingFor('ana')],
+      ['ben', { ...holding('ben', 0), durationMs: 200 }],
+    ])
+    // ben is halfway through releasing its arc, so it lays out at half a weight.
+    const ben = drawList(tracks, 100).drawn.find((item) => item.segment.id === 'ben')
+    expect(ben && ben.arc.end - ben.arc.start).toBeCloseTo(1 / 3)
+  })
+
+  it('draws a wedge at zero hold on its frozen arc', () => {
+    const ghost = { ...holding('ben', 0), ghostArc: { id: 'ben', start: 0.5, end: 1 } }
+    const tracks = new Map<string, Track>([['ben', ghost]])
+    const { drawn } = drawList(tracks, 100)
+    expect(drawn[0].arc).toEqual({ id: 'ben', start: 0.5, end: 1 })
+    expect(drawn[0].presence.hold).toBe(0)
+  })
+
+  it('moves no other wedge when a ghost is present', () => {
+    const solo = new Map<string, Track>([['ana', restingFor('ana')]])
+    const withGhost = new Map<string, Track>([
+      ['ana', restingFor('ana')],
+      ['ben', { ...holding('ben', 0), ghostArc: { id: 'ben', start: 0.5, end: 1 } }],
+    ])
+    const before = drawList(solo, 100).drawn[0].arc
+    const after = drawList(withGhost, 100).drawn.find((item) => item.segment.id === 'ana')?.arc
+    expect(after).toEqual(before)
+  })
+
+  it('drops a ghost that never had an arc', () => {
+    const tracks = new Map<string, Track>([['ben', holding('ben', 0)]])
+    expect(drawList(tracks, 100).drawn).toHaveLength(0)
+  })
+
+  it('reports the arcs it laid out, for the next departure to freeze', () => {
+    const tracks = new Map<string, Track>([['ana', restingFor('ana')]])
+    expect(drawList(tracks, 0).arcs.get('ana')).toEqual({ id: 'ana', start: 0, end: 1 })
+  })
+
+  it('orders ghosts after the live roster', () => {
+    const tracks = new Map<string, Track>([
+      ['ben', { ...holding('ben', 0), ghostArc: { id: 'ben', start: 0.5, end: 1 } }],
+      ['ana', restingFor('ana')],
+    ])
+    const { drawn } = drawList(tracks, 100)
+    expect(drawn.map((item) => item.segment.id)).toEqual(['ana', 'ben'])
+  })
+
+  it('leaves the tracks it was given untouched', () => {
+    const ben = { ...holding('ben', 0), ghostArc: { id: 'ben', start: 0.5, end: 1 } }
+    const tracks = new Map<string, Track>([
+      ['ana', restingFor('ana')],
+      ['ben', ben],
+    ])
+    const before = JSON.stringify([...tracks.entries()])
+    drawList(tracks, 100)
+    expect(JSON.stringify([...tracks.entries()])).toBe(before)
   })
 })
 

@@ -1,5 +1,5 @@
 import { readNumber } from '../tricks/params'
-import type { Arc } from '../wheel/geometry'
+import { type Arc, arcs as layoutArcs } from '../wheel/geometry'
 import type { Segment } from '../wheel/types'
 import { REDUCED_MOTION_MS } from '../wheel/useSpin'
 import { getTransition } from './registry'
@@ -211,6 +211,53 @@ export function advance(input: AdvanceInput): Map<string, Track> {
   })
 
   return next
+}
+
+export type Drawn = {
+  segment: Segment
+  arc: Arc
+  presence: Presence
+}
+
+/**
+ * A wedge still holding arc takes part in layout at `weight * hold`; one that
+ * has released it is drawn where it last stood, so nothing else shifts as it
+ * animates out.
+ */
+export function drawList(
+  tracks: Map<string, Track>,
+  now: number,
+): { drawn: Drawn[]; arcs: Map<string, Arc> } {
+  const sampled = [...tracks.values()].map((track) => ({
+    track,
+    presence: sampleTrack(track, now),
+  }))
+
+  const holding = sampled.filter((item) => item.presence.hold > 0)
+  const laid = layoutArcs(
+    holding.map((item) => ({
+      id: item.track.id,
+      weight: item.track.segment.weight * item.presence.hold,
+    })),
+  )
+
+  const arcs = new Map<string, Arc>()
+  const drawn: Drawn[] = []
+  holding.forEach((item, index) => {
+    const arc = laid[index]
+    arcs.set(item.track.id, arc)
+    drawn.push({ segment: item.track.segment, arc, presence: item.presence })
+  })
+
+  for (const item of sampled) {
+    if (item.presence.hold > 0) continue
+    // A wedge that released its arc before it was ever laid out has nowhere to
+    // be drawn, which is the same as not being on the wheel.
+    if (!item.track.ghostArc) continue
+    drawn.push({ segment: item.track.segment, arc: item.track.ghostArc, presence: item.presence })
+  }
+
+  return { drawn, arcs }
 }
 
 /**
