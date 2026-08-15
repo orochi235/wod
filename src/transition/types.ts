@@ -9,6 +9,8 @@ export type TransitionScope = 'wedge' | 'wheel'
 export type PresentationKeyframe = {
   /** Position within the transition's own duration, 0..1. */
   at: number
+  /** 0…1 of the wedge's authored weight it occupies. The one property here that changes geometry. */
+  hold?: number
   opacity?: number
   scale?: number
   /** Radial, in wheel radii: 1 is one radius out from the hub. */
@@ -51,3 +53,14 @@ export type TransitionInstance = { id: TransitionId; params: TransitionParams }
 export type Moment = 'enter' | 'exit' | 'spin' | 'reveal'
 
 export type Transitions = Partial<Record<Moment, TransitionInstance>>
+
+/** Every value a transition animates, at one instant. */
+export type Presence = {
+  hold: number
+  opacity: number
+  scale: number
+  offset: number
+  offsetAngle: number
+  rotate: number
+  aperture: number
+}
