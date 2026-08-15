@@ -20,6 +20,13 @@ describe('Wheel.css', () => {
     expect(css).toContain(`font-weight: ${FONT_WEIGHT};`)
   })
 
+  // A class beats a presentation attribute, so a family on `.wheel__label`
+  // would override the face a part names — measured in one, painted in another.
+  it('leaves the label class no family of its own', () => {
+    const rule = css.match(/\.wheel__label\s*\{([^}]*)\}/)
+    expect(rule?.[1]).not.toContain('font-family')
+  })
+
   // Where the faces themselves are declared; fonts.css.test.ts checks them.
   it('pulls in the catalogue', () => {
     expect(css).toContain('@import "./fonts.css";')

@@ -1,10 +1,15 @@
 @import "./fonts.css";
 
+/* The default face is set here rather than on the label class: a class beats a
+   presentation attribute, so a family declared there would override the face a
+   part names — painting every wedge in one face while the measurer sized it in
+   another. Inherited, so an element that names no face still gets this one. */
 .wheel {
   display: block;
   width: 100%;
   max-width: 40rem;
   height: auto;
+  font-family: Bevan, system-ui, sans-serif;
 }
 
 .wheel__segment {
@@ -14,7 +19,6 @@
 
 .wheel__label {
   fill: var(--wheel-label-color, #11111a);
-  font-family: Bevan, system-ui, sans-serif;
   font-weight: 400;
   pointer-events: none;
   user-select: none;
