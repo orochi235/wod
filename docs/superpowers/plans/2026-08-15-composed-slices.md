@@ -15,6 +15,12 @@
 - Run everything with `npm test`.
 - Run `npm run check` (Biome) before each commit; it rewrites formatting in place.
 - Type-check with `npm run build` when a task changes a shared type. `noUnusedLocals` is on, so an import added a task early fails the build.
+- There is a pre-existing, unrelated Biome error in `src/wheel/useWheelAngle.test.tsx` (a missing `<title>` on an `<svg>`). It is not yours; leave it, and check only that Biome reports nothing against the files you touched.
+
+**If this plan is executed by more than one worker:** only one may write at a time, and
+none may use `git commit --amend`. Both rules exist because they were broken: an amend
+issued while another commit landed on the branch rewrote the wrong commit, and unwinding
+it needed a `reset --soft` and a re-stage. A correction is a new commit.
 
 ---
 
