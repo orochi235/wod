@@ -1,6 +1,7 @@
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { applyMorphs, landingSegments } from './morph'
+import type { PegMode } from './pegs'
 import { invertTrack, rotationTrack } from './rotation'
 import type { SelectionStrategy } from './selection'
 import { cryptoRng, weightedRandom } from './selection'
@@ -24,6 +25,8 @@ export type SpinOverride = {
    * re-resolution, not a delta.
    */
   resolveLate?: (winnerId: string) => Morph[]
+  /** Set only by a look whose flapper can catch. Absent means it cannot. */
+  catchPegs?: PegMode
 }
 
 /** A resolved spin. `id` is fresh per landing, so the same winner twice is two landings. */
@@ -158,7 +161,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
       const spinConfig = override.config ?? config
       const strategy = override.strategy ?? weightedRandom
 
-      const plan = planSpin(spinSegments, spinConfig, strategy, cryptoRng)
+      const plan = planSpin(spinSegments, spinConfig, strategy, cryptoRng, override.catchPegs)
       if (!plan) return
 
       const lateMorphs = override.resolveLate?.(plan.winnerId)

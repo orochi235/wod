@@ -108,8 +108,9 @@ export function App() {
       // collapsed, which is the safety net for a branch that zeroes its winner.
       strategy: forced(resolution.winnerId),
       resolveLate: resolution.resolveLate,
+      catchPegs: theme.flapper === 'catch' ? theme.pegs : undefined,
     })
-  }, [base, preset, spin])
+  }, [base, preset, spin, theme])
 
   // Nothing to land on. planSpin would return null and the click would quietly
   // do nothing, which reads as a broken button rather than an empty wheel. Read
