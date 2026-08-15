@@ -2,6 +2,8 @@ import { act, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { SliceInstance } from '../slice/types'
 import { Wheel } from './Wheel'
+import { flat } from './themes/flat'
+import { wof } from './themes/wof'
 import type { Segment } from './types'
 
 const segments: Segment[] = [
@@ -278,5 +280,47 @@ describe('Wheel', () => {
     expect(fills).toHaveLength(2)
     expect(fills.every((fill) => fill !== null && fill !== '')).toBe(true)
     expect(new Set(fills).size).toBe(2)
+  })
+})
+
+describe('parts', () => {
+  it('draws no new part under the flat look', () => {
+    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    expect(container.querySelector('.wheel__rim')).toBeNull()
+    expect(container.querySelector('.wheel__hub')).toBeNull()
+    expect(container.querySelector('.wheel__sheen')).toBeNull()
+  })
+
+  it('casts a shadow only for a look that asks for one', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    expect(container.querySelector('.wheel__body--shadow')).not.toBeNull()
+
+    const flatWheel = render(<Wheel segments={segments} theme={flat} />)
+    expect(flatWheel.container.querySelector('.wheel__body--shadow')).toBeNull()
+  })
+
+  it('draws the machinery under a look that asks for it', () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    expect(container.querySelector('.wheel__rim')).not.toBeNull()
+    expect(container.querySelector('.wheel__face')).not.toBeNull()
+    expect(container.querySelector('.wheel__hub')).not.toBeNull()
+    expect(container.querySelector('.wheel__sheen')).not.toBeNull()
+  })
+
+  it("puts the rim outside the face by the look's own metric", () => {
+    const { container } = render(<Wheel segments={segments} radius={200} theme={wof} />)
+    const rim = container.querySelector('.wheel__rim')
+    expect(rim?.getAttribute('r')).toBe(String(200 + wof.metrics.rimWidth))
+  })
+
+  it("sets the look's tokens on the wheel root", () => {
+    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const svg = container.querySelector('.wheel') as SVGElement
+    expect(svg.style.getPropertyValue('--wheel-rim-fill')).toBe('url(#wheel-gold)')
+  })
+
+  it('defaults to the flat look with no theme at all', () => {
+    const { container } = render(<Wheel segments={segments} />)
+    expect(container.querySelector('.wheel__rim')).toBeNull()
   })
 })
