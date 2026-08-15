@@ -2,7 +2,9 @@ import { bracket } from '../keyframes/bracket'
 import type { Presence, PresentationKeyframe } from './types'
 
 /** A wedge sitting in its arc with nothing applied. */
-export const RESTING: Presence = {
+// Handed out by identity to every resting wedge, so a consumer writing into one
+// sample would move them all. Frozen shallowly, which covers every field.
+export const RESTING: Presence = Object.freeze({
   hold: 1,
   opacity: 1,
   scale: 1,
@@ -10,7 +12,7 @@ export const RESTING: Presence = {
   offsetAngle: 0,
   rotate: 0,
   aperture: 1,
-}
+})
 
 const KEYS = ['hold', 'opacity', 'scale', 'offset', 'offsetAngle', 'rotate', 'aperture'] as const
 

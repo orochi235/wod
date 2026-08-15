@@ -84,4 +84,12 @@ describe('samplePresence', () => {
     expect(samplePresence(frames, 0, RESTING).hold).toBe(0)
     expect(samplePresence(frames, 1, RESTING).hold).toBe(1)
   })
+
+  it('refuses a write to RESTING', () => {
+    expect(() => {
+      const writable = RESTING as { hold: number }
+      writable.hold = 0
+    }).toThrow()
+    expect(RESTING.hold).toBe(1)
+  })
 })
