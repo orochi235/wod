@@ -16,11 +16,13 @@ import type { Segment, SpinConfig } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
 import { FeedPanel } from './FeedPanel'
+import { FitReport } from './FitReport'
 import { MeetPanel } from './MeetPanel'
 import { MotionPanel } from './MotionPanel'
 import { OverridesPanel } from './OverridesPanel'
 import { PresetIo } from './PresetIo'
 import { SegmentList } from './SegmentList'
+import { SlicePanel } from './SlicePanel'
 import { TransitionPanel } from './TransitionPanel'
 import { Transport } from './Transport'
 import { TrickLibrary } from './TrickLibrary'
@@ -242,6 +244,8 @@ export function Editor() {
             transitions={preset.transitions}
             onChange={(transitions) => update({ ...preset, transitions })}
           />
+          <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
+          <FitReport segments={shown} slice={preset.slice} />
         </section>
         {rigVisible ? (
           <section className="editor__column editor__column--right">
