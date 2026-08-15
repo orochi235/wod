@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import wheelCss from '../wheel/Wheel.css?raw'
 import { styleOf, toKeyframes, transformOf } from './css'
 import { RESTING } from './sample'
 
@@ -134,9 +134,8 @@ describe('styleOf', () => {
   // a property here and in this file — but not in Wheel.css — would leave every
   // test green and every wedge unanimated.
   it('names properties Wheel.css actually binds', () => {
-    const css = readFileSync('src/wheel/Wheel.css', 'utf8')
     const emitted = Object.keys(styleOf({ ...RESTING, aperture: 0.5 }, target))
     expect(emitted).toHaveLength(3)
-    for (const name of emitted) expect(css).toContain(`var(${name},`)
+    for (const name of emitted) expect(wheelCss).toContain(`var(${name},`)
   })
 })

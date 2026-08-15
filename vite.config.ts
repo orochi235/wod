@@ -19,6 +19,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/vitest.setup.ts'],
+    // Vitest stubs CSS imports to '' by default, including `?raw`. Wheel.css is
+    // read as text by a test that pins it against the custom properties css.ts
+    // emits, so it has to survive the stub.
+    css: { include: [/Wheel\.css/] },
     poolOptions: {
       forks: {
         // Node 22+'s experimental global `localStorage` shadows jsdom's window.localStorage
