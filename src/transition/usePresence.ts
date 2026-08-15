@@ -69,8 +69,8 @@ export function usePresence(
   const { drawn, arcs: laid } = drawList(tracks.current, now)
   arcs.current = laid
 
-  // Written during render for the same reason the lines above are: the assigner
-  // reads it on App's next render, and an effect would report a frame late.
+  // Read by App during its own render, one pass stale on purpose: a late read
+  // only delays releasing a swatch, never reuses one early.
   if (retainedRef) retainedRef.current = new Set(tracks.current.keys())
 
   const running = [...tracks.current.values()].some((track) => !isDone(track, now))

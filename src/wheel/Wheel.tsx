@@ -44,7 +44,13 @@ export type WheelProps = {
    * a landed frame not yet released both mean it.
    */
   held?: boolean
-  /** Receives the ids this wheel is drawing, including wedges animating out. */
+  /**
+   * Receives the ids this wheel is drawing, including wedges animating out.
+   * Written during render and rewritten on every animation frame, so reading it
+   * during your own render is the intended use. One wheel per ref: two wheels
+   * given the same ref overwrite each other, and an unmounted wheel leaves its
+   * last set in place.
+   */
   retainedRef?: RetainedIds
   /** Which look to wear. Absent is the flat look, which is what the wheel drew before themes. */
   theme?: Theme

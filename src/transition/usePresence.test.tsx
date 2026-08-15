@@ -283,7 +283,6 @@ describe('the presence clock', () => {
     )
     rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
     clock.advance(401)
-    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
-    expect(retained.current.has('ben')).toBe(false)
+    expect([...retained.current]).toEqual(['ana'])
   })
 })
