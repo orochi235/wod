@@ -40,9 +40,21 @@ export function fitReport(
         })
       : []
 
-    const text = elements.find(
-      (element) => element.kind === 'text' || element.kind === 'curvedText',
-    ) as { text: string; size: number } | undefined
+    const spelled = elements.flatMap((element) => {
+      if (element.kind === 'text' || element.kind === 'curvedText') {
+        return [{ text: element.text, size: element.size }]
+      }
+      if (element.kind === 'glyphRun' && element.glyphs.length > 0) {
+        return [
+          {
+            text: element.glyphs.map((glyph) => glyph.char).join(''),
+            size: element.glyphs[0].size,
+          },
+        ]
+      }
+      return []
+    })
+    const text = spelled[0]
 
     return {
       id: segment.id,

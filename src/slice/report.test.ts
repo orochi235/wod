@@ -61,4 +61,16 @@ describe('fitReport', () => {
     )
     expect(row.drawn).toBe('Willie Dustice')
   })
+
+  it('reads what a glyph run spells and the size it starts at', () => {
+    const rows = fitReport(
+      [{ id: 'a', label: 'RYE', weight: 1, slice: { id: 'composed', params: {} } }],
+      undefined,
+      200,
+      (text, size) => text.length * 0.5 * size,
+    )
+    expect(rows[0].drawn).toBe('RYE')
+    expect(rows[0].size).toBeGreaterThan(0)
+    expect(rows[0].degraded).toBe(false)
+  })
 })
