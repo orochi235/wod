@@ -64,6 +64,7 @@ export type Glyph = {
 type Drawn =
   | { kind: 'text'; text: string; along: 'radial' | 'tangential'; anchor: number; size: number }
   | { kind: 'curvedText'; text: string; anchor: number; size: number }
+  | { kind: 'glyphRun'; glyphs: Glyph[] }
   | { kind: 'image'; href: string; anchor: number; size: number; clip?: 'circle' | 'wedge' }
   | { kind: 'path'; d: string; fill?: string; opacity?: number }
   | { kind: 'raw'; node: ReactNode }

@@ -48,6 +48,27 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
           )
         }
 
+        if (element.kind === 'glyphRun') {
+          return (
+            <g key={key}>
+              {element.glyphs.map((glyph, glyphIndex) => (
+                <text
+                  // Glyphs are positions in a solved run, not a keyed list.
+                  // biome-ignore lint/suspicious/noArrayIndexKey: a glyph is its position.
+                  key={`${key}-${glyphIndex}`}
+                  className="wheel__label"
+                  fontSize={glyph.size}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  transform={`translate(${glyph.x} ${glyph.y}) rotate(${glyph.rotate}) scale(${glyph.scale[0]} ${glyph.scale[1]})`}
+                >
+                  {glyph.char}
+                </text>
+              ))}
+            </g>
+          )
+        }
+
         const anchorRadius = round(radius * element.anchor)
 
         if (element.frame === 'level') {

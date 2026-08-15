@@ -56,4 +56,25 @@ describe('SliceElements', () => {
     const container = draw([{ kind: 'raw', node: <circle data-testid="raw" r={5} /> }])
     expect(container.querySelector('[data-testid="raw"]')).not.toBeNull()
   })
+
+  it('renders one text element per glyph, transformed where the solve put it', () => {
+    const container = draw([
+      {
+        kind: 'glyphRun',
+        glyphs: [
+          { char: 'A', x: 10, y: -180, size: 24, rotate: 45, scale: [1.5, 1] },
+          { char: 'B', x: 8, y: -150, size: 20, rotate: 45, scale: [1, 1] },
+        ],
+      },
+    ])
+    const texts = [...container.querySelectorAll('text')]
+    expect(texts.map((text) => text.textContent)).toEqual(['A', 'B'])
+    expect(texts[0].getAttribute('transform')).toBe('translate(10 -180) rotate(45) scale(1.5 1)')
+    expect(texts[0].getAttribute('font-size')).toBe('24')
+  })
+
+  it('renders nothing for an empty glyph run', () => {
+    const container = draw([{ kind: 'glyphRun', glyphs: [] }])
+    expect(container.querySelector('text')).toBeNull()
+  })
 })
