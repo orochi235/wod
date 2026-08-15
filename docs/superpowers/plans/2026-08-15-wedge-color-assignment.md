@@ -785,6 +785,128 @@ git commit -m "feat(app): carry the wedge color assignment across renders"
 
 ---
 
+### Task 4b: Thread the color state through the scripted spin
+
+Added during execution. Task 4 wires the render path only. `resolveScriptedSpin`
+reaches `resolveTricks` through `evaluateWheel` and passes no color state, so it
+would assign by position while the wheel paints the sticky assignment — the
+original bug, surviving in the one path where an `at: 0` keyframe animates.
+
+`Editor.tsx` needs no change: it uses the default state for both its preview and
+its `resolveLate`, so it stays self-consistent.
+
+**Files:**
+- Modify: `src/spin/resolve.ts`
+- Modify: `src/App.tsx:95`
+- Test: `src/spin/resolve.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+Append to `src/spin/resolve.test.ts`, matching that file's existing fixture
+style. The point is that a resolution reuses a caller's assignment rather than
+recomputing one by position:
+
+```ts
+describe('resolveScriptedSpin color state', () => {
+  it('resolves against the colors the caller already assigned', () => {
+    const base = composeBase({
+      statics: [
+        { id: 'ana', label: 'Ana', weight: 1 },
+        { id: 'ben', label: 'Ben', weight: 1 },
+      ],
+      feeds: [],
+      items: {},
+      overrides: {},
+    })
+    // 'ben' holds the swatch position would give 'ana'.
+    const previous = new Map([['ben', paletteColor(0)]])
+
+    const resolution = resolveScriptedSpin(base, [], SPIN, [], () => 0, {
+      previous,
+      retained: new Set<string>(),
+    })
+
+    expect(resolution?.segments.find((s) => s.id === 'ben')?.color).toBe(paletteColor(0))
+  })
+})
+```
+
+`SPIN` is whatever minimal `ScriptedSpin` fixture that file already defines —
+reuse it, do not invent one. Import `paletteColor` from `../wheel/palette` and
+`composeBase` from `../compose/compose` if not already imported.
+
+- [ ] **Step 2: Run it to verify it fails**
+
+Run: `npx vitest run src/spin/resolve.test.ts -t 'color state'`
+Expected: FAIL — `resolveScriptedSpin` takes five parameters, so the sixth is
+ignored and `ben` gets the by-position swatch.
+
+- [ ] **Step 3: Thread it through**
+
+In `src/spin/resolve.ts`, add the import:
+
+```ts
+import { EMPTY_COLOR_STATE } from '../wheel/colors'
+import type { ColorState } from '../wheel/colors'
+```
+
+Add a sixth parameter to `resolveScriptedSpin`:
+
+```ts
+export function resolveScriptedSpin(
+  base: Composition,
+  tricks: Trick[],
+  spin: ScriptedSpin,
+  branches: BranchNode[],
+  rng: Rng,
+  colorState: ColorState = EMPTY_COLOR_STATE,
+): Resolution | null {
+```
+
+Add a seventh parameter to `evaluateWheel`, after `winnerId`:
+
+```ts
+  colorState: ColorState = EMPTY_COLOR_STATE,
+```
+
+and pass it to its `resolveTricks` call as the sixth argument.
+
+Then pass `colorState` at all four `evaluateWheel` call sites inside
+`resolveScriptedSpin`. Two are direct calls; two are inside the `resolveLate`
+closures, which capture it — that is intended, since a late resolution must use
+the same assignment the wheel is painting.
+
+- [ ] **Step 4: Pass it from App**
+
+In `src/App.tsx`, the `resolveScriptedSpin` call at roughly line 95 gains a sixth
+argument:
+
+```ts
+      { previous: colorsRef.current, retained: retainedRef.current },
+```
+
+`colorsRef` and `retainedRef` were added in Task 4. Add nothing to the
+`useCallback` dependency array — refs are not dependencies, for the same reason
+Task 4's memo excludes them.
+
+- [ ] **Step 5: Run the tests**
+
+Run: `npx vitest run src/spin/resolve.test.ts`
+Expected: PASS.
+
+- [ ] **Step 6: Full suite**
+
+Run `npm run check` and `npm test` as separate commands.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/spin/resolve.ts src/App.tsx src/spin/resolve.test.ts
+git commit -m "fix(spin): resolve a spin against the colors the wheel is painting"
+```
+
+---
+
 ### Task 5: Recipes read the color the wheel paints
 
 **Files:**
