@@ -147,7 +147,13 @@ describe('arcPath', () => {
   })
 })
 
-import { angleToSegment, concentricPath, pointerTurn, restingRotationDeg } from './geometry'
+import {
+  angleToSegment,
+  concentricPath,
+  pointAt,
+  pointerTurn,
+  restingRotationDeg,
+} from './geometry'
 
 describe('angleToSegment', () => {
   const list = arcs([
@@ -278,5 +284,12 @@ describe('concentricPath', () => {
 
   it('sets the large-arc flag past a half turn', () => {
     expect(concentricPath(0, 0.75, 100)).toContain('0 1 1')
+  })
+})
+
+describe('pointAt', () => {
+  it('puts turn 0 at the top and a quarter turn to the right', () => {
+    expect(pointAt(0, 100)).toEqual([0, -100])
+    expect(pointAt(0.25, 100)).toEqual([100, 0])
   })
 })

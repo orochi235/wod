@@ -66,7 +66,7 @@ const round = (n: number): number => {
 }
 
 /** Turn 0 is 12 o'clock; turns increase clockwise. SVG y grows downward. */
-function pointOnCircle(turn: number, radius: number): [number, number] {
+export function pointAt(turn: number, radius: number): [number, number] {
   const angle = turn * TAU
   return [round(radius * Math.sin(angle)), round(-radius * Math.cos(angle))]
 }
@@ -82,8 +82,8 @@ export function arcPath(start: number, end: number, radius: number): string {
     return `M 0 ${-r} A ${r} ${r} 0 1 1 0 ${r} A ${r} ${r} 0 1 1 0 ${-r} Z`
   }
 
-  const [x0, y0] = pointOnCircle(start, radius)
-  const [x1, y1] = pointOnCircle(end, radius)
+  const [x0, y0] = pointAt(start, radius)
+  const [x1, y1] = pointAt(end, radius)
   const largeArc = width > 0.5 ? 1 : 0
   const r = round(radius)
   return `M 0 0 L ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1} Z`
@@ -91,8 +91,8 @@ export function arcPath(start: number, end: number, radius: number): string {
 
 /** A clockwise arc at `radius`, for text to run along. */
 export function concentricPath(start: number, end: number, radius: number): string {
-  const [x0, y0] = pointOnCircle(start, radius)
-  const [x1, y1] = pointOnCircle(end, radius)
+  const [x0, y0] = pointAt(start, radius)
+  const [x1, y1] = pointAt(end, radius)
   const largeArc = end - start > 0.5 ? 1 : 0
   const r = round(radius)
   return `M ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1}`
