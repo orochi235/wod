@@ -75,6 +75,22 @@ describe('content', () => {
     expect(element).toMatchObject({ kind: 'image', href: 'photo.png', anchor: 0.65, size: 60 })
   })
 
+  it('sets a gif medium as an image, like a still', () => {
+    const ctx = context({
+      segment: { id: 'a', label: 'Ana', weight: 1, media: { kind: 'gif', value: 'spin.gif' } },
+    })
+    const [element] = typeset(part({ content: { from: 'media' } }), ctx)
+    expect(element).toMatchObject({ kind: 'image', href: 'spin.gif' })
+  })
+
+  it('gives a band with no thickness an image with no size', () => {
+    const ctx = context({
+      segment: { id: 'a', label: 'Ana', weight: 1, media: { kind: 'image', value: 'photo.png' } },
+    })
+    const [element] = typeset(part({ content: { from: 'media' }, band: [0.6, 0.6] }), ctx)
+    expect(element).toMatchObject({ kind: 'image', size: 0 })
+  })
+
   it('sets derived content', () => {
     const rendered = (value: 'weight' | 'index' | 'position') => {
       const [element] = typeset(
@@ -116,6 +132,15 @@ describe('the orientations that go through fit', () => {
   it('carries the part frame, and lays a level run out horizontally', () => {
     const [element] = typeset(part({ orientation: 'radial', frame: 'level' }), context())
     expect(element).toMatchObject({ frame: 'level', along: 'tangential' })
+  })
+
+  it('caps a run at the part max size', () => {
+    const ctx = context({ arc: { start: 0, end: 0.4 } })
+    const uncapped = typeset(part({ orientation: 'curved' }), ctx)[0] as { size: number }
+    const capped = typeset(part({ orientation: 'curved', maxSize: 11 }), ctx)[0] as { size: number }
+    // The cap has to actually bind, or this asserts nothing.
+    expect(uncapped.size).toBeGreaterThan(11)
+    expect(capped.size).toBeLessThanOrEqual(11)
   })
 
   it('emits nothing when the wedge cannot hold the run above the floor', () => {

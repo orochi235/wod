@@ -23,11 +23,15 @@ function resolveContent(content: PartContent, ctx: SliceContext): Resolved | nul
         ? { kind: 'text', text: media.value }
         : { kind: 'image', href: media.value }
     }
-    case 'derived': {
-      if (content.value === 'weight') return { kind: 'text', text: String(ctx.segment.weight) }
-      if (content.value === 'index') return { kind: 'text', text: String(ctx.index + 1) }
-      return { kind: 'text', text: `${ctx.index + 1}/${ctx.count}` }
-    }
+    case 'derived':
+      switch (content.value) {
+        case 'weight':
+          return { kind: 'text', text: String(ctx.segment.weight) }
+        case 'index':
+          return { kind: 'text', text: String(ctx.index + 1) }
+        case 'position':
+          return { kind: 'text', text: `${ctx.index + 1}/${ctx.count}` }
+      }
   }
 }
 
