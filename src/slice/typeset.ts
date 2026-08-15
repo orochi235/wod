@@ -1,6 +1,6 @@
 import type { Media } from '../wheel/types'
 import { resolveFamily } from './fonts/registry'
-import { runAlongArc, runAlongRadius } from './glyphRun'
+import { placeAlongArc, placeAlongRadius, toGlyphs } from './glyphRun'
 import { applyTransform } from './ladder'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
 import type { PartContent, SliceContext, SliceElement, SlicePart } from './types'
@@ -107,7 +107,8 @@ export function typeset(part: SlicePart, ctx: SliceContext): SliceElement[] {
   if (text.length === 0) return []
   const family = resolveFamily(part.font, ctx.font)
   if (isFitted(part)) return fitted(part, ctx, text, family)
-  const run = part.orientation === 'archedRim' ? runAlongArc : runAlongRadius
-  const glyphs = run(part, ctx, text, family)
-  return glyphs.length > 0 ? [{ kind: 'glyphRun', glyphs, family }] : []
+  const place = part.orientation === 'archedRim' ? placeAlongArc : placeAlongRadius
+  const run = place(part, ctx, text, family)
+  if (run.glyphs.length === 0) return []
+  return [{ kind: 'glyphRun', glyphs: toGlyphs(run), family }]
 }

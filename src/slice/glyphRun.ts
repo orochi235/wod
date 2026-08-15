@@ -1,7 +1,7 @@
 import { pointAt } from '../wheel/geometry'
 import { ARC_FILL, LINE_HEIGHT, arcLength, chord } from './fit'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
-import type { Glyph, SliceContext, SlicePart } from './types'
+import type { Glyph, PlacedRun, SliceContext, SlicePart } from './types'
 
 /** Added to every glyph's step so letters do not touch. A fraction of the size. */
 const TRACKING = 0.08
@@ -161,12 +161,12 @@ const spanOf = (sizes: number[], steps: number[]): number =>
   sizes.reduce((sum, size, i) => sum + size * steps[i], 0)
 
 /** `stacked` and `taperedRadial`: a run set along the radius. */
-export function runAlongRadius(
+export function placeAlongRadius(
   part: SlicePart,
   ctx: SliceContext,
   text: string,
   family?: string,
-): Glyph[] {
+): PlacedRun {
   const chars = [...text]
   const width = ctx.arc.end - ctx.arc.start
   const mid = ctx.arc.start + width / 2
@@ -193,29 +193,25 @@ export function runAlongRadius(
   }
   const { sizes, radii } = solved
 
-  return chars.map((char, i) => {
-    const [x, y] = pointAt(mid, radii[i])
-    const factor = round(acrossFactor(part, sizes[i], radii[i], across[i], along[i], width))
-    return {
+  return {
+    frame: { kind: 'radial', mid, upright: stacked, inward },
+    glyphs: chars.map((char, i) => ({
       char,
-      x,
-      y,
-      size: round(sizes[i]),
-      // A quarter-turned run reads along its own baseline, so the baseline has
-      // to point the way the run steps or the word comes out reversed.
-      rotate: round(mid * 360 + (stacked ? 0 : inward ? 90 : -90)),
-      scale: stacked ? [factor, 1] : [1, factor],
-    }
-  })
+      size: sizes[i],
+      along: radii[i],
+      factor: acrossFactor(part, sizes[i], radii[i], across[i], along[i], width),
+      advance: advances[i],
+    })),
+  }
 }
 
 /** `archedRim`: a baseline on an arc, so nothing narrows and nothing tapers. */
-export function runAlongArc(
+export function placeAlongArc(
   part: SlicePart,
   ctx: SliceContext,
   text: string,
   family?: string,
-): Glyph[] {
+): PlacedRun {
   const chars = [...text]
   const width = ctx.arc.end - ctx.arc.start
   const mid = ctx.arc.start + width / 2
@@ -250,11 +246,51 @@ export function runAlongArc(
   }
 
   let along = -(size * demand * factor) / 2
-  return chars.map((char, i) => {
-    const step = size * (advances[i] + tracking) * factor
-    const turn = mid + (along + step / 2) / (TAU * baseline)
-    along += step
-    const [x, y] = pointAt(turn, baseline)
-    return { char, x, y, size: round(size), rotate: round(turn * 360), scale: [round(factor), 1] }
+  return {
+    frame: { kind: 'arc', mid, baseline },
+    glyphs: chars.map((char, i) => {
+      const step = size * (advances[i] + tracking) * factor
+      const centre = along + step / 2
+      along += step
+      return { char, size, along: centre, factor, advance: advances[i] }
+    }),
+  }
+}
+
+/**
+ * A solved run as characters the renderer can place. Outline mode warps the same
+ * run instead, which is what keeps the two shapes the same layout.
+ */
+export function toGlyphs(run: PlacedRun): Glyph[] {
+  if (run.frame.kind === 'arc') {
+    const { mid, baseline } = run.frame
+    return run.glyphs.map((glyph) => {
+      const turn = mid + glyph.along / (TAU * baseline)
+      const [x, y] = pointAt(turn, baseline)
+      return {
+        char: glyph.char,
+        x,
+        y,
+        size: round(glyph.size),
+        rotate: round(turn * 360),
+        scale: [round(glyph.factor), 1],
+      }
+    })
+  }
+
+  const { mid, upright, inward } = run.frame
+  return run.glyphs.map((glyph) => {
+    const [x, y] = pointAt(mid, glyph.along)
+    const factor = round(glyph.factor)
+    return {
+      char: glyph.char,
+      x,
+      y,
+      size: round(glyph.size),
+      // A quarter-turned run reads along its own baseline, so the baseline has
+      // to point the way the run steps or the word comes out reversed.
+      rotate: round(mid * 360 + (upright ? 0 : inward ? 90 : -90)),
+      scale: upright ? [factor, 1] : [1, factor],
+    }
   })
 }

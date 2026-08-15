@@ -67,6 +67,30 @@ export type Glyph = {
   scale: [number, number]
 }
 
+/**
+ * A solved run before it is drawn as anything. Glyph mode turns it into `Glyph`s
+ * and outline mode warps the same numbers, so switching `shape` reflows nothing.
+ */
+export type PlacedGlyph = {
+  char: string
+  size: number
+  /**
+   * Radial: the radius the glyph's centre sits at. Arc: how far along the
+   * baseline that centre is from the run's middle, signed.
+   */
+  along: number
+  /** The factor on the axis that crosses the wedge — stretch and condense. */
+  factor: number
+  /** Measured at size 1, in the face the run is set in. */
+  advance: number
+}
+
+export type RunFrame =
+  | { kind: 'radial'; mid: number; upright: boolean; inward: boolean }
+  | { kind: 'arc'; mid: number; baseline: number }
+
+export type PlacedRun = { frame: RunFrame; glyphs: PlacedGlyph[] }
+
 type Drawn =
   | { kind: 'text'; text: string; along: 'radial' | 'tangential'; anchor: number; size: number }
   | { kind: 'curvedText'; text: string; anchor: number; size: number }
