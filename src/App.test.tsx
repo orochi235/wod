@@ -412,6 +412,15 @@ describe('wedge colors', () => {
     ])
     expect(fillOf('cy')).toBe(before)
   })
+
+  it('lets a caller choose a wedge color', async () => {
+    const { container } = render(<App chooseColor={() => '#123456'} />)
+    await publish([{ id: 'ana', label: 'Ana' }])
+    const fill = container
+      .querySelector('[data-segment-id="sim:ana"] .wheel__segment')
+      ?.getAttribute('fill')
+    expect(fill).toBe('#123456')
+  })
 })
 
 describe('churn during a spin', () => {
