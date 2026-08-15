@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EASINGS } from '../wheel/morph'
+import { EASINGS } from '../keyframes/easing'
 import {
   readEasing,
   readNumber,

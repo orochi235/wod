@@ -57,26 +57,6 @@ export function clipOf(frame: PresentationKeyframe): string {
   return `circle(${round(aperture * FULL_APERTURE)}% at 50% 50%)`
 }
 
-/**
- * WAAPI interpolates a property that appears in only some keyframes from the
- * element's computed style, which is a different animation from the authored
- * one. Every property any frame mentions is therefore emitted on all of them.
- */
-export function toKeyframes(frames: PresentationKeyframe[], target: EmitTarget): Keyframe[] {
-  const hasOpacity = frames.some((frame) => frame.opacity !== undefined)
-  const hasAperture = frames.some((frame) => frame.aperture !== undefined)
-
-  return frames.map((frame) => {
-    const keyframe: Keyframe = {
-      offset: frame.at,
-      transform: transformOf(frame, target),
-    }
-    if (hasOpacity) keyframe.opacity = frame.opacity ?? 1
-    if (hasAperture) keyframe.clipPath = clipOf(frame)
-    return keyframe
-  })
-}
-
 /** Intersected with CSSProperties so React accepts it as a `style` prop. */
 export type PresenceStyle = CSSProperties & {
   '--wedge-transform': string

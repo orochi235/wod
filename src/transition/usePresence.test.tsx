@@ -1,7 +1,40 @@
-import { render } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { act, render } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Wheel } from '../wheel/Wheel'
 import type { Segment } from '../wheel/types'
+import { REDUCED_MOTION_MS } from '../wheel/useSpin'
+
+/** A hand-pumped rAF clock, so a test can watch the loop rather than one frame. */
+function installClock() {
+  const queue = new Map<number, FrameRequestCallback>()
+  let next = 1
+  let now = 0
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+    const id = next++
+    queue.set(id, cb)
+    return id
+  })
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+    queue.delete(id)
+  })
+  const clock = vi.spyOn(performance, 'now').mockImplementation(() => now)
+
+  return {
+    pending: () => queue.size,
+    advance(ms: number) {
+      now += ms
+      const due = [...queue.entries()]
+      queue.clear()
+      act(() => {
+        for (const [, cb] of due) cb(now)
+      })
+    },
+    restore() {
+      vi.unstubAllGlobals()
+      clock.mockRestore()
+    },
+  }
+}
 
 const segment = (id: string): Segment => ({ id, label: id, weight: 1 })
 
@@ -81,6 +114,70 @@ describe('wedge presence', () => {
     const { container } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
     expect(wedges(container)).toEqual(['ana'])
   })
+})
+
+describe('the presence clock', () => {
+  let clock: ReturnType<typeof installClock>
+
+  beforeEach(() => {
+    matchMedia(false)
+    clock = installClock()
+  })
+
+  afterEach(() => {
+    clock.restore()
+    Reflect.deleteProperty(window, 'matchMedia')
+  })
+
+  it('carries a wedge from its start frame to rest', () => {
+    const { container } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    expect(opacityOf(container, 'ana')).toBe('0')
+
+    // Half of a 400ms fade, which ease-out has already carried to 0.75.
+    clock.advance(200)
+    expect(Number(opacityOf(container, 'ana'))).toBeCloseTo(0.75, 3)
+
+    clock.advance(200)
+    expect(Number(opacityOf(container, 'ana'))).toBeCloseTo(1, 3)
+  })
+
+  it('stops asking for frames once everything has settled', () => {
+    render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    expect(clock.pending()).toBeGreaterThan(0)
+
+    clock.advance(401)
+    clock.advance(1)
+    expect(clock.pending()).toBe(0)
+  })
+
+  it('starts asking again when a wedge arrives after the wheel settled', () => {
+    const { rerender } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    clock.advance(401)
+    clock.advance(1)
+    expect(clock.pending()).toBe(0)
+
+    rerender(<Wheel segments={[segment('ana'), segment('ben')]} transitions={transitions} />)
+    expect(clock.pending()).toBeGreaterThan(0)
+  })
+
+  it('asks for no further frames once unmounted', () => {
+    const { unmount } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    clock.advance(100)
+    expect(clock.pending()).toBeGreaterThan(0)
+
+    unmount()
+    expect(clock.pending()).toBe(0)
+  })
+
+  it('settles inside the reduced-motion duration, not the authored one', () => {
+    matchMedia(true)
+    const slow = { enter: { id: 'fade' as const, params: { staggerMs: 0, durationMs: 4000 } } }
+    const { container } = render(<Wheel segments={[segment('ana')]} transitions={slow} />)
+
+    clock.advance(REDUCED_MOTION_MS + 1)
+    expect(Number(opacityOf(container, 'ana'))).toBeCloseTo(1, 3)
+    expect(clock.pending()).toBe(0)
+  })
 
   it('freezes a departing wedge on the arc it last held', () => {
     // fade releases its hold at once, so ben leaves the layout immediately and
@@ -94,6 +191,30 @@ describe('wedge presence', () => {
     rerender(<Wheel segments={[segment('ana'), segment('cy')]} transitions={transitions} />)
     expect(path(container)).toBe(before)
     expect(before).toBeTruthy()
+  })
+
+  it('keeps every wedge painted while something else owns the wheel', () => {
+    // A held wheel is on screen for the whole of every spin. Resolving colors
+    // only on the animating path would leave each wedge with no fill at all.
+    const { container, rerender } = render(
+      <Wheel segments={[segment('ana'), segment('ben')]} transitions={transitions} />,
+    )
+    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} held={true} />)
+    const fill = container
+      .querySelector('[data-segment-id="ana"] .wheel__segment')
+      ?.getAttribute('fill')
+    expect(fill).toMatch(/^#[0-9a-f]{6}$/i)
+  })
+
+  it('gives a survivor and the wedge leaving beside it different colors', () => {
+    const roster = [segment('ana'), segment('ben'), segment('cy')]
+    const { container, rerender } = render(<Wheel segments={roster} transitions={transitions} />)
+    rerender(<Wheel segments={[segment('ana'), segment('cy')]} transitions={transitions} />)
+
+    const fills = [...container.querySelectorAll('.wheel__segment')].map((node) =>
+      node.getAttribute('fill'),
+    )
+    expect(new Set(fills).size).toBe(fills.length)
   })
 
   it('keeps a departed wedge on the color it had, not the palette index', () => {

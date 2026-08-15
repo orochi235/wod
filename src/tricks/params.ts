@@ -1,4 +1,4 @@
-import { EASINGS } from '../wheel/morph'
+import { EASINGS } from '../keyframes/easing'
 import type { EasingName } from '../wheel/types'
 import type { TrickParams } from './types'
 

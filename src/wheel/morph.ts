@@ -2,8 +2,6 @@ import { bracket } from '../keyframes/bracket'
 import { EASINGS } from '../keyframes/easing'
 import type { Media, Morph, MorphKeyframe, Reveal, Segment } from './types'
 
-export { EASINGS }
-
 export function parseHex(color: string): [number, number, number] | null {
   const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim())
   if (!match) return null

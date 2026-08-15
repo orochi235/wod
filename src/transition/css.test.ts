@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { describe, expect, it } from 'vitest'
 import wheelCss from '../wheel/Wheel.css?raw'
-import { styleOf, toKeyframes, transformOf } from './css'
+import { styleOf, transformOf } from './css'
 import { RESTING, samplePresence } from './sample'
 import { fly } from './transitions/fly'
 
@@ -55,46 +55,6 @@ describe('transformOf', () => {
     }
     for (const [, move] of css.matchAll(/translate\(([^)]*)\)/g)) {
       expect(move).toMatch(/^-?[\d.]+px, -?[\d.]+px$/)
-    }
-  })
-})
-
-describe('toKeyframes', () => {
-  it('carries timing across as the WAAPI offset', () => {
-    const frames = toKeyframes(
-      [
-        { at: 0, opacity: 0 },
-        { at: 1, opacity: 1 },
-      ],
-      target,
-    )
-    expect(frames.map((frame) => frame.offset)).toEqual([0, 1])
-    expect(frames.map((frame) => frame.opacity)).toEqual([0, 1])
-  })
-
-  it('omits opacity entirely when no frame sets it', () => {
-    for (const frame of toKeyframes(
-      [
-        { at: 0, scale: 0 },
-        { at: 1, scale: 1 },
-      ],
-      target,
-    )) {
-      expect('opacity' in frame).toBe(false)
-    }
-  })
-
-  // A property present in only some keyframes interpolates from the computed
-  // style rather than from the authored value, which is a different animation.
-  it('fills a partially set property across every keyframe', () => {
-    const frames = toKeyframes([{ at: 0, aperture: 0 }, { at: 1 }], target)
-    expect(frames[0].clipPath).toBe('circle(0% at 50% 50%)')
-    expect(frames[1].clipPath).toBe('circle(70.711% at 50% 50%)')
-  })
-
-  it('always emits a transform, so no keyframe interpolates from the layout', () => {
-    for (const frame of toKeyframes([{ at: 0, offset: 1 }, { at: 1 }], target)) {
-      expect(typeof frame.transform).toBe('string')
     }
   })
 })
