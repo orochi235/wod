@@ -1,4 +1,16 @@
+import { cryptoRng } from '../wheel/selection'
+import { sampleNames } from './fb94'
 import type { Preset } from './types'
+
+const STATIC_COUNT = 5
+const POOL_COUNT = 7
+
+/**
+ * One draw covers both lists, so a pool name can never equal a static one. A
+ * shared name would render twice with nothing marking which wedge came from
+ * the feed, and the ids would not collide to make it obvious.
+ */
+const cast = sampleNames(STATIC_COUNT + POOL_COUNT, cryptoRng)
 
 /**
  * The free beer wedge is not here. It belongs to the takeover trick, which
@@ -8,22 +20,17 @@ import type { Preset } from './types'
 export const DEFAULT_PRESET: Preset = {
   version: 4,
   name: 'standup',
-  segments: [
-    { id: 'ana', label: 'Ana', weight: 1 },
-    { id: 'ben', label: 'Ben', weight: 1 },
-    { id: 'cal', label: 'Cal', weight: 1 },
-    { id: 'dee', label: 'Dee', weight: 1 },
-    { id: 'eli', label: 'Eli', weight: 1 },
-  ],
+  segments: cast.slice(0, STATIC_COUNT).map((label, index) => ({
+    id: `seg${index + 1}`,
+    label,
+    weight: 1,
+  })),
   feeds: [
     {
       kind: 'simulated',
       id: 'sim',
       defaults: { weight: 1 },
-      // Deliberately disjoint from the static names above: the wedge ids never
-      // collide, so a shared name would render twice with nothing marking which
-      // wedge came from the feed.
-      pool: ['Fay', 'Gus', 'Hal', 'Ivy', 'Jo', 'Kit', 'Lou'],
+      pool: cast.slice(STATIC_COUNT),
       autochurn: { intervalMs: 2500, targetSize: 5, volatility: 0.25 },
     },
   ],

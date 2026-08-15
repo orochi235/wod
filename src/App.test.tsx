@@ -7,16 +7,28 @@ import { DEFAULT_PRESET } from './preset/defaults'
 import { PRESET_KEY } from './preset/storage'
 import type { Reveal, Segment } from './wheel/types'
 
+/**
+ * Rendered wedge labels with any ellipsis stripped. A name that outruns its arc
+ * is drawn truncated, so an exact match against the roster is a coin flip on
+ * whichever names the default preset happened to draw.
+ */
+const wheelLabels = (container: HTMLElement): string[] =>
+  [...container.querySelectorAll('.wheel__label')].map((node) =>
+    (node.textContent ?? '').replace(/…$/, ''),
+  )
+
 describe('App', () => {
   beforeEach(() => {
     window.localStorage.clear()
   })
 
   it('renders one label per preset segment', () => {
-    render(<App />)
-    for (const segment of DEFAULT_PRESET.segments) {
-      expect(screen.getByText(segment.label)).toBeInTheDocument()
-    }
+    const { container } = render(<App />)
+    const drawn = wheelLabels(container)
+    expect(drawn).toHaveLength(DEFAULT_PRESET.segments.length)
+    DEFAULT_PRESET.segments.forEach((segment, index) => {
+      expect(segment.label.startsWith(drawn[index])).toBe(true)
+    })
   })
 
   it('does not show the trick-owned wedge while its trick is disabled', () => {
@@ -37,9 +49,6 @@ describe('App', () => {
   })
 
   it('renders the stored preset rather than a built-in list', () => {
-    // The decisive test. The default preset's names happen to match the array
-    // App.tsx used to hardcode, so asserting against them passes either way.
-    // These names exist nowhere in the source.
     const custom = {
       ...DEFAULT_PRESET,
       segments: [
@@ -53,7 +62,9 @@ describe('App', () => {
 
     expect(screen.getByText('Zebediah')).toBeInTheDocument()
     expect(screen.getByText('Quorra')).toBeInTheDocument()
-    expect(screen.queryByText('Ana')).not.toBeInTheDocument()
+    for (const segment of DEFAULT_PRESET.segments) {
+      expect(screen.queryByText(segment.label)).not.toBeInTheDocument()
+    }
   })
 
   it('draws no arc for the zero-width wedge', () => {
@@ -96,8 +107,9 @@ describe('App', () => {
   it('follows a preset written by another window', () => {
     // The editor lives at #/edit in a separate window; the storage event is how
     // an already-open show window learns about an edit without a reload.
-    render(<App />)
-    expect(screen.getByText('Ana')).toBeInTheDocument()
+    const { container } = render(<App />)
+    const [first] = DEFAULT_PRESET.segments
+    expect(first.label.startsWith(wheelLabels(container)[0])).toBe(true)
 
     const edited = {
       ...DEFAULT_PRESET,
@@ -110,7 +122,7 @@ describe('App', () => {
     })
 
     expect(screen.getByText('Wilhelmina')).toBeInTheDocument()
-    expect(screen.queryByText('Ana')).not.toBeInTheDocument()
+    expect(screen.queryByText(first.label)).not.toBeInTheDocument()
   })
 })
 

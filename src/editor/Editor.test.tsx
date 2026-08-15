@@ -2,10 +2,18 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { requestFeeds, subscribeFeed } from '../feed/bus'
+import { slugify } from '../feed/identity'
 import { DEFAULT_POLL_INTERVAL_MS } from '../meet/poll'
+import { DEFAULT_PRESET } from '../preset/defaults'
 import { PRESET_KEY, parsePreset } from '../preset/storage'
 import { RIG_KEY } from '../rig/visibility'
 import { Editor } from './Editor'
+
+/** The default preset draws its cast at random, so tests read it rather than name it. */
+const [FIRST, SECOND] = DEFAULT_PRESET.segments
+const SIM = DEFAULT_PRESET.feeds[0]
+const JOINABLE = SIM.kind === 'simulated' ? SIM.pool[0] : ''
+const JOINABLE_ID = slugify(JOINABLE)
 
 /**
  * The editor ships locked, so every test about the rigging has to say it is the
@@ -73,7 +81,7 @@ describe('Editor integration', () => {
 
   it('persists a segment edit to localStorage', async () => {
     render(<Editor />)
-    const input = screen.getByDisplayValue('Ana')
+    const input = screen.getByDisplayValue(FIRST.label)
     await userEvent.clear(input)
     await userEvent.type(input, 'Zoe')
     const stored = parsePreset(window.localStorage.getItem(PRESET_KEY))
@@ -191,14 +199,14 @@ describe('Editor feed', () => {
     try {
       render(<Editor />)
 
-      await userEvent.click(screen.getByRole('button', { name: 'Join Fay' }))
+      await userEvent.click(screen.getByRole('button', { name: `Join ${JOINABLE}` }))
       await flush()
       expect(seen).toHaveBeenLastCalledWith({
         feedId: 'sim',
-        items: [{ id: 'fay', label: 'Fay' }],
+        items: [{ id: JOINABLE_ID, label: JOINABLE }],
       })
 
-      // A pool edit is a roster change too: dropping Fay from the pool has to
+      // A pool edit is a roster change too: dropping a name from the pool has to
       // reach the show window, not wait for a churn tick that may never come.
       const pool = screen.getByLabelText('Name pool')
       await userEvent.click(pool)
@@ -217,7 +225,7 @@ describe('Editor feed', () => {
     const stop = subscribeFeed(seen)
     try {
       render(<Editor />)
-      await userEvent.click(screen.getByRole('button', { name: 'Join Fay' }))
+      await userEvent.click(screen.getByRole('button', { name: `Join ${JOINABLE}` }))
       await flush()
       seen.mockClear()
 
@@ -231,7 +239,7 @@ describe('Editor feed', () => {
       await waitFor(() =>
         expect(seen).toHaveBeenLastCalledWith({
           feedId: 'sim',
-          items: [{ id: 'fay', label: 'Fay' }],
+          items: [{ id: JOINABLE_ID, label: JOINABLE }],
         }),
       )
     } finally {
@@ -266,17 +274,17 @@ describe('Editor overrides', () => {
 
   it('keeps an override editable after its target leaves the room', async () => {
     render(<Editor />)
-    await userEvent.click(screen.getByRole('button', { name: 'Join Fay' }))
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Exclude Fay' }))
+    await userEvent.click(screen.getByRole('button', { name: `Join ${JOINABLE}` }))
+    await userEvent.click(screen.getByRole('checkbox', { name: `Exclude ${JOINABLE}` }))
 
-    // The whole point of keying on the item id: Fay walking out must not take
-    // the joke with her, and it has to still be reachable with her gone.
-    await userEvent.click(screen.getByRole('button', { name: 'Remove Fay' }))
+    // The whole point of keying on the item id: the person walking out must not
+    // take the joke with them, and it has to still be reachable once they are gone.
+    await userEvent.click(screen.getByRole('button', { name: `Remove ${JOINABLE}` }))
 
     const known = within(screen.getByRole('group', { name: 'Known' }))
-    expect(known.getByRole('checkbox', { name: 'Exclude fay' })).toBeChecked()
+    expect(known.getByRole('checkbox', { name: `Exclude ${JOINABLE_ID}` })).toBeChecked()
     expect(parsePreset(window.localStorage.getItem(PRESET_KEY)).overrides).toEqual({
-      fay: { excluded: true },
+      [JOINABLE_ID]: { excluded: true },
     })
   })
 })
@@ -338,7 +346,7 @@ describe('Editor spin', () => {
       // instead would put the five names back the instant the spin ended.
       const wheel = screen.getByRole('img', { name: 'wheel' })
       expect(within(wheel).getByText('free beer')).toBeInTheDocument()
-      expect(within(wheel).queryByText('Ana')).not.toBeInTheDocument()
+      expect(within(wheel).queryByText(FIRST.label)).not.toBeInTheDocument()
     } finally {
       harness.restore()
     }
@@ -361,7 +369,7 @@ describe('Editor spin', () => {
     try {
       render(<Editor />)
       await userEvent.selectOptions(screen.getByLabelText(/add a trick/i), 'swap')
-      await userEvent.selectOptions(screen.getByLabelText('Trades with'), 'ben')
+      await userEvent.selectOptions(screen.getByLabelText('Trades with'), SECOND.id)
       await userEvent.click(
         screen.getByRole('checkbox', { name: /enable two wedges trade identities/i }),
       )
@@ -372,9 +380,11 @@ describe('Editor spin', () => {
       // Ben's own wedge (second) carries Ana's — the landed frame carries
       // the trade both ways.
       const wheel = screen.getByRole('img', { name: 'wheel' })
-      const labels = wheel.querySelectorAll('.wheel__label')
-      expect(labels[0]?.textContent).toBe('Ben')
-      expect(labels[1]?.textContent).toBe('Ana')
+      const labels = [...wheel.querySelectorAll('.wheel__label')].map((node) =>
+        (node.textContent ?? '').replace(/…$/, ''),
+      )
+      expect(SECOND.label.startsWith(labels[0])).toBe(true)
+      expect(FIRST.label.startsWith(labels[1])).toBe(true)
     } finally {
       harness.restore()
       vi.restoreAllMocks()
@@ -475,7 +485,7 @@ describe('Editor locked', () => {
       // the panel that authored it.
       const wheel = screen.getByRole('img', { name: 'wheel' })
       expect(within(wheel).getByText('free beer')).toBeInTheDocument()
-      expect(within(wheel).queryByText('Ana')).not.toBeInTheDocument()
+      expect(within(wheel).queryByText(FIRST.label)).not.toBeInTheDocument()
     } finally {
       harness.restore()
     }
