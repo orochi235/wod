@@ -100,23 +100,30 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
   }, [segments, isSpinning, held])
 
   // Registered by the wheel: a spin needs the elements themselves, and only the
-  // renderer knows where they are.
-  const levels = useRef(new Map<string, { element: SVGGElement; restingDeg: number }>()).current
+  // renderer knows where they are. The angle is kept apart from the element
+  // because the ref identity is stable — React calls it on mount and never
+  // again, while a wedge moves whenever the roster changes.
+  const levels = useRef(new Map<string, SVGGElement>()).current
+  const restingDegs = useRef(new Map<string, number>()).current
   const levelRefs = useRef(new Map<string, (element: SVGGElement | null) => void>()).current
 
   const levelRef = useCallback(
     (id: string, restingDeg: number) => {
+      restingDegs.set(id, restingDeg)
       let ref = levelRefs.get(id)
       if (!ref) {
         ref = (element) => {
-          if (element) levels.set(id, { element, restingDeg })
-          else levels.delete(id)
+          if (element) levels.set(id, element)
+          else {
+            levels.delete(id)
+            restingDegs.delete(id)
+          }
         }
         levelRefs.set(id, ref)
       }
       return ref
     },
-    [levels, levelRefs],
+    [levels, restingDegs, levelRefs],
   )
 
   const release = useCallback(() => setHeld(false), [])
@@ -198,8 +205,8 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
       // Level elements hold their orientation by running the rotor's rotation
       // backwards on the same timeline. No per-frame work, and no drift: both
       // come from one track.
-      for (const { element, restingDeg } of levels.values()) {
-        element.animate(invertTrack(track, restingDeg), {
+      for (const [id, element] of levels) {
+        element.animate(invertTrack(track, restingDegs.get(id) ?? 0), {
           duration: track.durationMs,
           easing: track.easing,
           fill: 'forwards',
@@ -253,7 +260,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
           setHeld(false)
         })
     },
-    [segments, config, stopTracks, levels],
+    [segments, config, stopTracks, levels, restingDegs],
   )
 
   return {

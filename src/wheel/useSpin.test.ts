@@ -851,4 +851,24 @@ describe('release and reset', () => {
 
     expect(harness.animateCalls).toHaveLength(1)
   })
+
+  it('counter-rotates by where a wedge is now, not where it first mounted', () => {
+    const { result } = renderSpin(PLAIN)
+    const element = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+
+    act(() => {
+      result.current.levelRef('ana', -45)(element)
+    })
+    // The wedge moved — a neighbor left. The ref identity is stable, so React
+    // never calls it again and this is the only report the hook will get.
+    act(() => {
+      result.current.levelRef('ana', -170)(element)
+    })
+    act(() => {
+      result.current.spin()
+    })
+
+    const [rotor, level] = harness.animateCalls
+    expect(degreesOf(level.keyframes[0])).toBe(-170 - degreesOf(rotor.keyframes[0]))
+  })
 })
