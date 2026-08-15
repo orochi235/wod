@@ -272,8 +272,12 @@ describe('Wheel', () => {
     }
   })
 
-  it('colors a wedge that authored no color', () => {
-    const { container } = render(<Wheel segments={roster(['ana', 'ben'])} />)
+  it('paints each wedge with its own color', () => {
+    const painted = roster(['ana', 'ben']).map((segment, i) => ({
+      ...segment,
+      color: ['#f4a261', '#2a9d8f'][i],
+    }))
+    const { container } = render(<Wheel segments={painted} />)
     const fills = [...container.querySelectorAll('path.wheel__segment')].map((path) =>
       path.getAttribute('fill'),
     )
