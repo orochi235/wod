@@ -157,6 +157,11 @@ made in the pure layer.
 
 The font file, parsed on demand, cached per glyph. Nothing is baked at build time.
 
+The bundled file is TrueType rather than the WOFF2 a browser is normally served:
+opentype.js cannot read WOFF2 without a Brotli decompressor, and a second, smaller copy
+for the stylesheet would be a second source of metrics. A face costs three to five times
+its WOFF2, and only a wheel that names it pays.
+
 No browser API hands back a glyph's outline — canvas gives advances and bounding boxes,
 `document.fonts` gives the file's identity, and SVG cannot extract a path from `<text>`.
 So outline mode fetches the face and parses it (opentype.js), lazily: glyph mode never
@@ -293,7 +298,7 @@ Because outline mode can only warp a face we bundle, `font` is an id from the re
 and never a raw family string: a free string would let a part silently render unwarped.
 
 **A theme names the default face**, so the choice belongs to the look rather than to
-every part. `wof` defaults to Anton; a carnival look can default to Rye and get woodtype
+every part. `wof` defaults to Bevan, the face its look was tuned in; a carnival look can default to Rye and get woodtype
 everywhere without touching a single slice. A part's own `font` overrides it, which is
 how one wedge says BANKRUPT in Rye on a wheel set in Anton.
 
@@ -303,7 +308,12 @@ how one wedge says BANKRUPT in Rye on a wheel set in Anton.
 | --- | --- |
 | `src/slice/typeset.ts` | *new* — pure. A part and a context to concrete placements: the solve, the caps, fan, stretch, direction. |
 | `src/slice/outline.ts` | *new* — placements to one warped `d`. Pure given a glyph source; owns the memo, not the fetch. |
-| `src/slice/fonts/registry.ts` | *new* — `FONTS`, `FONT_LIST`, `getFont`. Loads and parses a face once, on demand. |
+| `src/slice/fonts/catalog.ts` | *new* — the face list: id, name, class, family, file. Data only. |
+| `src/slice/fonts/registry.ts` | *new* — `FONTS`, `FONT_LIST`, `getFont`, `resolveFamily`. Validates an id. |
+| `src/slice/fonts/load.ts` | *new* — fetches and parses a face once, flattens its glyphs, hands `draw` a synchronous source. |
+| `src/slice/fonts/usage.ts` | *new* — which faces a wheel loads, and which of them anything wants warped. |
+| `src/slice/fonts/specimens.ts` | *new, generated* — one baked run per face, for the picker. |
+| `src/wheel/useFaces.ts` | *new* — asks for those faces and redraws when one lands. |
 | `src/slice/layouts/composed.ts` | *new* — reads `parts`, maps each through `typeset`, concatenates the elements. |
 | `src/slice/layouts/{radial,tangential,curved}.ts` | Keep their ids, names, fields and defaults; each becomes a one-part composition. One code path. |
 | `src/slice/layouts/auto.ts` | Unchanged in spirit: still chooses an orientation by what fits. |
@@ -350,10 +360,19 @@ bands, the three orientations, the solve, the editor, and validation. Outline mo
 bundled face, a build step, a lazy parser and a warp, and nothing in the first half waits
 on it — `shape` simply defaults to `glyphs` until it lands.
 
-## Open
+## Settled by looking at it
 
-- Whether a script face is worth warping. Lobster's joins are what outline mode exists
-  to fix, and also the case where a stepwise glyph run looks worst; decide by looking at
-  the two shapes side by side rather than by argument.
-- Whether `archedRim` should also warp its outlines. The lean is subtler on an arc than
-  on a converging wedge, so glyph mode may be enough; decide by looking at it.
+**The converging wedge is what outline mode is for.** Set stacked and filled, a warped
+letter is visibly trapezoid — its sides follow the wedge's — where a glyph-mode letter
+keeps parallel sides and steps at every join. That difference is plain at a glance on any
+face heavy enough to see.
+
+**On an arc it barely shows, so glyph mode is enough there.** `archedRim` bends its
+outlines, because that comes free from the same warp, but at the sizes a rim band holds, a
+letter rotated about its own centre and a letter bent along its baseline differ by a pixel
+or two.
+
+**A script gains least, not most.** Great Vibes on a tight arc was the case for warping,
+and side by side the joins are no better: the tracking already parts the letters, and what
+outline mode fixes is the taper, not the seam. A script is still worth setting — it is
+just not the argument for the shape.
