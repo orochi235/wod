@@ -449,6 +449,43 @@ describe('sampleTrack', () => {
     expect(ana && sampleTrack(ana, 0).hold).toBe(1)
   })
 
+  it('ramps the arc back from where a reversal caught it', () => {
+    // A transition that declares no hold still has to return the geometry the
+    // one it interrupted was holding, or a half-closed wedge reopens whole on
+    // the first frame of its reversal while its opacity is still turning around.
+    const closing: Transitions = {
+      enter: { id: 'fade', params: { staggerMs: 0, durationMs: 400 } },
+      exit: { id: 'shrink', params: { staggerMs: 0, durationMs: 400 } },
+    }
+    const both = [segment('ana'), segment('ben')]
+    const start = advance(input({ segments: both, transitions: closing, now: 0 }))
+    const leaving = advance(
+      input({
+        tracks: start,
+        segments: [segment('ana')],
+        arcs: drawList(start, 1000).arcs,
+        transitions: closing,
+        now: 1000,
+      }),
+    )
+    const ben = leaving.get('ben')
+    expect(ben && sampleTrack(ben, 1200).hold).toBeCloseTo(0.5)
+
+    const back = advance(
+      input({
+        tracks: leaving,
+        segments: both,
+        arcs: drawList(leaving, 1200).arcs,
+        transitions: closing,
+        now: 1200,
+      }),
+    )
+    const returning = back.get('ben')
+    expect(returning && sampleTrack(returning, 1200).hold).toBeCloseTo(0.5)
+    expect(returning && sampleTrack(returning, 1400).hold).toBeGreaterThan(0.5)
+    expect(returning && sampleTrack(returning, 1600).hold).toBe(1)
+  })
+
   it('hands back the shared resting presence for a settled wedge', () => {
     // By identity, which is what freezing RESTING protects.
     expect(sampleTrack(restingFor('ana'), 500)).toBe(RESTING)

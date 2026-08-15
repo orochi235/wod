@@ -62,7 +62,13 @@ export function sampleTrack(track: Track, now: number): Presence {
   // A wedge waiting out its stagger delay sits at p 0, which is its interrupted
   // sample once a zero frame has been dropped and its declared start otherwise.
   const presence = samplePresence(track.frames, p, track.base)
-  if (!track.declaresHold) presence.hold = track.phase === 'exiting' ? 0 : 1
+  // An arrival ramps from the arc it was left holding, so a reversal returns the
+  // geometry rather than reopening it whole on its first frame. An exit keeps
+  // the flat default: a transition that animates no geometry releases its arc
+  // at once and is drawn as a ghost where it stood.
+  if (!track.declaresHold) {
+    presence.hold = track.phase === 'exiting' ? 0 : track.base.hold + (1 - track.base.hold) * p
+  }
   return presence
 }
 
