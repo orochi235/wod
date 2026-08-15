@@ -1106,6 +1106,16 @@ git commit -m "solve a glyph run set along the radius"
 
 ### Task 6: `archedRim` — a run on an arc inside the rim
 
+**This task's target module moved.** Task 5's review found that `typeset.ts` was carrying
+content resolution, the `fit` path and a solve, and that landing a second solve beside
+them would make "shared by every glyph run" and "specific to the radial one" much harder
+to separate afterwards. The solve now lives in `src/slice/glyphRun.ts`, which already
+holds `TRACKING`, `GLYPH_CHORD_FILL`, `MAX_STRETCH`, `MIN_ADVANCE`, `clamp`, `round`,
+`stretchOf` and `runAlongRadius`. So: the arc run goes in **`glyphRun.ts`**, named
+**`runAlongArc`** beside `runAlongRadius`, reusing those internals rather than
+redeclaring them. `typeset.ts` only routes to it. Read the two files rather than the
+listing below, which predates the split.
+
 Constant radius, so nothing narrows and nothing tapers: one size for the whole
 run, glyphs stepped by their own advances along the arc and each turned to sit
 square on it. `fan` and `stretch: 'fill'` have no converging room to work with,
