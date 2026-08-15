@@ -1,6 +1,6 @@
 import { PropertyPanel, SelectRow } from '@weasel-js/labkit'
 import { TRANSITION_LIST, getTransition } from '../transition/registry'
-import type { TransitionParams, Transitions } from '../transition/types'
+import type { Moment, TransitionParams, Transitions } from '../transition/types'
 import { RecipeForm } from './RecipeForm'
 
 export type TransitionPanelProps = {
@@ -10,49 +10,64 @@ export type TransitionPanelProps = {
 
 const NONE = ''
 
-function withoutEnter(transitions: Transitions | undefined): Transitions | undefined {
-  const { enter, ...rest } = transitions ?? {}
+const MOMENTS: { moment: Moment; label: string }[] = [
+  { moment: 'enter', label: 'Wedges arriving' },
+  { moment: 'exit', label: 'Wedges leaving' },
+]
+
+function without(transitions: Transitions | undefined, moment: Moment): Transitions | undefined {
+  const rest = { ...transitions }
+  delete rest[moment]
   return Object.keys(rest).length === 0 ? undefined : rest
 }
 
 export function TransitionPanel({ transitions, onChange }: TransitionPanelProps) {
-  const enter = transitions?.enter
-  const transition = enter ? getTransition(enter.id) : null
-
-  const arm = (value: string) => {
+  const arm = (moment: Moment) => (value: string) => {
     if (value === NONE) {
-      onChange(withoutEnter(transitions))
+      onChange(without(transitions, moment))
       return
     }
     const chosen = getTransition(value)
     if (!chosen) return
-    onChange({ ...transitions, enter: { id: chosen.id, params: { ...chosen.defaults } } })
+    onChange({ ...transitions, [moment]: { id: chosen.id, params: { ...chosen.defaults } } })
   }
 
-  const edit = (params: TransitionParams) => {
-    if (!enter) return
-    onChange({ ...transitions, enter: { ...enter, params } })
+  const edit = (moment: Moment) => (params: TransitionParams) => {
+    const armed = transitions?.[moment]
+    if (!armed) return
+    onChange({ ...transitions, [moment]: { ...armed, params } })
   }
 
   return (
     <PropertyPanel title="Transitions">
-      <SelectRow
-        label="Wedges arriving"
-        value={enter?.id ?? NONE}
-        options={[
-          { value: NONE, label: 'None' },
-          ...TRANSITION_LIST.map((item) => ({ value: item.id, label: item.name })),
-        ]}
-        onChange={arm}
-      />
-      {transition && enter ? (
-        <RecipeForm
-          fields={transition.fields}
-          params={enter.params}
-          segments={[]}
-          onChange={edit}
-        />
-      ) : null}
+      {MOMENTS.map(({ moment, label }) => {
+        const armed = transitions?.[moment]
+        const transition = armed ? getTransition(armed.id) : null
+        return (
+          <div key={moment}>
+            <SelectRow
+              label={label}
+              value={armed?.id ?? NONE}
+              options={[
+                { value: NONE, label: 'None' },
+                ...TRANSITION_LIST.filter((item) => item.moments.includes(moment)).map((item) => ({
+                  value: item.id,
+                  label: item.name,
+                })),
+              ]}
+              onChange={arm(moment)}
+            />
+            {transition && armed ? (
+              <RecipeForm
+                fields={transition.fields}
+                params={armed.params}
+                segments={[]}
+                onChange={edit(moment)}
+              />
+            ) : null}
+          </div>
+        )
+      })}
     </PropertyPanel>
   )
 }
