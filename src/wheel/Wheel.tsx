@@ -8,6 +8,7 @@ import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
 import { SliceElements } from './SliceElements'
+import type { RetainedIds } from './colors'
 import { deflectionDeg, pegCrossings } from './flapper'
 import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
@@ -43,6 +44,14 @@ export type WheelProps = {
    * a landed frame not yet released both mean it.
    */
   held?: boolean
+  /**
+   * Receives the ids this wheel is drawing, including wedges animating out.
+   * Written during render and rewritten on every animation frame, so reading it
+   * during your own render is the intended use. One wheel per ref: two wheels
+   * given the same ref overwrite each other, and an unmounted wheel leaves its
+   * last set in place.
+   */
+  retainedRef?: RetainedIds
   /** Which look to wear. Absent is the flat look, which is what the wheel drew before themes. */
   theme?: Theme
   /** Silences the flapper without changing the look. */
@@ -75,10 +84,11 @@ export function Wheel({
   layoutFrom,
   levelRef,
   held = false,
+  retainedRef,
   theme = flat,
   muted = false,
 }: WheelProps) {
-  const drawn = usePresence(segments, transitions, held)
+  const drawn = usePresence(segments, transitions, held, retainedRef)
   const pegs = partOn(theme, 'peg')
     ? pegAngles(
         theme.pegs,

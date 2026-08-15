@@ -6,6 +6,7 @@ import type { BranchAction, BranchNode, ScriptedSpin } from '../preset/types'
 import { RECIPES } from '../tricks/registry'
 import type { Trick } from '../tricks/types'
 import { landingSegments } from '../wheel/morph'
+import { paletteColor } from '../wheel/palette'
 import type { Rng } from '../wheel/selection'
 import type { Morph, Segment } from '../wheel/types'
 import { MAX_DEPTH, resolveScriptedSpin } from './resolve'
@@ -653,5 +654,19 @@ describe('resolveScriptedSpin', () => {
 
     expect(nonSwap(result.morphs).map((m) => m.segmentId)).toEqual(['cal'])
     expect(nonSwap(late)).toEqual(nonSwap(result.morphs))
+  })
+})
+
+describe('resolveScriptedSpin color state', () => {
+  it('resolves against the colors the caller already assigned', () => {
+    // 'ben' holds the swatch position would give 'ana'.
+    const previous = new Map([['ben', paletteColor(0)]])
+
+    const result = resolveScriptedSpin(base, [], spin, [], fixed(0.1), {
+      previous,
+      retained: new Set<string>(),
+    })
+
+    expect(result?.segments.find((s) => s.id === 'ben')?.color).toBe(paletteColor(0))
   })
 })

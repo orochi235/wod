@@ -3,6 +3,8 @@ import type { BranchNode, Motion, ScriptedSpin, SpinModifier, Target } from '../
 import { resolveTricks } from '../tricks/resolve'
 import { resolveTargets } from '../tricks/targets'
 import type { Trick } from '../tricks/types'
+import { EMPTY_COLOR_STATE } from '../wheel/colors'
+import type { ColorState } from '../wheel/colors'
 import { landingSegments } from '../wheel/morph'
 import type { Rng, SelectionStrategy } from '../wheel/selection'
 import { forced, weightedRandom } from '../wheel/selection'
@@ -83,6 +85,7 @@ function evaluateWheel(
   spin: ScriptedSpin,
   selectorRoll: number,
   winnerId: string | null = null,
+  colorState: ColorState = EMPTY_COLOR_STATE,
 ): WheelState {
   // `resolveTricks` filters on each trick's own `enabled` flag, which is only the
   // baseline here. Stamping the resolved set onto the copies it receives is what
@@ -95,7 +98,7 @@ function evaluateWheel(
     segments: withWedges,
     origins,
     morphs,
-  } = resolveTricks(base, active, spin.motion.durationMs, selectorRoll, winnerId)
+  } = resolveTricks(base, active, spin.motion.durationMs, selectorRoll, winnerId, colorState)
   const landing = landingSegments(withWedges, morphs, spin.motion.durationMs)
   return { withWedges, origins, morphs, landing }
 }
@@ -142,6 +145,7 @@ export function resolveScriptedSpin(
   spin: ScriptedSpin,
   branches: BranchNode[],
   rng: Rng,
+  colorState: ColorState = EMPTY_COLOR_STATE,
 ): Resolution | null {
   // Two draws, each frozen for the whole resolution. Re-rolling on each pass
   // would move the winner for reasons unrelated to the operator's modifiers: a
@@ -163,7 +167,7 @@ export function resolveScriptedSpin(
   let level = branches
 
   for (let depth = 0; depth < MAX_DEPTH; depth++) {
-    const wheel = evaluateWheel(base, tricks, enabled, current, selectorRoll)
+    const wheel = evaluateWheel(base, tricks, enabled, current, selectorRoll, null, colorState)
     const { withWedges, morphs, landing } = wheel
     const winnerId = strategyFor(current.target)(landing, frozen)
     if (!winnerId) return null
@@ -174,7 +178,8 @@ export function resolveScriptedSpin(
       const finalSpin = current
       const finalEnabled = new Set(enabled)
       const resolveLate = (winner: string): Morph[] =>
-        evaluateWheel(base, tricks, finalEnabled, finalSpin, selectorRoll, winner).morphs
+        evaluateWheel(base, tricks, finalEnabled, finalSpin, selectorRoll, winner, colorState)
+          .morphs
       return {
         kind: 'settled',
         winnerId,
@@ -202,13 +207,15 @@ export function resolveScriptedSpin(
     enabled,
     current,
     selectorRoll,
+    null,
+    colorState,
   )
   const winnerId = strategyFor(current.target)(landing, frozen)
   if (!winnerId) return null
   const finalSpin = current
   const finalEnabled = new Set(enabled)
   const resolveLate = (winner: string): Morph[] =>
-    evaluateWheel(base, tricks, finalEnabled, finalSpin, selectorRoll, winner).morphs
+    evaluateWheel(base, tricks, finalEnabled, finalSpin, selectorRoll, winner, colorState).morphs
   return {
     kind: 'exhausted',
     winnerId,

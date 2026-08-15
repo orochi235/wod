@@ -36,7 +36,8 @@ function installClock() {
   }
 }
 
-const segment = (id: string): Segment => ({ id, label: id, weight: 1 })
+const segment = (id: string, color?: string): Segment =>
+  color === undefined ? { id, label: id, weight: 1 } : { id, label: id, weight: 1, color }
 
 const matchMedia = (matches: boolean) => {
   window.matchMedia = ((query: string) =>
@@ -193,67 +194,46 @@ describe('the presence clock', () => {
     expect(before).toBeTruthy()
   })
 
-  it('gives a newcomer a color no wedge on the wheel is already using', () => {
-    // Once a departure finishes its color is released, so the count of assigned
-    // colors no longer tracks the palette index — picking by count would hand a
-    // newcomer a color a survivor still holds.
-    const roster = [segment('ana'), segment('ben'), segment('cy')]
-    const { container, rerender } = render(<Wheel segments={roster} transitions={transitions} />)
-    clock.advance(401)
-
-    rerender(<Wheel segments={[segment('ana'), segment('cy')]} transitions={transitions} />)
-    clock.advance(401)
-    clock.advance(1)
-
-    rerender(
+  it('keeps every wedge painted while something else owns the wheel', () => {
+    const { container, rerender } = render(
       <Wheel
-        segments={[segment('ana'), segment('cy'), segment('dan')]}
+        segments={[segment('ana', '#f4a261'), segment('ben', '#2a9d8f')]}
         transitions={transitions}
       />,
     )
-    const fills = [...container.querySelectorAll('.wheel__segment')].map((node) =>
-      node.getAttribute('fill'),
-    )
-    expect(fills).toHaveLength(3)
-    expect(new Set(fills).size).toBe(3)
-  })
-
-  it('keeps every wedge painted while something else owns the wheel', () => {
-    // A held wheel is on screen for the whole of every spin. Resolving colors
-    // only on the animating path would leave each wedge with no fill at all.
-    const { container, rerender } = render(
-      <Wheel segments={[segment('ana'), segment('ben')]} transitions={transitions} />,
-    )
-    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} held={true} />)
+    rerender(<Wheel segments={[segment('ana', '#f4a261')]} transitions={transitions} held={true} />)
     const fill = container
       .querySelector('[data-segment-id="ana"] .wheel__segment')
       ?.getAttribute('fill')
     expect(fill).toMatch(/^#[0-9a-f]{6}$/i)
   })
 
-  it('gives a survivor and the wedge leaving beside it different colors', () => {
-    const roster = [segment('ana'), segment('ben'), segment('cy')]
-    const { container, rerender } = render(<Wheel segments={roster} transitions={transitions} />)
-    rerender(<Wheel segments={[segment('ana'), segment('cy')]} transitions={transitions} />)
-
-    const fills = [...container.querySelectorAll('.wheel__segment')].map((node) =>
-      node.getAttribute('fill'),
+  it('reports a wedge it is still drawing after the roster drops it', () => {
+    const retained: { current: ReadonlySet<string> } = { current: new Set() }
+    const { rerender } = render(
+      <Wheel
+        segments={[segment('ana'), segment('ben')]}
+        transitions={transitions}
+        retainedRef={retained}
+      />,
     )
-    expect(new Set(fills).size).toBe(fills.length)
+    expect([...retained.current].sort()).toEqual(['ana', 'ben'])
+
+    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
+    expect(retained.current.has('ben')).toBe(true)
   })
 
-  it('keeps a departed wedge on the color it had, not the palette index', () => {
-    const { container, rerender } = render(
-      <Wheel segments={[segment('ana'), segment('ben')]} transitions={transitions} />,
+  it('drops a wedge from the report once its exit is done', () => {
+    const retained: { current: ReadonlySet<string> } = { current: new Set() }
+    const { rerender } = render(
+      <Wheel
+        segments={[segment('ana'), segment('ben')]}
+        transitions={transitions}
+        retainedRef={retained}
+      />,
     )
-    const before = container
-      .querySelector('[data-segment-id="ben"] .wheel__segment')
-      ?.getAttribute('fill')
-    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} />)
-    const after = container
-      .querySelector('[data-segment-id="ben"] .wheel__segment')
-      ?.getAttribute('fill')
-    expect(after).toBe(before)
-    expect(after).toBeTruthy()
+    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
+    clock.advance(401)
+    expect([...retained.current]).toEqual(['ana'])
   })
 })

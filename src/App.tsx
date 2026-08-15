@@ -10,6 +10,7 @@ import { useReveal } from './reveal/useReveal'
 import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
 import { Wheel } from './wheel/Wheel'
+import type { ChooseColor } from './wheel/colors'
 import { cryptoRng, forced } from './wheel/selection'
 import { flat } from './wheel/themes/flat'
 import { getTheme } from './wheel/themes/registry'
@@ -17,7 +18,12 @@ import type { SpinConfig } from './wheel/types'
 import { useSpin } from './wheel/useSpin'
 import './App.css'
 
-export function App() {
+export type AppProps = {
+  /** Picks a color for a wedge with none authored. Undefined uses the palette. */
+  chooseColor?: ChooseColor
+}
+
+export function App({ chooseColor }: AppProps = {}) {
   const [preset, setPreset] = useState<Preset>(loadPreset)
 
   // An edit in the /edit window lands here without a reload.
@@ -53,10 +59,22 @@ export function App() {
     [preset.segments, preset.feeds, preset.overrides, items],
   )
 
+  const colorsRef = useRef(new Map<string, string>())
+  const retainedRef = useRef<ReadonlySet<string>>(new Set())
+
+  // The refs are deliberately not dependencies. This recomputes on the composed
+  // roster and reads them at that moment; anything narrower re-assigns a roster
+  // it has already colored, anything wider re-assigns on every frame of a spin.
   const resolved = useMemo(
-    () => resolveTricks(base, preset.tricks, preset.spin.motion.durationMs),
-    [base, preset.tricks, preset.spin.motion.durationMs],
+    () =>
+      resolveTricks(base, preset.tricks, preset.spin.motion.durationMs, 0, null, {
+        previous: colorsRef.current,
+        retained: retainedRef.current,
+        choose: chooseColor,
+      }),
+    [base, preset.tricks, preset.spin.motion.durationMs, chooseColor],
   )
+  colorsRef.current = resolved.colors
 
   const config = useMemo<SpinConfig>(
     () => spinConfigOf(preset.spin.motion, resolved.morphs),
@@ -98,6 +116,7 @@ export function App() {
       preset.spin,
       preset.branches,
       cryptoRng,
+      { previous: colorsRef.current, retained: retainedRef.current, choose: chooseColor },
     )
     if (!resolution) return
     spin({
@@ -110,7 +129,7 @@ export function App() {
       resolveLate: resolution.resolveLate,
       catchPegs: theme.flapper === 'catch' ? theme.pegs : undefined,
     })
-  }, [base, preset, spin, theme])
+  }, [base, preset, spin, theme, chooseColor])
 
   // Nothing to land on. planSpin would return null and the click would quietly
   // do nothing, which reads as a broken button rather than an empty wheel. Read
@@ -128,6 +147,7 @@ export function App() {
         rotorRef={rotorRef}
         levelRef={levelRef}
         transitions={preset.transitions}
+        retainedRef={retainedRef}
         held={held}
         theme={theme}
         muted={muted}
