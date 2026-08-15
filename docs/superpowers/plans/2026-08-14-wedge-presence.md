@@ -2084,7 +2084,7 @@ did not, there is nothing to commit and the plan is done.
 ## Where execution stopped
 
 Tasks 1-5 are committed on `feat/wedge-presence-impl`. Tasks 6-10 have not been
-started. Baseline at handoff: 58 test files, 756 tests, `npm run build` and
+started. Baseline at handoff: 58 test files, 757 tests, `npm run build` and
 `npx biome check .` clean.
 
 | Task | Commit | Reviewed |
@@ -2093,7 +2093,12 @@ started. Baseline at handoff: 58 test files, 756 tests, `npm run build` and
 | 2 Sample keyframes into a presence | `3e68bf9` | spec + quality, fixes applied |
 | 3 Give a transition its moment | `9e7e557` | spec + quality, fixes applied |
 | 4 Start, reverse, interrupt tracks | `ef22460` | spec + quality, fixes applied |
-| 5 Build the draw list | `ba98ba0` | **not independently reviewed** |
+| 5 Build the draw list | `ba98ba0`, `683690c` | **not independently reviewed** |
+
+`683690c` freezes `RESTING`, which `sampleTrack` hands out by identity for every
+resting wedge. A consumer writing into a presence now throws at the write rather
+than silently corrupting the shared object for the session — Task 6 and Task 7
+consume presences, so they should build a new object rather than adjust one.
 
 Task 5 needs the two-stage review the others had before it is trusted. Its own
 mutation testing was thorough and is recorded in the commit, but no second pair
