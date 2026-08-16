@@ -197,6 +197,7 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
           segments={displaySegments}
           layoutFrom={layoutSegments}
           slice={preset.slice}
+          breakpoints={preset.breakpoints}
           rotorRef={rotorRef}
           levelRef={levelRef}
           riderRef={riderRef}
