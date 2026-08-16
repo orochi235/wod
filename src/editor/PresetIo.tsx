@@ -1,3 +1,4 @@
+import { SAMPLES, getSample } from '../preset/samples'
 import { parsePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
 
@@ -33,6 +34,28 @@ export function PresetIo({ preset, onImport, showExport }: PresetIoProps) {
             event.target.value = ''
           }}
         />
+      </label>
+      <label className="preset-io__sample">
+        <span>Sample</span>
+        {/* Held at the placeholder: loading is the act, and a select that keeps
+            the last one loaded reads as the wheel currently on screen. */}
+        <select
+          value=""
+          onChange={(event) => {
+            const sample = getSample(event.target.value)
+            // Through the same parser an import takes, so a sample cannot ship
+            // a shape the app would not accept from a file — and the editor
+            // gets a copy of its own to edit rather than the module's.
+            if (sample) onImport(parsePreset(JSON.stringify(sample.preset)))
+          }}
+        >
+          <option value="">Load a sample…</option>
+          {SAMPLES.map((sample) => (
+            <option key={sample.id} value={sample.id}>
+              {sample.name} — {sample.about}
+            </option>
+          ))}
+        </select>
       </label>
     </div>
   )
