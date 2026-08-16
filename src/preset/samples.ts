@@ -24,12 +24,15 @@ const cashSlice = (mark: string): SliceInstance => ({
         content: { from: 'text', value: mark },
         orientation: 'stacked',
         band: [0.86, 0.94],
-        maxSize: 13,
+        maxSize: 15,
+        // Widened, not filled: a mark stretched to the whole chord stops
+        // reading as a currency mark at all.
+        stretch: 1.5,
       },
       {
         content: { from: 'label', transform: 'digits' },
         orientation: 'stacked',
-        band: [0.44, 0.84],
+        band: [0.29, 0.84],
         font: 'bebas-neue',
         stretch: 'fill',
       },
@@ -82,7 +85,7 @@ const LOSE_A_TURN_SLICE: SliceInstance = {
       {
         content: { from: 'text', value: 'TURN' },
         orientation: 'stacked',
-        band: [0.44, 0.735],
+        band: [0.34, 0.735],
         caps: true,
         stretch: 'fill',
       },
@@ -98,7 +101,7 @@ const BANKRUPT_SLICE: SliceInstance = {
       {
         content: { from: 'label' },
         orientation: 'stacked',
-        band: [0.44, 0.94],
+        band: [0.29, 0.94],
         caps: true,
         stretch: 'fill',
       },
