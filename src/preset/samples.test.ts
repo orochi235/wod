@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getSlice } from '../slice/registry'
 import { wantsInverseInk } from '../wheel/ink'
+import { getTheme } from '../wheel/themes/registry'
 import { SAMPLES, getSample } from './samples'
 import { parsePreset } from './storage'
 
@@ -25,9 +26,13 @@ describe('samples', () => {
   })
 
   it.each(SAMPLES)('names a layout and a look this build has ($id)', (sample) => {
-    const { slice, theme } = sample.preset
+    const { slice, theme, segments } = sample.preset
     if (slice) expect(getSlice(slice.id)).not.toBeNull()
-    if (theme) expect(['flat', 'wof']).toContain(theme)
+    if (theme) expect(getTheme(theme)).not.toBeNull()
+    // A per-face layout too: an id no build carries falls back in silence.
+    for (const segment of segments) {
+      if (segment.slice) expect(getSlice(segment.slice.id)).not.toBeNull()
+    }
   })
 })
 
