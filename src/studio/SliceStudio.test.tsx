@@ -235,7 +235,9 @@ describe('SliceStudio breakpoints', () => {
     const saying = (text: string) => ({
       id: 'composed' as const,
       params: {
-        parts: [{ content: { from: 'text', value: text }, orientation: 'radial', band: [0.2, 0.9] }],
+        parts: [
+          { content: { from: 'text', value: text }, orientation: 'radial', band: [0.2, 0.9] },
+        ],
       },
     })
     savePreset({

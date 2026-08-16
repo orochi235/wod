@@ -69,7 +69,8 @@ describe('BreakpointPanel', () => {
     fireEvent.change(widest, { target: { value: '1' } })
 
     expect(onChange.mock.lastCall?.[0].map((point: { from: number }) => point.from)).toEqual([
-      0.1, 1 / 360,
+      0.1,
+      1 / 360,
     ])
   })
 })
