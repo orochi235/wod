@@ -77,11 +77,20 @@ function sizeWithin(width: number, radius: number, across: number, along: number
 const round = (n: number): number => Math.round(n * 100) / 100
 
 type Solved = { sizes: number[]; radii: number[] }
+/** `floored` is the glyphs this walk had to hold up to `MIN_SIZE`. */
+type Walk = Solved & { floored: number[] }
 
 /**
  * One division per pass: sizes are linear in the fit unit, so `unit` is
  * `bandLength / Σ(weight × step)` rather than the result of a search. With fan
  * on, the next pass re-weights by the chord at each glyph's settled radius.
+ *
+ * A glyph the floor lifts is one the unit did not budget for, so each pass
+ * re-solves with those pinned and their height taken out of the band — the
+ * letters that can still afford the taper keep it. Redistributing rather than
+ * flattening: the alternative on the table was to drop the fan, and a run that
+ * gives up its taper because its last letter is small has no taper at any
+ * length worth setting.
  */
 function solveRadial(
   steps: number[],
@@ -100,34 +109,59 @@ function solveRadial(
   const capped = part.shrink !== 'condense'
   const inward = (part.direction ?? 'rimInward') === 'rimInward'
   const sign = inward ? -1 : 1
+  const start = (inward ? outer : inner) * ctx.radius
 
-  let weights = steps.map(() => 1)
-  let sizes: number[] = []
-  let radii: number[] = []
+  function walk(weights: number[], pinned: ReadonlySet<number>): Walk {
+    let budget = length
+    let demand = 0
+    for (let i = 0; i < steps.length; i++) {
+      if (pinned.has(i)) budget -= MIN_SIZE * steps[i]
+      else demand += weights[i] * steps[i]
+    }
+    const unit = demand > 0 ? Math.max(budget, 0) / demand : 0
 
-  for (let pass = 0; pass < (fan ? FAN_PASSES : 1); pass++) {
-    const demand = steps.reduce((sum, step, i) => sum + weights[i] * step, 0)
-    const unit = demand > 0 ? length / demand : 0
-    let edge = (inward ? outer : inner) * ctx.radius
-    sizes = []
-    radii = []
+    const sizes: number[] = []
+    const radii: number[] = []
+    const floored: number[] = []
+    let edge = start
 
     for (let i = 0; i < steps.length; i++) {
-      const nominal = unit * weights[i] * steps[i]
+      const share = pinned.has(i) ? MIN_SIZE : unit * weights[i]
+      const nominal = share * steps[i]
       const centre = Math.max(edge + (sign * nominal) / 2, 1)
       const cap = capped ? sizeWithin(width, centre, across[i], along[i]) : Number.POSITIVE_INFINITY
-      const size = Math.max(MIN_SIZE, Math.min(unit * weights[i], maxSize, cap))
+      // The chord can hold a glyph under the floor as surely as the unit can,
+      // and either way the band did not budget for the height it ends up with.
+      const wanted = Math.min(share, maxSize, cap)
+      if (wanted < MIN_SIZE && !pinned.has(i)) floored.push(i)
+      const size = Math.max(MIN_SIZE, wanted)
       const extent = size * steps[i]
       radii.push(edge + (sign * extent) / 2)
       sizes.push(size)
       edge += sign * extent
     }
 
-    if (!fan) break
-    weights = radii.map((radius) => chord(width, Math.max(radius, 1)))
+    return { sizes, radii, floored }
   }
 
-  return { sizes, radii }
+  let weights = steps.map(() => 1)
+  let solved: Solved = { sizes: [], radii: [] }
+
+  for (let pass = 0; pass < (fan ? FAN_PASSES : 1); pass++) {
+    const pinned = new Set<number>()
+    // Each round pins at least one more glyph, so this cannot outlast the run.
+    for (let round = 0; round <= steps.length; round++) {
+      const attempt = walk(weights, pinned)
+      solved = attempt
+      if (attempt.floored.length === 0) break
+      for (const i of attempt.floored) pinned.add(i)
+    }
+
+    if (!fan) break
+    weights = solved.radii.map((radius) => chord(width, Math.max(radius, 1)))
+  }
+
+  return solved
 }
 
 /** What an authored `stretch` asks for on its own, before the chord is consulted. */

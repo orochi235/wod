@@ -232,16 +232,34 @@ describe('the stacked solve', () => {
     expect(radialSpan(glyphs, 1)).toBeCloseTo(46, 0)
   })
 
-  it('gives up its fan before the floor pushes it out of its band', () => {
+  it('pins the letters the floor lifts and re-fans the rest', () => {
     // Fanned, the innermost letters of a band this deep are solved below the
     // floor, and every one the floor lifts is one the band did not budget for.
     // Held off the hub deliberately: nearer than this the wedge's own width is
     // what caps the innermost letter, and uniform sizes stop meaning the fan.
     const glyphs = glyphsOf({ content: { from: 'text', value: 'ABCDEFGHIJ' }, band: [0.35, 0.95] })
-    expect(new Set(glyphs.map((glyph) => glyph.size)).size).toBe(1)
-    // Tracking comes back once the fan is what gave way: the concessions are
-    // tried in order of what they cost, not stacked.
+    const sizes = glyphs.map((glyph) => glyph.size)
+
+    expect(Math.min(...sizes)).toBe(9)
+    // The letters that can still afford the taper keep it, rim inward. Losing
+    // the fan instead spent every letter's taper to buy the last one's floor.
+    for (let i = 1; i < sizes.length; i++) expect(sizes[i]).toBeLessThanOrEqual(sizes[i - 1])
+    expect(sizes[0]).toBeGreaterThan(9)
+    // And the run still sits in its band, with its tracking, which is what
+    // giving up the fan was bought with.
     expect(radialSpan(glyphs, 1.08)).toBeCloseTo(120, 0)
+  })
+
+  it('tapers a surname too long for its band to fan whole', () => {
+    // The regression this pinning exists for: at the shipped band, a seven
+    // letter name solved its innermost letter under the floor and every letter
+    // came out the same size, while a six letter one tapered.
+    const long = glyphsOf({ content: { from: 'text', value: 'CRUSHEL' }, band: [0.2, 0.78] })
+    const short = glyphsOf({ content: { from: 'text', value: 'ZODGER' }, band: [0.2, 0.78] })
+
+    for (const glyphs of [long, short]) {
+      expect(glyphs[0].size).toBeGreaterThan(glyphs[glyphs.length - 1].size * 1.5)
+    }
   })
 
   it('accepts the overflow when no concession is enough', () => {
