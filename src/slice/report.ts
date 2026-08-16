@@ -1,5 +1,6 @@
 import { arcs } from '../wheel/geometry'
 import type { Segment } from '../wheel/types'
+import type { Breakpoint } from './breakpoints'
 import { createFit } from './fit'
 import { getSlice, resolveInstance } from './registry'
 import type { Measure, SliceInstance } from './types'
@@ -22,14 +23,15 @@ export function fitReport(
   wheelDefault: SliceInstance | undefined,
   radius: number,
   measure: Measure,
+  breakpoints?: Breakpoint[],
 ): FitRow[] {
   const fit = createFit(measure)
   const layout = arcs(segments)
 
   return segments.map((segment, index) => {
-    const instance = resolveInstance(segment, wheelDefault)
-    const authored = getSlice(instance.id)
     const arc = layout[index]
+    const instance = resolveInstance(segment, wheelDefault, breakpoints, arc.end - arc.start)
+    const authored = getSlice(instance.id)
     const elements = authored
       ? authored.draw(instance.params, {
           segment,
