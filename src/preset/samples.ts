@@ -69,14 +69,14 @@ const LOSE_A_TURN_SLICE: SliceInstance = {
         // all of it, and the article is the smallest word on the face.
         content: { from: 'text', value: 'A' },
         orientation: 'stacked',
-        band: [0.7, 0.79],
+        band: [0.745, 0.825],
         caps: true,
         maxSize: 14,
       },
       {
         content: { from: 'text', value: 'TURN' },
         orientation: 'stacked',
-        band: [0.28, 0.66],
+        band: [0.3, 0.735],
         caps: true,
         stretch: 'fill',
       },
