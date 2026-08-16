@@ -68,11 +68,8 @@ export function outline(run: PlacedRun, source: GlyphSource): string | null {
       if (contour.length === 0) continue
       const drawn = contour.map(([x, y]) => warp([x - shift, -(y + source.centre)]))
       const [first, ...rest] = drawn
-      parts.push(
-        `M${round(first[0])} ${round(first[1])}` +
-          rest.map(([x, y]) => `L${round(x)} ${round(y)}`).join('') +
-          'Z',
-      )
+      const line = rest.map(([x, y]) => `L${round(x)} ${round(y)}`).join('')
+      parts.push(`M${round(first[0])} ${round(first[1])}${line}Z`)
     }
   }
 
