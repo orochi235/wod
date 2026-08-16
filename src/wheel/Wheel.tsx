@@ -14,6 +14,7 @@ import type { RetainedIds } from './colors'
 import { deflectionDeg, pegCrossings, settledDeflection } from './flapper'
 import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
+import { wantsInverseInk } from './ink'
 import { panelPath } from './panel'
 import { pegAngles } from './pegs'
 import { partOn } from './theme'
@@ -76,6 +77,10 @@ const VIEWBOX_PAD = POINTER_BASE + 2
 
 const midDeg = (arc: { start: number; end: number }): number =>
   (arc.start + (arc.end - arc.start) / 2) * 360
+
+/** Empty for a wedge the look's own ink already reads on. */
+const inkOf = (color: string | undefined): Record<string, string> =>
+  wantsInverseInk(color) ? { '--label-ink': 'var(--wheel-label-inverse, #f7f3e8)' } : {}
 
 export function Wheel({
   segments,
@@ -226,11 +231,14 @@ export function Wheel({
                   key={segment.id}
                   className="wheel__wedge"
                   data-segment-id={segment.id}
-                  style={styleOf(presence, {
-                    angle: midDeg(presenceArc),
-                    radius,
-                    pivot: radius * 0.6,
-                  })}
+                  style={{
+                    ...styleOf(presence, {
+                      angle: midDeg(presenceArc),
+                      radius,
+                      pivot: radius * 0.6,
+                    }),
+                    ...inkOf(segment.color),
+                  }}
                 >
                   <path className="wheel__segment" d={d} fill={segment.color} />
                   {partOn(theme, 'divider') &&

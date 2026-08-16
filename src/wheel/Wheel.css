@@ -17,8 +17,10 @@
   stroke-width: 1;
 }
 
+/* `--label-ink` is set per wedge, and deliberately outside the two scopes a
+   theme may write: it is computed from the wedge's own fill, not authored. */
 .wheel__label {
-  fill: var(--wheel-label-color, #11111a);
+  fill: var(--label-ink, var(--wheel-label-color, #11111a));
   font-weight: 400;
   pointer-events: none;
   user-select: none;
