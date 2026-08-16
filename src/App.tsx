@@ -5,6 +5,7 @@ import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
 import { spinConfigOf } from './preset/motion'
+import { getSample } from './preset/samples'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
 import { Reveal } from './reveal/Reveal'
@@ -28,13 +29,25 @@ export type AppProps = {
   chooseColor?: ChooseColor
   /** Opens the overlay the winner's name is drawn on. Undefined uses blitsklieg. */
   createBanner?: CreateBanner
+  /**
+   * Show this sample instead of the stored wheel. The URL is the whole of it:
+   * nothing is written, so the wheel someone was working on is still there when
+   * they come back to `#/`.
+   */
+  sample?: string
 }
 
-export function App({ chooseColor, createBanner }: AppProps = {}) {
-  const [preset, setPreset] = useState<Preset>(loadPreset)
+export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
+  const [stored, setStored] = useState<Preset>(loadPreset)
+  const fixed = sample === undefined ? null : (getSample(sample)?.preset ?? null)
+  const preset = fixed ?? stored
 
-  // An edit in the /edit window lands here without a reload.
-  useEffect(() => subscribePreset(setPreset), [])
+  // An edit in the /edit window lands here without a reload. A sample is not
+  // the stored wheel and does not follow it.
+  useEffect(() => {
+    if (fixed !== null) return
+    return subscribePreset(setStored)
+  }, [fixed])
 
   const [items, setItems] = useState<Record<string, FeedItem[]>>({})
   const [muted, setMuted] = useState(false)

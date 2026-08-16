@@ -791,3 +791,52 @@ describe('App stage', () => {
     expect(container.querySelector('.app')).not.toHaveClass('app--staged')
   })
 })
+
+describe('App on a sample route', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  const seedStored = () =>
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({
+        ...DEFAULT_PRESET,
+        segments: [{ id: 'zed', label: 'Zebediah', weight: 1 }],
+        feeds: [],
+        tricks: [],
+      }),
+    )
+
+  it('shows the sample rather than the stored wheel', () => {
+    seedStored()
+    const { container } = render(<App sample="cash-wheel" />)
+
+    expect(container.querySelectorAll('.wheel__wedge')).toHaveLength(24)
+    expect(wheelHas('Zebediah')).toBe(false)
+  })
+
+  it('does not follow an edit made to the stored wheel', () => {
+    seedStored()
+    const { container } = render(<App sample="cash-wheel" />)
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: PRESET_KEY,
+          newValue: JSON.stringify({ ...DEFAULT_PRESET, segments: [], tricks: [] }),
+        }),
+      )
+    })
+
+    // A sample is what the URL says it is, and an editor open in another window
+    // is working on a wheel this page is not showing.
+    expect(container.querySelectorAll('.wheel__wedge')).toHaveLength(24)
+  })
+
+  it('falls back to the stored wheel for a sample no build carries', () => {
+    seedStored()
+    render(<App sample="nonsense" />)
+    expect(wheelHas('Zebediah')).toBe(true)
+  })
+})

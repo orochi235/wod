@@ -19,7 +19,8 @@ function Root() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  return route === 'edit' ? <Editor /> : <App />
+  if (route.kind === 'edit') return <Editor />
+  return <App sample={route.kind === 'sample' ? route.id : undefined} />
 }
 
 const root = document.getElementById('root')
