@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { LOOK_NAMES } from 'blitsklieg'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import type { CreateBanner } from './banner/useBanner'
@@ -847,11 +848,11 @@ describe('App banner tint', () => {
   })
 
   const stage = () => {
-    const fires: { text: string; tint?: number }[] = []
+    const fires: { text: string; tint?: number; look?: string }[] = []
     const createBanner: CreateBanner = () => ({
       supported: true,
       fire: (text, options) => {
-        fires.push({ text, tint: options?.tint })
+        fires.push({ text, tint: options?.tint, look: options?.look })
         return Promise.resolve()
       },
       destroy: () => undefined,
@@ -859,12 +860,12 @@ describe('App banner tint', () => {
     return { createBanner, fires }
   }
 
-  const seed = (theme: string) => {
+  const seed = (theme: string, look?: string) => {
     window.localStorage.setItem(
       PRESET_KEY,
       JSON.stringify({
         ...DEFAULT_PRESET,
-        segments: [{ id: 'solo', label: 'Solo', weight: 1, color: '#e8442a' }],
+        segments: [{ id: 'solo', label: 'Solo', weight: 1, color: '#e8442a', look }],
         feeds: [],
         tricks: [],
         branches: [],
@@ -882,7 +883,39 @@ describe('App banner tint', () => {
       await userEvent.click(screen.getByRole('button', { name: /spin/i }))
       await harness.land()
 
-      expect(bk.fires[0]).toEqual({ text: 'Solo', tint: 0xe8442a })
+      expect(bk.fires[0]).toMatchObject({ text: 'Solo', tint: 0xe8442a })
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('announces a winner in the material its wedge names', async () => {
+    const harness = installSpinHarness()
+    try {
+      seed('wof', 'oil')
+      const bk = stage()
+      render(<App createBanner={bk.createBanner} />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      // The material and the tint compose: the wedge's color recolors the metal
+      // rather than replacing it.
+      expect(bk.fires[0]).toMatchObject({ text: 'Solo', look: 'oil', tint: 0xe8442a })
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('rolls a material for a wedge that names none', async () => {
+    const harness = installSpinHarness()
+    try {
+      seed('wof')
+      const bk = stage()
+      render(<App createBanner={bk.createBanner} />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      expect(LOOK_NAMES).toContain(bk.fires[0].look)
     } finally {
       harness.restore()
     }

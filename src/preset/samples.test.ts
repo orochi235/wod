@@ -1,3 +1,4 @@
+import { LOOK_NAMES } from 'blitsklieg'
 import { describe, expect, it } from 'vitest'
 import { getSlice } from '../slice/registry'
 import { wantsInverseInk } from '../wheel/ink'
@@ -61,6 +62,23 @@ describe('the cash wheel', () => {
     // printed a lone currency mark on the two that carry a word instead.
     expect(preset.slice).toBeUndefined()
     for (const segment of preset.segments) expect(segment.slice).toBeDefined()
+  })
+
+  it('announces every face but bankruptcy in gold and ruby, alternating', () => {
+    // Cycled rather than assigned, as the colors are: no face means its metal.
+    const solvent = preset.segments.filter((segment) => segment.label !== 'BANKRUPT')
+    expect(solvent.map((segment) => segment.look)).toEqual(
+      solvent.map((_, index) => (index % 2 === 0 ? 'gold' : 'ruby')),
+    )
+  })
+
+  it('announces bankruptcy in oil', () => {
+    const bankrupt = preset.segments.filter((segment) => segment.label === 'BANKRUPT')
+    for (const segment of bankrupt) expect(segment.look).toBe('oil')
+  })
+
+  it('names a material the library carries on every face', () => {
+    for (const segment of preset.segments) expect(LOOK_NAMES).toContain(segment.look)
   })
 
   it('stands alone, with no roster behind it', () => {
