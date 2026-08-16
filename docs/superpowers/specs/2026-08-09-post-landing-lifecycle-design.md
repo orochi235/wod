@@ -114,6 +114,12 @@ times costs eight dismissals, and an overlay that appears every time stops
 signalling anything. Making it an authoring act means its appearance is itself
 part of the joke.
 
+**Superseded for the banner, not for the reveal.** `banner/` now does spell
+every winner out, in extruded type over the page, held until it is clicked — the
+default takeover this section argued against, restored because it is the win
+itself rather than a punchline. The reveal stays authored, and stays second: it
+opens only once the banner has been dismissed.
+
 ## Rendering
 
 Headline defaults to the segment's label. Body is optional. Media renders by

@@ -16,9 +16,11 @@
   },
   "dependencies": {
     "@weasel-js/labkit": "^0.1.0",
+    "blitsklieg": "^0.1.0",
     "opentype.js": "^2.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

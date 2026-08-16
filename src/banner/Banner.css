@@ -1,0 +1,22 @@
+/* Under the overlay canvas, which fixes itself at the top of the stacking
+   order, and over everything the app draws. */
+.banner {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  background: rgb(0 0 0 / 0.72);
+  cursor: pointer;
+  animation: banner-in 220ms ease-out;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    animation: none;
+  }
+}

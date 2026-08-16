@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
+import type { CreateBanner } from './banner/useBanner'
 import { publishFeed, subscribeFeedRequests } from './feed/bus'
 import { DEFAULT_PRESET } from './preset/defaults'
 import { PRESET_KEY } from './preset/storage'
@@ -674,5 +675,88 @@ describe('App landed wheel', () => {
     window.localStorage.setItem(PRESET_KEY, JSON.stringify({ ...DEFAULT_PRESET, theme: 'flat' }))
     render(<App />)
     expect(screen.queryByRole('button', { name: /mute/i })).toBeNull()
+  })
+})
+
+/**
+ * The winner's name in extruded type over the whole page. jsdom draws no WebGL,
+ * so every test above sees no banner at all — these inject a stage that records
+ * what it was asked to draw.
+ */
+describe('App banner', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  const seed = (reveal?: Reveal) => {
+    const segment: Segment = { id: 'solo', label: 'Solo', weight: 1 }
+    if (reveal !== undefined) segment.reveal = reveal
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({ ...DEFAULT_PRESET, segments: [segment], tricks: [], branches: [] }),
+    )
+  }
+
+  const stage = () => {
+    const fired: string[] = []
+    const fonts: string[] = []
+    const createBanner: CreateBanner = (fontUrl) => {
+      fonts.push(fontUrl)
+      return {
+        supported: true,
+        fire: (text) => {
+          fired.push(text)
+          return Promise.resolve()
+        },
+        destroy: () => undefined,
+      }
+    }
+    return { createBanner, fired, fonts }
+  }
+
+  it('spells the winner out, blocks the wheel, and holds until it is clicked', async () => {
+    const harness = installSpinHarness()
+    try {
+      seed()
+      const bk = stage()
+      render(<App createBanner={bk.createBanner} />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      const banner = screen.getByRole('dialog', { name: 'Solo' })
+      expect(bk.fired[0]).toBe('Solo')
+      // Set in a face this app serves, which is the one the wedges are set in.
+      expect(bk.fonts[0]).toMatch(/^\/fonts\/[a-z0-9-]+\.ttf$/)
+      expect(screen.getByRole('button', { name: /spin/i })).toBeDisabled()
+
+      await userEvent.click(banner)
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /spin/i })).toBeEnabled()
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('holds an authored reveal back until the banner is dismissed', async () => {
+    const harness = installSpinHarness()
+    try {
+      seed({ headline: 'Free beer' })
+      const bk = stage()
+      render(<App createBanner={bk.createBanner} />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      // The banner first, and only the banner: two takeovers at once would put
+      // the reveal's card under type drawn on a canvas above the whole page.
+      expect(screen.getByRole('dialog', { name: 'Solo' })).toBeInTheDocument()
+      expect(screen.queryByText('Free beer')).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('dialog', { name: 'Solo' }))
+
+      expect(await screen.findByText('Free beer')).toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
   })
 })

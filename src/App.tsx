@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Banner } from './banner/Banner'
+import { type CreateBanner, useBanner } from './banner/useBanner'
 import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
@@ -7,6 +9,7 @@ import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
 import { Reveal } from './reveal/Reveal'
 import { useReveal } from './reveal/useReveal'
+import { resolveFont } from './slice/fonts/registry'
 import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
 import { Wheel } from './wheel/Wheel'
@@ -21,9 +24,11 @@ import './App.css'
 export type AppProps = {
   /** Picks a color for a wedge with none authored. Undefined uses the palette. */
   chooseColor?: ChooseColor
+  /** Opens the overlay the winner's name is drawn on. Undefined uses blitsklieg. */
+  createBanner?: CreateBanner
 }
 
-export function App({ chooseColor }: AppProps = {}) {
+export function App({ chooseColor, createBanner }: AppProps = {}) {
   const [preset, setPreset] = useState<Preset>(loadPreset)
 
   // An edit in the /edit window lands here without a reload.
@@ -94,7 +99,12 @@ export function App({ chooseColor }: AppProps = {}) {
     levelRef,
   } = useSpin(resolved.segments, config)
 
-  const { shown, dismiss } = useReveal(landing)
+  // The banner is set in the face the wheel's own wedges are set in.
+  const banner = useBanner(landing, resolveFont(undefined, theme.font).file, createBanner)
+
+  // One takeover at a time: the reveal is a second click to dismiss, and it
+  // would otherwise open under type drawn on a canvas it cannot sit above.
+  const { shown, dismiss } = useReveal(banner.shown === null ? landing : null)
 
   // A reveal that opened and closed is the one signal the show page gets that a
   // landing has been seen, so it is what hands the wheel back to the roster.
@@ -157,7 +167,7 @@ export function App({ chooseColor }: AppProps = {}) {
           className="app__button"
           type="button"
           onClick={onSpin}
-          disabled={isSpinning || isEmpty || shown !== null}
+          disabled={isSpinning || isEmpty || shown !== null || banner.shown !== null}
         >
           Spin
         </button>
@@ -183,6 +193,7 @@ export function App({ chooseColor }: AppProps = {}) {
       ) : (
         <p className="app__result">{landing ? landing.winner.label : ''}</p>
       )}
+      {banner.shown === null ? null : <Banner label={banner.shown} onDismiss={banner.dismiss} />}
       {shown === null ? null : (
         <Reveal segment={shown.segment} reveal={shown.reveal} onDismiss={dismiss} />
       )}
