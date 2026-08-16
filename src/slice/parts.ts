@@ -88,6 +88,9 @@ function readColor(value: unknown): string | undefined {
  */
 export const TRACKING_RANGE: [number, number] = [0, 1]
 export const LEADING_RANGE: [number, number] = [0.5, 4]
+/** Half the room is the most a side may take before the other side has none. */
+export const PADDING_RANGE: [number, number] = [0, 0.5]
+export const PAD_TAPER_RANGE: [number, number] = [-1, 1]
 
 function readSpacing(value: unknown, [low, high]: [number, number]): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
@@ -123,6 +126,10 @@ function readPart(value: unknown): SlicePart | null {
   if (tracking !== undefined) part.tracking = tracking
   const leading = readSpacing(value.leading, LEADING_RANGE)
   if (leading !== undefined) part.leading = leading
+  const padding = readSpacing(value.padding, PADDING_RANGE)
+  if (padding !== undefined) part.padding = padding
+  const padTaper = readSpacing(value.padTaper, PAD_TAPER_RANGE)
+  if (padTaper !== undefined) part.padTaper = padTaper
   return part
 }
 

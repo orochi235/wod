@@ -229,4 +229,17 @@ export type SlicePart = {
   tracking?: number
   /** The line box, as a multiple of the size. Default 1.2. */
   leading?: number
+  /**
+   * How much of the room across the wedge to leave empty at the sides, as a
+   * fraction. Default 0.14.
+   */
+  padding?: number
+  /**
+   * How that padding changes down the taper, from -1 to 1. Zero spends it
+   * evenly, which leaves the same fraction at every radius and so the same
+   * shape the wedge has. Positive leaves more at the rim and less at the hub;
+   * negative does the opposite, which is what keeps a tapered run from closing
+   * on its own point.
+   */
+  padTaper?: number
 }

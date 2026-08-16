@@ -28,20 +28,33 @@ export function SlicePanel({ slice, onChange }: SlicePanelProps) {
     onChange({ ...slice, params })
   }
 
+  // Two panels, split by what a field decides: how the wedge is laid out, or
+  // what is set on it. A layout's own knobs are the first kind; a list of parts
+  // is the second, and it is long enough to bury the first if they share a box.
+  const shape = layout?.fields.filter((field) => field.kind !== 'parts') ?? []
+  const contents = layout?.fields.filter((field) => field.kind === 'parts') ?? []
+
   return (
-    <PropertyPanel title="Slice layout">
-      <SelectRow
-        label="Layout"
-        value={layout?.id ?? NONE}
-        options={[
-          { value: NONE, label: 'Name plate (default)' },
-          ...SLICE_LIST.map((item) => ({ value: item.id, label: item.name })),
-        ]}
-        onChange={choose}
-      />
-      {layout && slice ? (
-        <RecipeForm fields={layout.fields} params={slice.params} segments={[]} onChange={edit} />
+    <>
+      <PropertyPanel title="Slice layout">
+        <SelectRow
+          label="Layout"
+          value={layout?.id ?? NONE}
+          options={[
+            { value: NONE, label: 'Name plate (default)' },
+            ...SLICE_LIST.map((item) => ({ value: item.id, label: item.name })),
+          ]}
+          onChange={choose}
+        />
+        {slice && shape.length > 0 ? (
+          <RecipeForm fields={shape} params={slice.params} segments={[]} onChange={edit} />
+        ) : null}
+      </PropertyPanel>
+      {slice && contents.length > 0 ? (
+        <PropertyPanel title="On the slice">
+          <RecipeForm fields={contents} params={slice.params} segments={[]} onChange={edit} />
+        </PropertyPanel>
       ) : null}
-    </PropertyPanel>
+    </>
   )
 }

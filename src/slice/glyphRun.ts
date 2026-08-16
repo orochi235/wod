@@ -13,8 +13,8 @@ const leadingOf = (part: SlicePart, fallback: number): number => part.leading ??
  * `DEFAULT_LEADING`, which is a line box for text set along a baseline.
  */
 const STACK_LEADING = 1.08
-/** How much of the room at a glyph's own corners it may claim. */
-const GLYPH_CHORD_FILL = 0.86
+/** How much of the room across the wedge a glyph leaves empty at the sides. */
+export const DEFAULT_PADDING = 0.14
 const MAX_STRETCH = 3
 /** Re-weighting converges well inside this; it is a bound, not a tuning knob. */
 const FAN_PASSES = 6
@@ -63,10 +63,30 @@ const halfAngleOf = (width: number): number => Math.PI * Math.min(width, 0.5)
  * which is where a glyph crosses an edge first, and the sides are straight, so
  * the room at a given depth is the tangent rather than the chord.
  */
-function roomAcross(width: number, radius: number, alongHalf: number): number {
+function roomAcross(width: number, radius: number, alongHalf: number, fill: number): number {
   const half = halfAngleOf(width)
   if (half >= Math.PI / 2) return Number.POSITIVE_INFINITY
-  return 2 * Math.max(radius - alongHalf, 1) * Math.tan(half) * GLYPH_CHORD_FILL
+  return 2 * Math.max(radius - alongHalf, 1) * Math.tan(half) * fill
+}
+
+/**
+ * How much of the room a glyph at `radius` may claim. Even padding leaves the
+ * same fraction everywhere, so the empty margin narrows with the wedge and the
+ * run keeps the wedge's own shape. A taper spends the padding unevenly instead
+ * — more at the rim, or more at the hub, which is what stops a tapered run from
+ * running into its own point.
+ */
+function fillerFor(part: SlicePart, ctx: SliceContext): (radius: number) => number {
+  const padding = part.padding ?? DEFAULT_PADDING
+  const taper = part.padTaper ?? 0
+  const [inner, outer] = part.band
+  const base = inner * ctx.radius
+  const span = (outer - inner) * ctx.radius
+
+  return (radius) => {
+    const t = span > 0 ? clamp((radius - base) / span, 0, 1) : 0.5
+    return clamp(1 - padding * (1 + taper * (2 * t - 1)), 0, 1)
+  }
 }
 
 /**
@@ -74,10 +94,16 @@ function roomAcross(width: number, radius: number, alongHalf: number): number {
  * corners. Closed form rather than a search: growing a glyph moves the corner
  * it has to fit at, so `roomAcross` depends on the size being solved for.
  */
-function sizeWithin(width: number, radius: number, across: number, along: number): number {
+function sizeWithin(
+  width: number,
+  radius: number,
+  across: number,
+  along: number,
+  fill: number,
+): number {
   const half = halfAngleOf(width)
   if (half >= Math.PI / 2) return Number.POSITIVE_INFINITY
-  const reach = Math.tan(half) * GLYPH_CHORD_FILL
+  const reach = Math.tan(half) * fill
   const demand = across + along * reach
   return demand > 0 ? (2 * radius * reach) / demand : Number.POSITIVE_INFINITY
 }
@@ -115,6 +141,7 @@ function solveRadial(
   // Condensing takes the chord out of the height solve: the band decides how
   // tall a glyph is and the across-wedge squeeze answers the chord on its own.
   const capped = part.shrink !== 'condense'
+  const fillAt = fillerFor(part, ctx)
   const inward = (part.direction ?? 'rimInward') === 'rimInward'
   const sign = inward ? -1 : 1
   const start = (inward ? outer : inner) * ctx.radius
@@ -137,7 +164,9 @@ function solveRadial(
       const share = pinned.has(i) ? MIN_SIZE : unit * weights[i]
       const nominal = share * steps[i]
       const centre = Math.max(edge + (sign * nominal) / 2, 1)
-      const cap = capped ? sizeWithin(width, centre, across[i], along[i]) : Number.POSITIVE_INFINITY
+      const cap = capped
+        ? sizeWithin(width, centre, across[i], along[i], fillAt(centre))
+        : Number.POSITIVE_INFINITY
       // The chord can hold a glyph under the floor as surely as the unit can,
       // and either way the band did not budget for the height it ends up with.
       const wanted = Math.min(share, maxSize, cap)
@@ -189,13 +218,14 @@ function acrossFactor(
   across: number,
   along: number,
   width: number,
+  fill: number,
 ) {
   const authored = authoredStretch(part)
   const upper = part.stretch === 'fill' ? MAX_STRETCH : authored
   const lower = part.shrink === 'condense' ? 1 / MAX_STRETCH : authored
   const taken = across * size
   if (lower === upper || !(taken > 0)) return authored
-  const room = roomAcross(width, Math.max(radius, 1), (along * size) / 2)
+  const room = roomAcross(width, Math.max(radius, 1), (along * size) / 2, fill)
   return clamp(room / taken, lower, upper)
 }
 
@@ -243,6 +273,7 @@ export function placeAlongRadius(
     if (spanOf(solved.sizes, steps) <= length + FIT_SLACK) break
   }
   const { sizes, radii } = solved
+  const fill = fillerFor(part, ctx)
 
   return {
     frame: { kind: 'radial', mid, upright: stacked, inward },
@@ -250,7 +281,7 @@ export function placeAlongRadius(
       char,
       size: sizes[i],
       along: radii[i],
-      factor: acrossFactor(part, sizes[i], radii[i], across[i], along[i], width),
+      factor: acrossFactor(part, sizes[i], radii[i], across[i], along[i], width, fill(radii[i])),
       advance: advances[i],
     })),
   }

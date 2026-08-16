@@ -7,7 +7,15 @@ import {
   TextRow,
 } from '@weasel-js/labkit'
 import { DEFAULT_LEADING, DEFAULT_TRACKING } from '../slice/fit'
-import { DEFAULT_PART, LEADING_RANGE, TRACKING_RANGE, readParts } from '../slice/parts'
+import { DEFAULT_PADDING } from '../slice/glyphRun'
+import {
+  DEFAULT_PART,
+  LEADING_RANGE,
+  PADDING_RANGE,
+  PAD_TAPER_RANGE,
+  TRACKING_RANGE,
+  readParts,
+} from '../slice/parts'
 import type { ContentTransform, Orientation, PartContent, SlicePart } from '../slice/types'
 import { FontField } from './FontField'
 
@@ -242,6 +250,22 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 step={1}
                 value={part.maxSize ?? 40}
                 onChange={(next) => edit(index, { maxSize: next })}
+              />
+              <SliderRow
+                label="Side padding"
+                min={PADDING_RANGE[0]}
+                max={PADDING_RANGE[1]}
+                step={0.01}
+                value={part.padding ?? DEFAULT_PADDING}
+                onChange={(next) => edit(index, { padding: next })}
+              />
+              <SliderRow
+                label="Padding taper"
+                min={PAD_TAPER_RANGE[0]}
+                max={PAD_TAPER_RANGE[1]}
+                step={0.05}
+                value={part.padTaper ?? 0}
+                onChange={(next) => edit(index, { padTaper: next })}
               />
               <SliderRow
                 label="Tracking"
