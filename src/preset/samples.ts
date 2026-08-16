@@ -32,11 +32,14 @@ const cashSlice = (mark: string): SliceInstance => ({
       {
         content: { from: 'label', transform: 'digits' },
         orientation: 'stacked',
-        band: [0.29, 0.84],
+        band: [0.38, 0.84],
         // A fat didone: round bowls and heavy thick-to-thin, which is the genus
         // the numerals engraved at the corners of a banknote belong to.
         font: 'abril-fatface',
         stretch: 'fill',
+        // Figures on a banknote are set tight; the default line box leaves a
+        // column of air between them that reads as three separate digits.
+        leading: 0.78,
       },
     ],
   },
@@ -95,7 +98,7 @@ const LOSE_A_TURN_SLICE: SliceInstance = {
       {
         content: { from: 'text', value: 'TURN' },
         orientation: 'stacked',
-        band: [0.34, 0.735],
+        band: [0.35, 0.735],
         caps: true,
         stretch: 'fill',
       },
@@ -111,7 +114,7 @@ const BANKRUPT_SLICE: SliceInstance = {
       {
         content: { from: 'label' },
         orientation: 'stacked',
-        band: [0.29, 0.94],
+        band: [0.35, 0.94],
         caps: true,
         stretch: 'fill',
       },
@@ -127,7 +130,7 @@ const FACE_SLICES: Record<string, SliceInstance> = {
 
 /**
  * A round's worth of cash, in the proportions the board is stacked in: a lot of
- * $500 and $600, one high value, and three wedges that end your turn.
+ * $500 and $600, one top-dollar space, and three wedges that end your turn.
  */
 const FACES = [
   '$900',
@@ -153,7 +156,7 @@ const FACES = [
   '$650',
   '$500',
   '$700',
-  '$800',
+  '$5000',
 ]
 
 /**

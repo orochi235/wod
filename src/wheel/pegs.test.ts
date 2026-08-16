@@ -37,6 +37,27 @@ describe('pegAngles', () => {
     expect(pegAngles({ kind: 'bounds' }, withEmpty)).toEqual([0, 0.5])
   })
 
+  it('spaces `per` pegs across each wedge, the first on its boundary', () => {
+    const two: Arc[] = [
+      { id: 'ana', start: 0, end: 0.5 },
+      { id: 'ben', start: 0.5, end: 1 },
+    ]
+    expect(pegAngles({ kind: 'bounds', per: 3 }, two)).toEqual([
+      0,
+      1 / 6,
+      1 / 3,
+      0.5,
+      0.5 + 1 / 6,
+      0.5 + 1 / 3,
+    ])
+  })
+
+  it('treats a `per` that is not a whole positive number as one', () => {
+    for (const per of [0, -2, Number.NaN]) {
+      expect(pegAngles({ kind: 'bounds', per }, arcs)).toEqual(pegAngles({ kind: 'bounds' }, arcs))
+    }
+  })
+
   it('has no pegs with no wedges', () => {
     expect(pegAngles({ kind: 'bounds' }, [])).toEqual([])
   })

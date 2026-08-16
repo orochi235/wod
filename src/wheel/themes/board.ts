@@ -14,5 +14,6 @@ export const board: Theme = {
   ...wof,
   id: 'board',
   name: 'Fortunate board',
-  metrics: { ...wof.metrics, hubRadius: 50 },
+  metrics: { ...wof.metrics, hubRadius: 62, rimWidth: 3.6, pegRadius: 2.6 },
+  pegs: { kind: 'bounds', per: 3 },
 }
