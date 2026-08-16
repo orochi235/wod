@@ -19,9 +19,10 @@ export function angleOfMatrix(transform: string): number | null {
 
 /**
  * The wheel's angle and how fast it is turning, once per frame, read off what
- * the compositor actually drew. Speed is degrees per millisecond, unsigned by
- * the caller's reckoning — it is the raw difference, so a wheel crossing 360
- * reports the small step rather than a full turn backwards.
+ * the compositor actually drew. Speed is degrees per millisecond, signed: which
+ * way the wheel is going is the only thing that tells the flapper which way a
+ * peg can push it, and it is not knowable from the angle alone. A wheel crossing
+ * 360 reports the small step rather than a full turn backwards.
  */
 export function useWheelAngle(
   ref: RefObject<SVGGElement | null>,
@@ -54,7 +55,7 @@ export function useWheelAngle(
           let delta = angle - lastAngle
           if (delta > 180) delta -= 360
           if (delta < -180) delta += 360
-          speed = Math.abs(delta) / (now - lastNow)
+          speed = delta / (now - lastNow)
         }
         lastAngle = angle
         lastNow = now

@@ -12,10 +12,17 @@ function screenAngles(rotationDeg: number, pegs: number[]): number[] {
 }
 
 /**
- * How far the arm is pushed aside. A peg lifts it as it arrives and lets it fall
- * as it leaves, so the arm is at rest between pegs and hardest over one.
+ * How far the arm is pushed aside, as the angle to turn it by. A peg lifts it as
+ * it arrives and lets it fall as it leaves, so the arm is at rest between pegs
+ * and hardest over one.
+ *
+ * Signed by `turning`, the wheel's rate in degrees per millisecond: a peg can
+ * only ever push the arm the way the peg is going. The sign is inverted on the
+ * way out because the arm hangs below its hinge — a positive rotation carries
+ * its tip counter-clockwise around the wheel, which is backwards into a
+ * clockwise spin.
  */
-export function deflectionDeg(rotationDeg: number, pegs: number[]): number {
+export function deflectionDeg(rotationDeg: number, pegs: number[], turning = 1): number {
   let closest = Number.POSITIVE_INFINITY
   for (const angle of screenAngles(rotationDeg, pegs)) {
     // Distance from the hinge at 12 o'clock, whichever side it is on.
@@ -23,7 +30,8 @@ export function deflectionDeg(rotationDeg: number, pegs: number[]): number {
     if (from < closest) closest = from
   }
   if (!Number.isFinite(closest) || closest >= REACH_DEG) return 0
-  return MAX_DEFLECTION_DEG * (1 - closest / REACH_DEG)
+  const pushed = MAX_DEFLECTION_DEG * (1 - closest / REACH_DEG)
+  return turning < 0 ? pushed : -pushed
 }
 
 /** Slow enough to read as falling, fast enough to be done before anyone looks away. */
@@ -37,14 +45,22 @@ const STILL_SPEED = 0.002
  * than as contact — so once the wheel is still the arm falls upright.
  */
 export function settledDeflection(current: number, driven: number, speed: number): number {
-  if (speed > STILL_SPEED) return driven
-  return Math.max(0, current - FALL_PER_FRAME)
+  if (Math.abs(speed) > STILL_SPEED) return driven
+  // Upright is zero from either side; a wheel that stopped turning the other way
+  // would otherwise fall away from it forever.
+  const size = Math.max(0, Math.abs(current) - FALL_PER_FRAME)
+  return current < 0 ? -size : size
 }
 
-/** How many pegs went under the hinge between two angles. */
-export function pegCrossings(fromDeg: number, toDeg: number, pegs: number[]): number {
+/**
+ * How many pegs went under the hinge between two angles, travelling the way
+ * `turning` says the wheel is. Read the other way round, a step of two degrees
+ * counts as 358 and every peg on the wheel clicks every frame.
+ */
+export function pegCrossings(fromDeg: number, toDeg: number, pegs: number[], turning = 1): number {
   if (pegs.length === 0) return 0
-  let swept = wrapDeg(toDeg - fromDeg)
+  const forward = turning >= 0
+  let swept = forward ? wrapDeg(toDeg - fromDeg) : wrapDeg(fromDeg - toDeg)
   if (swept === 0) return 0
   // A step longer than a full turn passed every peg at least once.
   const turns = Math.floor(swept / 360)
@@ -55,7 +71,7 @@ export function pegCrossings(fromDeg: number, toDeg: number, pegs: number[]): nu
     const at = wrapDeg(turn * 360)
     // Where this peg sat relative to the hinge when the step began.
     const before = wrapDeg(at + fromDeg)
-    const distance = wrapDeg(360 - before)
+    const distance = forward ? wrapDeg(360 - before) : wrapDeg(before)
     if (distance > 0 && distance <= swept) count += 1
   }
   return count

@@ -122,11 +122,12 @@ export function Wheel({
   const lastAngleRef = useRef<number | null>(null)
 
   useWheelAngle(ownRotorRef, hasFlapper, (angle, speed) => {
-    setDeflection((current) => settledDeflection(current, deflectionDeg(angle, pegs), speed))
+    setDeflection((current) => settledDeflection(current, deflectionDeg(angle, pegs, speed), speed))
     const previous = lastAngleRef.current
     lastAngleRef.current = angle
     if (previous === null || theme.flapper === 'silent') return
-    clicker().click(pegCrossings(previous, angle, pegs), speed)
+    // The clicker rates its own volume off how fast, never which way.
+    clicker().click(pegCrossings(previous, angle, pegs, speed), Math.abs(speed))
   })
 
   useEffect(() => {
