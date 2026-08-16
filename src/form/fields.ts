@@ -4,6 +4,8 @@ export type Field =
   | { key: string; label: string; kind: 'number'; min?: number; max?: number }
   | { key: string; label: string; kind: 'color' }
   | { key: string; label: string; kind: 'text' }
+  /** A face from the font registry. Empty is the theme's own, never a failure. */
+  | { key: string; label: string; kind: 'font' }
   | { key: string; label: string; kind: 'toggle' }
   | { key: string; label: string; kind: 'select'; options: { value: string; label: string }[] }
   /** Multi-select over the current segment list, resolved at render time. */

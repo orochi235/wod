@@ -1,5 +1,6 @@
 import type { Segment } from '../wheel/types'
 import { auto } from './layouts/auto'
+import { cash } from './layouts/cash'
 import { composed } from './layouts/composed'
 import { curved } from './layouts/curved'
 import { radial } from './layouts/radial'
@@ -12,9 +13,10 @@ export const SLICE_LAYOUTS: Record<SliceLayoutId, SliceLayout> = {
   tangential,
   curved,
   composed,
+  cash,
 }
 
-export const SLICE_LIST: SliceLayout[] = [auto, composed, curved, tangential, radial]
+export const SLICE_LIST: SliceLayout[] = [auto, composed, cash, curved, tangential, radial]
 
 /**
  * The name plate: given name on an arc inside the rim, surname in capitals down

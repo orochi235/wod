@@ -25,7 +25,7 @@ export type ContentTransform =
   | 'digits'
   | 'ellipsis'
 
-export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed'
+export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed' | 'cash'
 
 export type SliceParams = Record<string, unknown>
 

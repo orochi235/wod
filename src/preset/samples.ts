@@ -1,3 +1,4 @@
+import { cash } from '../slice/layouts/cash'
 import type { SliceInstance } from '../slice/types'
 import type { Segment } from '../wheel/types'
 import type { Preset } from './types'
@@ -11,39 +12,11 @@ export type Sample = {
 }
 
 /**
- * A cash face is a small currency mark with the figure stacked under it, the
- * figures set in a banknote face so they come out round and grand rather than
- * plain in a wedge this narrow. Two parts: the mark is furniture and holds its size,
- * while the figure takes the whole band and tapers down it.
+ * Every money face is this one layout with the same params — the board's
+ * figures are the wedge labels, so nothing about a face is per-wedge. The two
+ * that carry a word override it on the wedge itself.
  */
-const cashSlice = (mark: string): SliceInstance => ({
-  id: 'composed',
-  params: {
-    parts: [
-      {
-        content: { from: 'text', value: mark },
-        orientation: 'stacked',
-        band: [0.86, 0.94],
-        maxSize: 15,
-        // Widened, not filled: a mark stretched to the whole chord stops
-        // reading as a currency mark at all.
-        stretch: 1.5,
-      },
-      {
-        content: { from: 'label', transform: 'digits' },
-        orientation: 'stacked',
-        band: [0.38, 0.84],
-        // A fat slab, not a didone: a didone's horizontals thin to hairlines,
-        // and a hairline is the first thing to disappear on a wedge this narrow.
-        font: 'alfa-slab-one',
-        stretch: 'fill',
-        // Figures on a banknote are set tight; the default line box leaves a
-        // column of air between them that reads as three separate digits.
-        leading: 0.78,
-      },
-    ],
-  },
-})
+const CASH_SLICE: SliceInstance = { id: 'cash', params: { ...cash.defaults } }
 
 /** Bright, saturated, and cycled rather than assigned — no wedge means its color. */
 const CASH_COLORS = [
@@ -172,7 +145,7 @@ function faces(): Segment[] {
     label,
     weight: 1,
     color: PENALTY_COLORS[label] ?? CASH_COLORS[cash++ % CASH_COLORS.length],
-    slice: FACE_SLICES[label] ?? cashSlice('$'),
+    slice: FACE_SLICES[label],
     look: label === 'BANKRUPT' ? BANKRUPT_LOOK : SOLVENT_LOOKS[solvent++ % SOLVENT_LOOKS.length],
   }))
 }
@@ -201,8 +174,8 @@ const cashWheel: Preset = {
     },
   },
   branches: [],
+  slice: CASH_SLICE,
   theme: 'board',
-  hub: { emblem: { kind: 'emoji', value: '🎡' }, spins: true },
 }
 
 export const SAMPLES: Sample[] = [

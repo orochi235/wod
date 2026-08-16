@@ -57,11 +57,15 @@ describe('the cash wheel', () => {
     for (const segment of bankrupt) expect(wantsInverseInk(segment.color)).toBe(true)
   })
 
-  it('sets every face by a layout of its own', () => {
-    // The board names no default. A shared one that suited the cash faces
-    // printed a lone currency mark on the two that carry a word instead.
-    expect(preset.slice).toBeUndefined()
-    for (const segment of preset.segments) expect(segment.slice).toBeDefined()
+  it('sets the money faces by one shared layout and the word faces by their own', () => {
+    // The money faces differ only by the label they carry, so they read the
+    // board's default; a shared default is wrong only for the two that spell a
+    // word, and those are the two that override it.
+    expect(preset.slice?.id).toBe('cash')
+    for (const segment of preset.segments) {
+      const carriesWord = segment.label === 'BANKRUPT' || segment.label === 'LOSE A TURN'
+      expect(segment.slice === undefined).toBe(!carriesWord)
+    }
   })
 
   it('announces every face but bankruptcy in gold and ruby, alternating', () => {
