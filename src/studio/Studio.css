@@ -21,18 +21,26 @@
   flex-direction: column;
   align-items: center;
   gap: 0.4rem;
-  width: 9rem;
 }
 
-/* Twice the box drawn at twice the width, which is the same px-per-unit: a
-   half-turn wedge has to look wider rather than the same at a smaller size. */
-.studio__slot--wide {
-  width: 18rem;
+/* Takes whatever the row has left. Its box is unchanged, so the slack is wider
+   background rather than bigger type — the scale is set by the height. */
+.studio__slot--fill {
+  flex: 1 1 auto;
+  min-width: 9rem;
 }
 
-.studio__preview {
+.studio__slot--fill .studio__preview {
   width: 100%;
-  height: auto;
+}
+
+/* Every box is the same height, so pinning the height pins px-per-unit for all
+   of them at once — a wider wedge gets a wider box and a wider preview rather
+   than the same wedge drawn smaller. Growing with the viewport scales the whole
+   row together, which keeps that true. */
+.studio__preview {
+  height: clamp(8rem, 16vw, 18rem);
+  width: auto;
   background: var(--wheel-stage-fill, #14161c);
   border-radius: 0.35rem;
 }

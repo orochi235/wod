@@ -1,4 +1,4 @@
-import { ColorRow, LabShell, PropertyPanel, SelectRow } from '@weasel-js/labkit'
+import { CheckboxRow, ColorRow, LabShell, PropertyPanel, SelectRow } from '@weasel-js/labkit'
 import { useCallback, useMemo, useState } from 'react'
 import { SlicePanel } from '../editor/SlicePanel'
 import { loadPreset, savePreset } from '../preset/storage'
@@ -6,6 +6,7 @@ import type { Preset } from '../preset/types'
 import { facesUsed } from '../slice/fonts/usage'
 import { createMeasure } from '../slice/measure'
 import { resolveInstance } from '../slice/registry'
+import { partOn } from '../wheel/theme'
 import { flat } from '../wheel/themes/flat'
 import { getTheme } from '../wheel/themes/registry'
 import type { Segment } from '../wheel/types'
@@ -15,10 +16,12 @@ import '../wheel/Wheel.css'
 import { WedgePreview } from './WedgePreview'
 import {
   ARC_STEPS,
+  FALLBACK_HUB_RADIUS,
   MAX_ARC_DEG,
   MIN_ARC_DEG,
   PREVIEW_FILL,
   WIDE_ARC_STEPS,
+  previewHubRadius,
   turnFraction,
 } from './wedge'
 
@@ -35,6 +38,9 @@ export function SliceStudio() {
   // Null follows the wedge's own color, so picking a different segment still
   // repaints until someone actually chooses one here.
   const [chosenFill, setChosenFill] = useState<string | null>(null)
+  // Null follows the look, which is the honest default; the toggle is for
+  // judging the tip against a cap the current look happens not to wear.
+  const [clipHub, setClipHub] = useState<boolean | null>(null)
 
   // Same contract as the editor's: every edit persists, and an open show window
   // picks it up through the storage event.
@@ -57,7 +63,10 @@ export function SliceStudio() {
   const measure = useMemo(() => createMeasure(), [faceLoaded])
 
   const fill = chosenFill ?? segment.color ?? PREVIEW_FILL
-  const shared = { instance, segment, theme, measure, fill }
+  const themeHub = partOn(theme, 'hub') ? theme.metrics.hubRadius : 0
+  const clipped = clipHub ?? themeHub > 0
+  const hub = clipped ? previewHubRadius(themeHub || FALLBACK_HUB_RADIUS) : 0
+  const shared = { instance, segment, theme, measure, fill, hub }
 
   return (
     <LabShell
@@ -83,12 +92,12 @@ export function SliceStudio() {
               </li>
             ))}
             {WIDE_ARC_STEPS.map((step) => (
-              <li className="studio__slot studio__slot--wide" key={step}>
-                <WedgePreview {...shared} degrees={step} wide />
+              <li className="studio__slot" key={step}>
+                <WedgePreview {...shared} degrees={step} fitDegrees={step} />
                 <p className="studio__caption">{turnFraction(step)}</p>
               </li>
             ))}
-            <li className="studio__slot studio__slot--scrubbed">
+            <li className="studio__slot studio__slot--scrubbed studio__slot--fill">
               <WedgePreview {...shared} degrees={scrubbed} />
               <p className="studio__caption">{scrubbed}°</p>
               <input
@@ -113,6 +122,7 @@ export function SliceStudio() {
               onChange={setSegmentId}
             />
             <ColorRow label="Wedge color" value={fill} onChange={setChosenFill} />
+            <CheckboxRow label="Clip the hub" value={clipped} onChange={setClipHub} />
           </PropertyPanel>
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
         </section>

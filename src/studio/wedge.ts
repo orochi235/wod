@@ -22,6 +22,13 @@ const METRIC_RADIUS = 200
 export const previewHubRadius = (hubRadius: number): number =>
   (hubRadius / METRIC_RADIUS) * PREVIEW_RADIUS
 
+/**
+ * What the clip uses when the look wears no hub at all. The flat look has none,
+ * and a lab whose clip silently did nothing on half the themes is a lab that
+ * teaches the wrong thing about the tip of a wedge.
+ */
+export const FALLBACK_HUB_RADIUS = 62
+
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
 
 /**
@@ -54,20 +61,26 @@ export const MAX_ARC_DEG = 45
 
 const MARGIN = 8
 
-/** The wedges too wide for the standard box, which take a doubled one. */
+/** The wedges too wide for the shared box, each given one that just holds it. */
 export const WIDE_ARC_STEPS = [60, 120]
 
 /**
- * One box for every width, sized to the widest the scrubber can reach — cropped
- * to the wedge rather than the wheel, but never cropped per wedge: a box that
- * hugged each width would rescale the type it is there to compare.
+ * A box cropped to the wedge rather than the wheel, sized to hold `degrees`.
+ * The five stepped previews and the scrubber share one, sized to the scrubber's
+ * ceiling; a wedge wider than that gets its own rather than shrinking everyone.
  *
- * `scale` doubles the box for a wedge the standard one cannot hold. Drawn into
- * twice the CSS width it is the same px-per-unit, which is the whole point: a
- * half-turn wedge has to look wider, not the same at a smaller size.
+ * Scale stays constant across all of them without any of this having to match:
+ * every box is the same height, and the previews are drawn at a fixed height,
+ * so px-per-unit is decided by that height alone and a wider box is wider
+ * background rather than smaller type.
  */
-export function previewBox(scale = 1): { x: number; y: number; width: number; height: number } {
-  const half = (PREVIEW_RADIUS * Math.sin(Math.PI * (MAX_ARC_DEG / 360)) + MARGIN) * scale
+export function previewBox(degrees: number = MAX_ARC_DEG): {
+  x: number
+  y: number
+  width: number
+  height: number
+} {
+  const half = PREVIEW_RADIUS * Math.sin(Math.PI * (Math.min(degrees, 180) / 360)) + MARGIN
   return {
     x: -half,
     y: -(PREVIEW_RADIUS + MARGIN),

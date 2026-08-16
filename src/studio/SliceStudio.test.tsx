@@ -4,7 +4,14 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { loadPreset, savePreset } from '../preset/storage'
 import { getTheme } from '../wheel/themes/registry'
 import { SliceStudio } from './SliceStudio'
-import { ARC_STEPS, PREVIEW_FILL, PREVIEW_RADIUS, WIDE_ARC_STEPS, previewHubRadius } from './wedge'
+import {
+  ARC_STEPS,
+  FALLBACK_HUB_RADIUS,
+  PREVIEW_FILL,
+  PREVIEW_RADIUS,
+  WIDE_ARC_STEPS,
+  previewHubRadius,
+} from './wedge'
 
 describe('SliceStudio', () => {
   beforeEach(() => {
@@ -48,23 +55,41 @@ describe('SliceStudio', () => {
     expect(new Set(boxes).size).toBe(1)
   })
 
-  it('gives the wide pair exactly twice the box, and twice the slot', () => {
+  // Each wide box is only as wide as its own wedge needs, so 1/6 does not sit in
+  // the empty half of a box sized for 1/3.
+  it('gives each wide wedge a box that just holds it', () => {
     render(<SliceStudio />)
 
-    expect(boxWidthOf(WIDE_ARC_STEPS[0])).toBeCloseTo(boxWidthOf(ARC_STEPS[0]) * 2, 6)
     for (const step of WIDE_ARC_STEPS) {
-      const slot = screen.getByRole('img', { name: `wedge at ${step} degrees` }).closest('li')
-      expect(slot?.className).toContain('studio__slot--wide')
+      const half = PREVIEW_RADIUS * Math.sin(Math.PI * (step / 360))
+      const box = boxWidthOf(step) / 2
+      expect(box).toBeGreaterThan(half)
+      // Only the margin beyond the wedge itself — never a box sized for another.
+      expect(box - half).toBeLessThan(10)
     }
+    expect(boxWidthOf(WIDE_ARC_STEPS[0])).toBeLessThan(boxWidthOf(WIDE_ARC_STEPS[1]))
   })
 
-  // The widest wedge has to fit the box it was given, or the crop is a clip.
-  it('holds the widest wedge inside the doubled box', () => {
+  // Every box shares a height, which is what lets a fixed rendered height set
+  // one px-per-unit for all of them however wide each one is.
+  it('keeps every box the same height whatever its width', () => {
     render(<SliceStudio />)
 
-    const widest = Math.max(...WIDE_ARC_STEPS)
-    const half = PREVIEW_RADIUS * Math.sin(Math.PI * (widest / 360))
-    expect(boxWidthOf(widest) / 2).toBeGreaterThan(half)
+    const heights = [...ARC_STEPS, ...WIDE_ARC_STEPS].map(
+      (step) =>
+        screen
+          .getByRole('img', { name: `wedge at ${step} degrees` })
+          .getAttribute('viewBox')
+          ?.split(' ')[3],
+    )
+    expect(new Set(heights).size).toBe(1)
+  })
+
+  it('lets the scrubbed preview take the row’s slack', () => {
+    render(<SliceStudio />)
+
+    const slot = screen.getByLabelText('Scrubbed arc width').closest('li')
+    expect(slot?.className).toContain('studio__slot--fill')
   })
 
   // The cap covers the tip on the real wheel, so a preview that drew it would
@@ -73,18 +98,35 @@ describe('SliceStudio', () => {
     savePreset({ ...loadPreset(), theme: 'board' })
     render(<SliceStudio />)
 
+    const expected = String(previewHubRadius(getTheme('board')?.metrics.hubRadius ?? 0))
     for (const node of screen.getAllByRole('img')) {
-      const masked = node.querySelector('g[mask]')
-      expect(masked).not.toBeNull()
+      expect(node.querySelector('g[mask]')).not.toBeNull()
+      expect(node.querySelector('mask circle')?.getAttribute('r')).toBe(expected)
+    }
+  })
+
+  // The flat look wears none, and a clip that silently did nothing there taught
+  // the wrong thing about the tip of a wedge.
+  it('follows a hubless look by default, and clips anyway when asked', async () => {
+    savePreset({ ...loadPreset(), theme: 'flat' })
+    render(<SliceStudio />)
+
+    expect(screen.getAllByRole('img')[0].querySelector('mask')).toBeNull()
+
+    await userEvent.click(screen.getByLabelText('Clip the hub'))
+
+    for (const node of screen.getAllByRole('img')) {
       expect(node.querySelector('mask circle')?.getAttribute('r')).toBe(
-        String(previewHubRadius(getTheme('board')?.metrics.hubRadius ?? 0)),
+        String(previewHubRadius(FALLBACK_HUB_RADIUS)),
       )
     }
   })
 
-  it('masks nothing out for a look with no hub at all', () => {
-    savePreset({ ...loadPreset(), theme: 'flat' })
+  it('drops the clip on a hubbed look when it is turned off', async () => {
+    savePreset({ ...loadPreset(), theme: 'board' })
     render(<SliceStudio />)
+
+    await userEvent.click(screen.getByLabelText('Clip the hub'))
 
     expect(screen.getAllByRole('img')[0].querySelector('mask')).toBeNull()
   })

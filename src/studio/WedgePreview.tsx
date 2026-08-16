@@ -2,11 +2,10 @@ import { useId } from 'react'
 import type { Measure, SliceInstance } from '../slice/types'
 import { SliceElements } from '../wheel/SliceElements'
 import { arcPath } from '../wheel/geometry'
-import { partOn } from '../wheel/theme'
 import type { Theme } from '../wheel/theme'
 import { styleOfTheme } from '../wheel/themeStyle'
 import type { Segment } from '../wheel/types'
-import { PREVIEW_RADIUS, drawWedge, previewArc, previewBox, previewHubRadius } from './wedge'
+import { PREVIEW_RADIUS, drawWedge, previewArc, previewBox } from './wedge'
 
 export type WedgePreviewProps = {
   instance: SliceInstance
@@ -16,11 +15,16 @@ export type WedgePreviewProps = {
   measure: Measure
   /** What the wedge is painted. The segment's own color is only the default. */
   fill: string
-  /** Takes the doubled box, for a wedge the standard one cannot hold. */
-  wide?: boolean
+  /**
+   * Size the box to hold this many degrees instead of sharing the standard one.
+   * For a wedge too wide to fit it, which would otherwise be clipped.
+   */
+  fitDegrees?: number
+  /** The cap to mask out, in preview units. Zero draws the tip in full. */
+  hub: number
 }
 
-const BOXES = { narrow: previewBox(), wide: previewBox(2) }
+const SHARED_BOX = previewBox()
 const viewBoxOf = (box: { x: number; y: number; width: number; height: number }) =>
   `${box.x} ${box.y} ${box.width} ${box.height}`
 
@@ -31,12 +35,12 @@ export function WedgePreview({
   theme,
   measure,
   fill,
-  wide = false,
+  fitDegrees,
+  hub,
 }: WedgePreviewProps) {
-  const box = wide ? BOXES.wide : BOXES.narrow
+  const box = fitDegrees === undefined ? SHARED_BOX : previewBox(fitDegrees)
   const arc = previewArc(degrees)
   const elements = drawWedge({ instance, segment, degrees, measure, font: theme.font })
-  const hub = partOn(theme, 'hub') ? previewHubRadius(theme.metrics.hubRadius) : 0
   const maskId = `${useId()}-hub`
 
   return (
