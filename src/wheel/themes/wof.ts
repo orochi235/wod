@@ -25,7 +25,7 @@ export const wof: Theme = {
   metrics: {
     rimWidth: 18,
     pegRadius: 4.4,
-    hubRadius: 30,
+    hubRadius: 21,
     panel: [0.33, 0.87],
   },
   tokens: {
