@@ -52,6 +52,10 @@ export function applyTransform(content: ContentTransform, text: string): string 
       const words = text.split(/\s+/).filter((word) => word !== '')
       return words.length > 1 ? words[words.length - 1] : ''
     }
+    // The number off a face like `$650`, so the currency mark can be set as its
+    // own much smaller piece and the figure keep one source of truth.
+    case 'digits':
+      return text.replace(/\D+/g, '')
     case 'initials':
       return text
         .split(/\s+/)

@@ -16,6 +16,17 @@ const base: Omit<FitSpec, 'text' | 'orientation'> = {
 }
 
 describe('applyTransform', () => {
+  it('keeps only the digits of a figure', () => {
+    expect(applyTransform('digits', '$650')).toBe('650')
+    expect(applyTransform('digits', '$1,000')).toBe('1000')
+  })
+
+  it('leaves nothing of a label with no figure in it', () => {
+    // Drawn as nothing rather than as the word: a part asking for the figure on
+    // a face that carries a word has no figure to set.
+    expect(applyTransform('digits', 'BANKRUPT')).toBe('')
+  })
+
   it('keeps the whole label for full', () => {
     expect(applyTransform('full', 'Sleve McDichael')).toBe('Sleve McDichael')
   })

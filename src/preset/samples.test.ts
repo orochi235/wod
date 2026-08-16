@@ -56,6 +56,13 @@ describe('the cash wheel', () => {
     for (const segment of bankrupt) expect(wantsInverseInk(segment.color)).toBe(true)
   })
 
+  it('sets every face by a layout of its own', () => {
+    // The board names no default. A shared one that suited the cash faces
+    // printed a lone currency mark on the two that carry a word instead.
+    expect(preset.slice).toBeUndefined()
+    for (const segment of preset.segments) expect(segment.slice).toBeDefined()
+  })
+
   it('stands alone, with no roster behind it', () => {
     // A cash wheel that quietly grew names from a feed would be neither.
     expect(preset.feeds).toEqual([])

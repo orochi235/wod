@@ -11,25 +11,31 @@ export type Sample = {
 }
 
 /**
- * Upright letters stacked rim inward, each stretched to the chord at its own
- * radius — how a board of this shape has always been painted, and what the
- * taper is for. One part: a cash value is one token, and the name plate's
- * given-name-plus-surname split has nothing to divide.
+ * A cash face is a small currency mark with the figure stacked under it, the
+ * figures set in a condensed face so they come out tall rather than square in
+ * a wedge this narrow. Two parts: the mark is furniture and holds its size,
+ * while the figure takes the whole band and tapers down it.
  */
-const VALUE_SLICE: SliceInstance = {
+const cashSlice = (mark: string): SliceInstance => ({
   id: 'composed',
   params: {
     parts: [
       {
-        content: { from: 'label' },
+        content: { from: 'text', value: mark },
         orientation: 'stacked',
-        band: [0.44, 0.92],
-        caps: true,
+        band: [0.86, 0.94],
+        maxSize: 13,
+      },
+      {
+        content: { from: 'label', transform: 'digits' },
+        orientation: 'stacked',
+        band: [0.44, 0.84],
+        font: 'bebas-neue',
         stretch: 'fill',
       },
     ],
   },
-}
+})
 
 /** Bright, saturated, and cycled rather than assigned — no wedge means its color. */
 const CASH_COLORS = [
@@ -76,7 +82,7 @@ const LOSE_A_TURN_SLICE: SliceInstance = {
       {
         content: { from: 'text', value: 'TURN' },
         orientation: 'stacked',
-        band: [0.3, 0.735],
+        band: [0.44, 0.735],
         caps: true,
         stretch: 'fill',
       },
@@ -84,8 +90,27 @@ const LOSE_A_TURN_SLICE: SliceInstance = {
   },
 }
 
-/** Faces set differently from the rest of the board, by the words on them. */
-const FACE_SLICES: Record<string, SliceInstance> = { 'LOSE A TURN': LOSE_A_TURN_SLICE }
+/** A word, not a figure: no currency mark, and the whole band to spell it in. */
+const BANKRUPT_SLICE: SliceInstance = {
+  id: 'composed',
+  params: {
+    parts: [
+      {
+        content: { from: 'label' },
+        orientation: 'stacked',
+        band: [0.44, 0.94],
+        caps: true,
+        stretch: 'fill',
+      },
+    ],
+  },
+}
+
+/** The faces that carry a word instead of a figure, and are set as one. */
+const FACE_SLICES: Record<string, SliceInstance> = {
+  'LOSE A TURN': LOSE_A_TURN_SLICE,
+  BANKRUPT: BANKRUPT_SLICE,
+}
 
 /**
  * A round's worth of cash, in the proportions the board is stacked in: a lot of
@@ -118,19 +143,20 @@ const FACES = [
   '$800',
 ]
 
+/**
+ * Every face carries its own layout rather than inheriting the board's. What a
+ * face says is what decides how it is set, and a shared default that suited the
+ * cash faces printed a lone currency mark on the two that carry a word.
+ */
 function faces(): Segment[] {
   let cash = 0
-  return FACES.map((label, index) => {
-    const face: Segment = {
-      id: `face${index + 1}`,
-      label,
-      weight: 1,
-      color: PENALTY_COLORS[label] ?? CASH_COLORS[cash++ % CASH_COLORS.length],
-    }
-    const slice = FACE_SLICES[label]
-    if (slice) face.slice = slice
-    return face
-  })
+  return FACES.map((label, index) => ({
+    id: `face${index + 1}`,
+    label,
+    weight: 1,
+    color: PENALTY_COLORS[label] ?? CASH_COLORS[cash++ % CASH_COLORS.length],
+    slice: FACE_SLICES[label] ?? cashSlice('$'),
+  }))
 }
 
 /**
@@ -157,7 +183,6 @@ const cashWheel: Preset = {
     },
   },
   branches: [],
-  slice: VALUE_SLICE,
   theme: 'board',
 }
 

@@ -42,6 +42,7 @@ const TRANSFORMS: { value: ContentTransform; label: string }[] = [
   { value: 'firstName', label: 'First name' },
   { value: 'lastName', label: 'Last name' },
   { value: 'initials', label: 'Initials' },
+  { value: 'digits', label: 'Digits only' },
   { value: 'ellipsis', label: 'Cut with an ellipsis' },
 ]
 

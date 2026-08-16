@@ -24,7 +24,14 @@ const ORIENTATIONS: Orientation[] = [
   'archedRim',
 ]
 
-const TRANSFORMS: ContentTransform[] = ['full', 'firstName', 'lastName', 'initials', 'ellipsis']
+const TRANSFORMS: ContentTransform[] = [
+  'full',
+  'firstName',
+  'lastName',
+  'initials',
+  'digits',
+  'ellipsis',
+]
 
 const DERIVED = ['weight', 'index', 'position'] as const
 

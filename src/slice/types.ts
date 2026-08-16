@@ -17,7 +17,13 @@ export type Orientation =
   | 'taperedRadial'
   | 'archedRim'
 
-export type ContentTransform = 'full' | 'firstName' | 'lastName' | 'initials' | 'ellipsis'
+export type ContentTransform =
+  | 'full'
+  | 'firstName'
+  | 'lastName'
+  | 'initials'
+  | 'digits'
+  | 'ellipsis'
 
 export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed'
 
