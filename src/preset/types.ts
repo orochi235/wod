@@ -2,7 +2,7 @@ import type { FeedConfig, ItemOverride } from '../feed/types'
 import type { SliceInstance } from '../slice/types'
 import type { Transitions } from '../transition/types'
 import type { Trick } from '../tricks/types'
-import type { Curve, Direction, Segment, Settle } from '../wheel/types'
+import type { Curve, Direction, Media, Segment, Settle } from '../wheel/types'
 
 export type Target = { kind: 'fair' } | { kind: 'forced'; segmentId: string }
 
@@ -52,6 +52,21 @@ export type BranchNode = {
   then?: BranchNode[]
 }
 
+/**
+ * What sits on the hub cap. Preset state rather than theme state: the themes are
+ * a closed registry of three looks, and an emblem is whose wheel this is rather
+ * than what the wheel is made of.
+ */
+export type Hub = {
+  emblem?: Media
+  /**
+   * Whether the emblem rides the rotor. Absent holds it level, which is what a
+   * mark you have to read wants; a cap painted to look like part of the wheel
+   * wants the other one.
+   */
+  spins?: boolean
+}
+
 export type Preset = {
   version: 5
   name: string
@@ -69,4 +84,6 @@ export type Preset = {
   slice?: SliceInstance
   /** Absent means the flat look, which is what the wheel drew before themes. */
   theme?: string
+  /** Absent leaves the hub the bare cap the look paints. */
+  hub?: Hub
 }

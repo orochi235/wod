@@ -122,3 +122,10 @@
   transform-origin: 0 0;
   transition: transform 60ms ease-out;
 }
+
+/* The emblem is the one thing on the cap that is not the cap, so it takes no
+   fill of its own: an emoji paints itself and a picture carries its own pixels. */
+.wheel__emblem {
+  pointer-events: none;
+  user-select: none;
+}

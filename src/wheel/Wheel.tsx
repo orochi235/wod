@@ -1,5 +1,6 @@
 import type { Ref } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import type { Hub } from '../preset/types'
 import { createFit } from '../slice/fit'
 import { sourceFor } from '../slice/fonts/load'
 import { facesUsed } from '../slice/fonts/usage'
@@ -9,6 +10,7 @@ import type { SliceInstance } from '../slice/types'
 import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
+import { HubEmblem } from './HubEmblem'
 import { SliceElements } from './SliceElements'
 import type { RetainedIds } from './colors'
 import { deflectionDeg, pegCrossings, settledDeflection } from './flapper'
@@ -60,6 +62,10 @@ export type WheelProps = {
   theme?: Theme
   /** Silences the flapper without changing the look. */
   muted?: boolean
+  /** What sits on the hub cap. Absent leaves it the bare cap the look paints. */
+  hub?: Hub
+  /** Registers the hub group so a spin can turn it from outside the rotor. */
+  riderRef?: (element: SVGGElement | null) => void
 }
 
 /**
@@ -95,7 +101,10 @@ export function Wheel({
   retainedRef,
   theme = flat,
   muted = false,
+  hub,
+  riderRef,
 }: WheelProps) {
+  const emblemId = useId()
   const drawn = usePresence(segments, transitions, held, retainedRef)
   const pegs = partOn(theme, 'peg')
     ? pegAngles(
@@ -291,7 +300,20 @@ export function Wheel({
         {partOn(theme, 'sheen') && (
           <circle className="wheel__sheen" r={radius + theme.metrics.rimWidth} />
         )}
-        {partOn(theme, 'hub') && <circle className="wheel__hub" r={theme.metrics.hubRadius} />}
+        {partOn(theme, 'hub') && (
+          // Outside the rotor, so the cap stays over the sheen the way it always
+          // has. A spinning emblem rides the rotor's own track instead.
+          <g
+            className="wheel__hub-group"
+            transform={hub?.spins ? `rotate(${rotationDeg})` : undefined}
+            ref={hub?.spins ? riderRef : undefined}
+          >
+            <circle className="wheel__hub" r={theme.metrics.hubRadius} />
+            {hub?.emblem && (
+              <HubEmblem emblem={hub.emblem} radius={theme.metrics.hubRadius} id={emblemId} />
+            )}
+          </g>
+        )}
       </g>
       {/* Apex inward: the tip is the thing that names a winner, so it points at
           the wedge rather than away from it, dipping just past the rim. */}

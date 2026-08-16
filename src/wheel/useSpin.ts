@@ -57,6 +57,8 @@ export type UseSpinResult = {
   rotorRef: RefObject<SVGGElement | null>
   /** Registers a level group so a spin can counter-rotate it. */
   levelRef: (id: string, restingDeg: number) => (element: SVGGElement | null) => void
+  /** Registers an element outside the rotor that should turn with it anyway. */
+  riderRef: (element: SVGGElement | null) => void
 }
 
 export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult {
@@ -124,6 +126,19 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
     [levels, restingDegs, levelRefs],
   )
 
+  /**
+   * An element that rides the rotation without living inside the rotor. The hub
+   * cap is painted after the rotor so it sits over the sheen, which puts it out
+   * of reach of the rotor's own transform; running the same track forwards is
+   * what lets it turn with the wheel anyway. The mirror of a level element,
+   * which runs that track backwards.
+   */
+  const rider = useRef<SVGGElement | null>(null)
+  const riderAnimation = useRef<Animation | null>(null)
+  const riderRef = useCallback((element: SVGGElement | null) => {
+    rider.current = element
+  }, [])
+
   const release = useCallback(() => setHeld(false), [])
 
   const reset = useCallback(() => {
@@ -141,6 +156,8 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
     }
     animationRef.current?.cancel()
     animationRef.current = null
+    riderAnimation.current?.cancel()
+    riderAnimation.current = null
   }, [])
 
   useEffect(() => {
@@ -199,6 +216,15 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
         fill: 'forwards',
       })
       animationRef.current = animation
+
+      // Same track, same timeline: a rider turns with the wheel without being
+      // inside it.
+      riderAnimation.current =
+        rider.current?.animate(track.keyframes, {
+          duration: track.durationMs,
+          easing: track.easing,
+          fill: 'forwards',
+        }) ?? null
 
       // Level elements hold their orientation by running the rotor's rotation
       // backwards on the same timeline. No per-frame work, and no drift: both
@@ -272,5 +298,6 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
     reset,
     rotorRef,
     levelRef,
+    riderRef,
   }
 }
