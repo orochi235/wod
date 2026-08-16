@@ -49,6 +49,14 @@ export type FitSpec = {
   minSize: number
   /** The CSS family the text is set in. Absent measures the default face. */
   family?: string
+  /**
+   * Extra advance per character, as a fraction of the size. It enters the solve
+   * rather than only the paint: a run tracked wider than it was sized for
+   * overflows the box the solve just proved it fit in.
+   */
+  tracking?: number
+  /** The line box, as a multiple of the size. */
+  leading?: number
 }
 
 export type Placement = {
@@ -115,8 +123,16 @@ export type GlyphSource = {
 }
 
 type Drawn =
-  | { kind: 'text'; text: string; along: 'radial' | 'tangential'; anchor: number; size: number }
-  | { kind: 'curvedText'; text: string; anchor: number; size: number }
+  | {
+      kind: 'text'
+      text: string
+      along: 'radial' | 'tangential'
+      anchor: number
+      size: number
+      /** User units, already multiplied out of the part's tracking. */
+      letterSpacing?: number
+    }
+  | { kind: 'curvedText'; text: string; anchor: number; size: number; letterSpacing?: number }
   | { kind: 'glyphRun'; glyphs: Glyph[] }
   | { kind: 'image'; href: string; anchor: number; size: number; clip?: 'circle' | 'wedge' }
   | { kind: 'path'; d: string; fill?: string; opacity?: number }
@@ -130,7 +146,7 @@ type Drawn =
  * `family` is a CSS family, already resolved, and painting an element in
  * anything else mis-sizes it: every size on it was measured in that face.
  */
-export type SliceElement = Drawn & { frame?: Frame; family?: string }
+export type SliceElement = Drawn & { frame?: Frame; family?: string; ink?: string }
 
 export type SliceContext = {
   segment: Segment
@@ -197,4 +213,10 @@ export type SlicePart = {
   font?: FontId
   maxSize?: number
   frame?: Frame
+  /** `#rgb` or `#rrggbb`. Absent takes the wedge's own label ink. */
+  color?: string
+  /** Extra advance per character, as a fraction of the size. Default 0.08. */
+  tracking?: number
+  /** The line box, as a multiple of the size. Default 1.2. */
+  leading?: number
 }

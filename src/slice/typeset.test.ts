@@ -732,3 +732,74 @@ describe('the shape a run is drawn as', () => {
     expect(asked).toEqual(['anton'])
   })
 })
+
+describe('color, tracking and leading', () => {
+  it('paints a part in its own ink and leaves the wedge to it otherwise', () => {
+    const [own] = typeset(part({ orientation: 'radial', color: '#ff00aa' }), context())
+    expect(own).toMatchObject({ ink: '#ff00aa' })
+    expect(typeset(part({ orientation: 'radial' }), context())[0].ink).toBeUndefined()
+  })
+
+  it('carries a part\u2019s ink onto a glyph run too', () => {
+    const [element] = typeset(part({ color: '#0f0' }), context())
+    expect(element).toMatchObject({ kind: 'glyphRun', ink: '#0f0' })
+  })
+
+  it('opens a tapered run\u2019s slots as tracking widens', () => {
+    const spec = {
+      orientation: 'taperedRadial' as const,
+      content: { from: 'text' as const, value: 'IIW' },
+      fan: false,
+      maxSize: 20,
+    }
+    const tight = glyphsOf({ ...spec, tracking: 0 })
+    const loose = glyphsOf({ ...spec, tracking: 0.5 })
+    const gap = (glyphs: Glyph[]) => Math.abs(radiusOf(glyphs[0]) - radiusOf(glyphs[1]))
+    // The band is fixed, so a wider slot is a smaller letter rather than a
+    // longer run: the gap grows as a share of the size it is measured against.
+    expect(gap(loose) / loose[0].size).toBeGreaterThan(gap(tight) / tight[0].size)
+  })
+
+  // Emitted so the paint agrees with the solve; a fitted run that tracked only
+  // in the browser would overrun the size it was granted.
+  it('emits the letter-spacing a fitted run was solved with', () => {
+    const [element] = typeset(part({ orientation: 'radial', tracking: 0.2 }), context())
+    const spacing = (element as { letterSpacing?: number }).letterSpacing ?? 0
+    expect(spacing).toBeCloseTo(0.2 * (element as { size: number }).size, 2)
+  })
+
+  it('leaves letter-spacing off a part that never asked for it', () => {
+    const [element] = typeset(part({ orientation: 'radial' }), context())
+    expect((element as { letterSpacing?: number }).letterSpacing).toBeUndefined()
+  })
+
+  it('shrinks an arched run as leading claims more of its band', () => {
+    const spec = {
+      orientation: 'archedRim' as const,
+      content: { from: 'text' as const, value: 'WM' },
+    }
+    const tight = glyphsOf({ ...spec, leading: 1 })
+    const loose = glyphsOf({ ...spec, leading: 3 })
+    expect(loose[0].size).toBeLessThan(tight[0].size)
+  })
+})
+
+describe('leading on a stacked run', () => {
+  const spec = { content: { from: 'text' as const, value: 'IIW' }, fan: false, maxSize: 20 }
+  const slot = (glyphs: Glyph[]) => Math.abs(radiusOf(glyphs[0]) - radiusOf(glyphs[1]))
+
+  // A stacked letter is its own line, so the gap between two of them is the
+  // line box. Tracking is the horizontal one and has no say here.
+  it('tightens the slots as leading closes up', () => {
+    const open = glyphsOf({ ...spec, leading: 1.4 })
+    const tight = glyphsOf({ ...spec, leading: 0.8 })
+    expect(slot(tight) / tight[0].size).toBeLessThan(slot(open) / open[0].size)
+  })
+
+  it('leaves a stacked run alone whatever the tracking says', () => {
+    const none = glyphsOf({ ...spec, tracking: 0 })
+    const wide = glyphsOf({ ...spec, tracking: 0.9 })
+    expect(slot(wide)).toBeCloseTo(slot(none), 5)
+    expect(wide[0].size).toBeCloseTo(none[0].size, 5)
+  })
+})

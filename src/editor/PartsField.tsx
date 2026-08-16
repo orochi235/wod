@@ -1,5 +1,13 @@
-import { CheckboxRow, PropertyGroup, SelectRow, SliderRow, TextRow } from '@weasel-js/labkit'
-import { DEFAULT_PART, readParts } from '../slice/parts'
+import {
+  CheckboxRow,
+  ColorRow,
+  PropertyGroup,
+  SelectRow,
+  SliderRow,
+  TextRow,
+} from '@weasel-js/labkit'
+import { DEFAULT_LEADING, DEFAULT_TRACKING } from '../slice/fit'
+import { DEFAULT_PART, LEADING_RANGE, TRACKING_RANGE, readParts } from '../slice/parts'
 import type { ContentTransform, Orientation, PartContent, SlicePart } from '../slice/types'
 import { FontField } from './FontField'
 
@@ -98,6 +106,15 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
     if (!part) return
     const { font: cleared, ...rest } = part
     replace(index, font ? { ...rest, font } : rest)
+  }
+
+  // Cleared rather than set to undefined, as `setFont` is: a part carries the
+  // key only when it overrides the wedge's ink.
+  const setColor = (index: number, color: string | undefined) => {
+    const part = slots[index]
+    if (!part) return
+    const { color: cleared, ...rest } = part
+    replace(index, color ? { ...rest, color } : rest)
   }
 
   const setStretch = (index: number, choice: string) => {
@@ -224,6 +241,34 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 value={part.maxSize ?? 40}
                 onChange={(next) => edit(index, { maxSize: next })}
               />
+              <SliderRow
+                label="Tracking"
+                min={TRACKING_RANGE[0]}
+                max={TRACKING_RANGE[1]}
+                step={0.01}
+                value={part.tracking ?? DEFAULT_TRACKING}
+                onChange={(next) => edit(index, { tracking: next })}
+              />
+              <SliderRow
+                label="Leading"
+                min={LEADING_RANGE[0]}
+                max={LEADING_RANGE[1]}
+                step={0.05}
+                value={part.leading ?? DEFAULT_LEADING}
+                onChange={(next) => edit(index, { leading: next })}
+              />
+              <CheckboxRow
+                label="Its own color"
+                value={part.color !== undefined}
+                onChange={(next) => setColor(index, next ? '#ffffff' : undefined)}
+              />
+              {part.color !== undefined ? (
+                <ColorRow
+                  label="Color"
+                  value={part.color}
+                  onChange={(next) => setColor(index, next)}
+                />
+              ) : null}
               <FontField label="Face" value={part.font} onChange={(next) => setFont(index, next)} />
               <SelectRow
                 label="Drawn as"

@@ -1,6 +1,10 @@
 import { getSample } from './preset/samples'
 
-export type Route = { kind: 'show' } | { kind: 'edit' } | { kind: 'sample'; id: string }
+export type Route =
+  | { kind: 'show' }
+  | { kind: 'edit' }
+  | { kind: 'slice' }
+  | { kind: 'sample'; id: string }
 
 /**
  * Hash routing, not path routing: a static SPA on GitHub Pages cannot serve
@@ -16,6 +20,7 @@ export function routeFromHash(hash: string): Route {
   // `#/edit/?x=1` keeps its slash and stops matching.
   const path = hash.replace(/^#/, '').split('?')[0].replace(/\/$/, '')
   if (path === '/edit') return { kind: 'edit' }
+  if (path === '/slice') return { kind: 'slice' }
 
   const id = path.replace(/^\//, '')
   return getSample(id) ? { kind: 'sample', id } : { kind: 'show' }

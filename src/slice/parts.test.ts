@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_PART, MAX_PARTS, readPartList, readParts } from './parts'
+import { DEFAULT_PART, LEADING_RANGE, MAX_PARTS, readPartList, readParts } from './parts'
 
 describe('readParts', () => {
   it('falls back to a one-part label composition when parts is not an array', () => {
@@ -138,6 +138,43 @@ describe('readParts', () => {
     const good = { content: { from: 'label' }, orientation: 'stacked', band: [0.4, 0.9] }
     const bad = { content: { from: 'text' }, orientation: 'stacked', band: [0.4, 0.9] }
     expect(readParts([good, bad])).toEqual([good])
+  })
+})
+
+describe('color, tracking and leading', () => {
+  const base = { content: { from: 'label' }, orientation: 'stacked', band: [0.4, 0.9] }
+
+  it('keeps a hex color in either length', () => {
+    expect(readParts([{ ...base, color: '#f0a' }])[0].color).toBe('#f0a')
+    expect(readParts([{ ...base, color: '#FF00AA' }])[0].color).toBe('#FF00AA')
+  })
+
+  it('drops a color that is not hex rather than painting it', () => {
+    for (const color of ['red', 'rgb(1,2,3)', '#ff', '#gggggg', 12]) {
+      expect(readParts([{ ...base, color }])[0].color).toBeUndefined()
+    }
+  })
+
+  it('keeps the spacing pair when both are numbers', () => {
+    const part = readParts([{ ...base, tracking: 0.3, leading: 1.6 }])[0]
+    expect(part.tracking).toBe(0.3)
+    expect(part.leading).toBe(1.6)
+  })
+
+  // Leading divides a band into a size, so a stored zero would hand every
+  // fitted run an infinite one.
+  it('lifts a leading of zero to the floor rather than dividing by it', () => {
+    expect(readParts([{ ...base, leading: 0 }])[0].leading).toBe(LEADING_RANGE[0])
+  })
+
+  it('clamps a negative tracking to nothing', () => {
+    expect(readParts([{ ...base, tracking: -2 }])[0].tracking).toBe(0)
+  })
+
+  it('leaves both absent when they are not numbers', () => {
+    const part = readParts([{ ...base, tracking: 'wide', leading: null }])[0]
+    expect(part.tracking).toBeUndefined()
+    expect(part.leading).toBeUndefined()
   })
 })
 

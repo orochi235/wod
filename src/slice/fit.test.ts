@@ -96,3 +96,38 @@ describe('createFit', () => {
     expect(asRadial?.size).toBe(asCurved?.size)
   })
 })
+
+describe('tracking and leading', () => {
+  const fit = createFit(measure)
+  const spec = { ...base, orientation: 'tangential' as const, text: 'Ada Lovelace' }
+
+  it('leaves a spec that names neither exactly where it was', () => {
+    expect(fit({ ...spec, tracking: 0, leading: 1.2 })?.size).toBe(fit(spec)?.size)
+  })
+
+  // The bug this guards: tracking applied only at paint time widens a run past
+  // the size the solve just proved would fit.
+  it('solves a tracked run smaller than an untracked one', () => {
+    const loose = fit({ ...spec, tracking: 0.2 })?.size ?? 0
+    const tight = fit(spec)?.size ?? 0
+    expect(loose).toBeGreaterThan(0)
+    expect(loose).toBeLessThan(tight)
+  })
+
+  it('keeps a tracked run inside the length it was budgeted', () => {
+    const tracking = 0.2
+    const placed = fit({ ...spec, tracking })
+    const size = placed?.size ?? 0
+    const painted = measure(spec.text, size) + tracking * size * spec.text.length
+    expect(painted).toBeLessThanOrEqual(budget(spec).length + 0.01)
+  })
+
+  it('takes the natural size down as leading opens up', () => {
+    expect(budget({ ...spec, leading: 2.4 }).natural).toBeLessThan(budget(spec).natural)
+  })
+
+  it('lets leading bind a level fit, which has no length of its own', () => {
+    const level = { ...spec, frame: 'level' as const }
+    expect(fit({ ...level, leading: 3 })?.size ?? 0).toBeLessThan(fit(level)?.size ?? 0)
+  })
+})

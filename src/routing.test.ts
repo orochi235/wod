@@ -7,6 +7,11 @@ describe('routeFromHash', () => {
     expect(routeFromHash('#/edit')).toEqual({ kind: 'edit' })
   })
 
+  it('routes #/slice to the slice studio', () => {
+    expect(routeFromHash('#/slice')).toEqual({ kind: 'slice' })
+    expect(routeFromHash('#/slice/')).toEqual({ kind: 'slice' })
+  })
+
   it('routes an empty hash to the show page', () => {
     expect(routeFromHash('')).toEqual({ kind: 'show' })
   })

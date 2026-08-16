@@ -57,8 +57,13 @@ function fitted(part: FittedPart, ctx: SliceContext, text: string, family: strin
     maxSize: part.maxSize ?? DEFAULT_MAX_SIZE,
     minSize: MIN_SIZE,
     family,
+    tracking: part.tracking,
+    leading: part.leading,
   })
   if (!placed) return []
+
+  // The solve already paid for this; emitting it is what makes the paint agree.
+  const letterSpacing = part.tracking === undefined ? undefined : round(part.tracking * placed.size)
 
   // A level run is horizontal by construction, so it has no orientation left to
   // honor and always lays out as a straight line.
@@ -71,6 +76,8 @@ function fitted(part: FittedPart, ctx: SliceContext, text: string, family: strin
         size: placed.size,
         frame,
         family,
+        ink: part.color,
+        letterSpacing,
       },
     ]
   }
@@ -83,6 +90,8 @@ function fitted(part: FittedPart, ctx: SliceContext, text: string, family: strin
       size: placed.size,
       frame,
       family,
+      ink: part.color,
+      letterSpacing,
     },
   ]
 }
@@ -117,7 +126,7 @@ export function typeset(part: SlicePart, ctx: SliceContext): SliceElement[] {
   if (part.shape === 'outline') {
     const source = ctx.outlines?.(part.font ?? ctx.font)
     const d = source ? outline(run, source) : null
-    if (d !== null) return [{ kind: 'path', d, frame: part.frame }]
+    if (d !== null) return [{ kind: 'path', d, frame: part.frame, ink: part.color }]
   }
-  return [{ kind: 'glyphRun', glyphs: toGlyphs(run), family }]
+  return [{ kind: 'glyphRun', glyphs: toGlyphs(run), family, ink: part.color }]
 }

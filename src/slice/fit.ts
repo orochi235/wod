@@ -14,7 +14,17 @@ const DISC_FILL = 0.85
 const BAND = 0.34
 /** Radial thickness a tangential line claims. */
 const TANGENTIAL_BAND = 0.5
-export const LINE_HEIGHT = 1.2
+export const DEFAULT_LEADING = 1.2
+/** Added to every glyph's step so letters do not touch. A fraction of the size. */
+export const DEFAULT_TRACKING = 0.08
+
+const leadingOf = (spec: Omit<FitSpec, 'text'>): number => spec.leading ?? DEFAULT_LEADING
+/**
+ * Zero, not `DEFAULT_TRACKING`: a fitted run is one `<text>` the browser spaces,
+ * and it has never carried letter-spacing. The glyph runs are where 0.08 is the
+ * standing default, and a part that sets `tracking` reaches both.
+ */
+const trackingOf = (spec: Omit<FitSpec, 'text'>): number => spec.tracking ?? 0
 
 /** Down, never nearest: rounding a fitted size up puts it back over its budget. */
 const floor2 = (n: number): number => Math.floor(n * 100) / 100
@@ -60,12 +70,12 @@ export function budget(spec: Omit<FitSpec, 'text'>): Budget {
     case 'tangential':
       return {
         length: chord(spec.width, anchorRadius) * CHORD_FILL,
-        natural: (spec.radius * TANGENTIAL_BAND) / LINE_HEIGHT,
+        natural: (spec.radius * TANGENTIAL_BAND) / leadingOf(spec),
       }
     case 'curved':
       return {
         length: arcLength(spec.width, anchorRadius) * ARC_FILL,
-        natural: (spec.radius * BAND) / LINE_HEIGHT,
+        natural: (spec.radius * BAND) / leadingOf(spec),
       }
     default:
       // The glyph-run orientations route through `typeset`, never here.
@@ -92,14 +102,18 @@ export function createFit(measure: Measure): (spec: FitSpec) => Placement | null
   return (spec) => {
     if (spec.text.length === 0) return null
 
-    const unit = measure(spec.text, 1, spec.family)
+    // Tracking is spent per character, including the last, which is what CSS
+    // `letter-spacing` also does — solving for one less would leave the painted
+    // run a space wider than the size it was granted.
+    const tracked = trackingOf(spec) * [...spec.text].length
+    const unit = measure(spec.text, 1, spec.family) + tracked
     if (!(unit > 0)) return null
 
     let size: number
     if (spec.frame === 'level') {
       const room = levelRoom(spec)
       // A W by H box fits a disc of radius r when hypot(W, H) <= 2r.
-      size = Math.min(spec.maxSize, (2 * room) / Math.hypot(unit, LINE_HEIGHT))
+      size = Math.min(spec.maxSize, (2 * room) / Math.hypot(unit, leadingOf(spec)))
     } else {
       const { length, natural } = budget(spec)
       if (!(length > 0) || !(natural > 0)) return null
