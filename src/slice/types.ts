@@ -175,6 +175,12 @@ export type SliceLayout = {
   fields: Field[]
   /** Pure. The only thing that affects what gets drawn. */
   draw(params: SliceParams, ctx: SliceContext): SliceElement[]
+  /**
+   * The radial bands this layout will set type into, for a lab that wants to
+   * draw the room rather than only what took it. Absent for a layout whose
+   * room is the wedge's own run rather than a band it names.
+   */
+  bands?(params: SliceParams): [number, number][]
 }
 
 export type SliceInstance = { id: SliceLayoutId; params: SliceParams }

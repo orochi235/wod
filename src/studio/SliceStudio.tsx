@@ -41,6 +41,7 @@ export function SliceStudio() {
   // Null follows the look, which is the honest default; the toggle is for
   // judging the tip against a cap the current look happens not to wear.
   const [clipHub, setClipHub] = useState<boolean | null>(null)
+  const [showBands, setShowBands] = useState(false)
 
   // Same contract as the editor's: every edit persists, and an open show window
   // picks it up through the storage event.
@@ -66,7 +67,7 @@ export function SliceStudio() {
   const themeHub = partOn(theme, 'hub') ? theme.metrics.hubRadius : 0
   const clipped = clipHub ?? themeHub > 0
   const hub = clipped ? previewHubRadius(themeHub || FALLBACK_HUB_RADIUS) : 0
-  const shared = { instance, segment, theme, measure, fill, hub }
+  const shared = { instance, segment, theme, measure, fill, hub, showBands }
 
   return (
     <LabShell
@@ -123,6 +124,7 @@ export function SliceStudio() {
             />
             <ColorRow label="Wedge color" value={fill} onChange={setChosenFill} />
             <CheckboxRow label="Clip the hub" value={clipped} onChange={setClipHub} />
+            <CheckboxRow label="Show the room" value={showBands} onChange={setShowBands} />
           </PropertyPanel>
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
         </section>

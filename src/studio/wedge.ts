@@ -1,4 +1,4 @@
-import { createFit } from '../slice/fit'
+import { RUN_BAND, createFit } from '../slice/fit'
 import { sourceFor } from '../slice/fonts/load'
 import { getSlice } from '../slice/registry'
 import type { FontId, Measure, SliceElement, SliceInstance } from '../slice/types'
@@ -96,6 +96,17 @@ export type WedgeSpec = {
   degrees: number
   measure: Measure
   font?: FontId
+}
+
+/**
+ * The bands the layout will set type into — the room, not what took it. A
+ * layout that names none is one whose room is the wedge's own run, which is
+ * what `RUN_BAND` is.
+ */
+export function bandsOf(instance: SliceInstance): [number, number][] {
+  const authored = getSlice(instance.id)
+  if (!authored) return []
+  return authored.bands?.(instance.params) ?? [RUN_BAND]
 }
 
 export function drawWedge({

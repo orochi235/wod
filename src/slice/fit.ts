@@ -5,6 +5,8 @@ const TAU = Math.PI * 2
 /** Where a radial run may start and stop, as fractions of the radius. */
 const HUB_MARGIN = 0.28
 const RIM_MARGIN = 0.96
+/** The same pair, for anything that wants to draw the room rather than fill it. */
+export const RUN_BAND: [number, number] = [HUB_MARGIN, RIM_MARGIN]
 /** How much of the available chord or arc a line of text may claim. */
 const CHORD_FILL = 0.82
 export const ARC_FILL = 0.85

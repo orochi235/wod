@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { loadPreset, savePreset } from '../preset/storage'
+import { cash } from '../slice/layouts/cash'
 import { getTheme } from '../wheel/themes/registry'
 import { SliceStudio } from './SliceStudio'
 import {
@@ -129,6 +130,32 @@ describe('SliceStudio', () => {
     await userEvent.click(screen.getByLabelText('Clip the hub'))
 
     expect(screen.getAllByRole('img')[0].querySelector('mask')).toBeNull()
+  })
+
+  // The room a part was given, which is what explains the size it solved to.
+  it('outlines one band per part when asked, and none until then', async () => {
+    savePreset({ ...loadPreset(), slice: { id: 'cash', params: { ...cash.defaults } } })
+    render(<SliceStudio />)
+
+    expect(document.querySelector('.studio__band')).toBeNull()
+
+    await userEvent.click(screen.getByLabelText('Show the room'))
+
+    const expected = cash.bands?.(cash.defaults).length ?? 0
+    expect(expected).toBeGreaterThan(1)
+    for (const node of screen.getAllByRole('img')) {
+      expect(node.querySelectorAll('.studio__band')).toHaveLength(expected)
+    }
+  })
+
+  // A layout that names no bands still has room — the wedge's own run.
+  it('falls back to the wedge run for a layout that names no band', async () => {
+    savePreset({ ...loadPreset(), slice: { id: 'curved', params: {} } })
+    render(<SliceStudio />)
+
+    await userEvent.click(screen.getByLabelText('Show the room'))
+
+    expect(screen.getAllByRole('img')[0].querySelectorAll('.studio__band')).toHaveLength(1)
   })
 
   it('offers the slice controls rather than a second set of its own', () => {
