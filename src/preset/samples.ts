@@ -33,9 +33,9 @@ const cashSlice = (mark: string): SliceInstance => ({
         content: { from: 'label', transform: 'digits' },
         orientation: 'stacked',
         band: [0.38, 0.84],
-        // A fat didone: round bowls and heavy thick-to-thin, which is the genus
-        // the numerals engraved at the corners of a banknote belong to.
-        font: 'abril-fatface',
+        // A fat slab, not a didone: a didone's horizontals thin to hairlines,
+        // and a hairline is the first thing to disappear on a wedge this narrow.
+        font: 'alfa-slab-one',
         stretch: 'fill',
         // Figures on a banknote are set tight; the default line box leaves a
         // column of air between them that reads as three separate digits.
@@ -202,6 +202,7 @@ const cashWheel: Preset = {
   },
   branches: [],
   theme: 'board',
+  hub: { emblem: { kind: 'emoji', value: '🎡' }, spins: true },
 }
 
 export const SAMPLES: Sample[] = [
