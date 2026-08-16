@@ -223,3 +223,59 @@ describe('SliceStudio wedge color', () => {
     expect(document.querySelector('.wheel__segment')?.getAttribute('fill')).toBe('#00ff00')
   })
 })
+
+describe('SliceStudio breakpoints', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('draws each preview as the width it is, not as the wedge resolves once', () => {
+    // A fixed string per instance, so which one a preview drew is readable off
+    // the DOM without depending on how either would have fitted the label.
+    const saying = (text: string) => ({
+      id: 'composed' as const,
+      params: {
+        parts: [{ content: { from: 'text', value: text }, orientation: 'radial', band: [0.2, 0.9] }],
+      },
+    })
+    savePreset({
+      ...loadPreset(),
+      slice: saying('NARROW'),
+      // A twelfth of a turn is 30°, so only the last step and the wide pair clear it.
+      breakpoints: [{ from: 1 / 12, slice: saying('WIDE') }],
+    })
+    render(<SliceStudio />)
+
+    const drawnIn = (deg: number) =>
+      screen.getByRole('img', { name: `wedge at ${deg} degrees` }).textContent
+
+    expect(drawnIn(30)).toContain('WIDE')
+    expect(drawnIn(60)).toContain('WIDE')
+    // 12° rather than 8°: the narrowest step holds neither word at a readable
+    // size, so it draws nothing and says nothing about which one resolved.
+    expect(drawnIn(12)).toContain('NARROW')
+    expect(drawnIn(20)).toContain('NARROW')
+  })
+
+  it('names the breakpoint a preview landed on', () => {
+    savePreset({
+      ...loadPreset(),
+      breakpoints: [{ from: 1 / 12, slice: { id: 'curved', params: {} } }],
+    })
+    render(<SliceStudio />)
+
+    // Scoped to the caption: 'Curved' is also an option in the layout select.
+    expect(screen.getAllByText('Curved', { selector: '.studio__resolved' }).length).toBe(3)
+  })
+
+  it('leaves a caption bare where no breakpoint fired', () => {
+    savePreset({
+      ...loadPreset(),
+      breakpoints: [{ from: 1 / 12, slice: { id: 'curved', params: {} } }],
+    })
+    const { container } = render(<SliceStudio />)
+
+    // Five stepped widths and the scrubber, of which only 30° clears the floor.
+    expect(container.querySelectorAll('.studio__resolved')).toHaveLength(3)
+  })
+})
