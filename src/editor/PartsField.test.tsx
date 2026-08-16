@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { DEFAULT_SPECIMEN } from '../slice/fonts/specimen'
 import { MAX_PARTS } from '../slice/parts'
 import type { SlicePart } from '../slice/types'
 import { PartsField } from './PartsField'
@@ -142,8 +143,8 @@ describe('the face a part is set in', () => {
     await userEvent.selectOptions(screen.getByLabelText('Face'), 'rye')
 
     expect(spy).toHaveBeenCalledWith([expect.objectContaining({ font: 'rye' })])
-    // Baked at build time: a menu of 33 faces loads none of them.
-    expect(screen.getByRole('img', { name: 'rye specimen' }).querySelector('path')).not.toBeNull()
+    // Set live in the face itself, and only the face that was picked is asked for.
+    expect(document.querySelector('[data-specimen="rye"]')?.textContent).toBe(DEFAULT_SPECIMEN)
   })
 
   // A part carries the key only when it names a face, so going back to the
