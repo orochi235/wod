@@ -1,6 +1,8 @@
-import { type Blitsklieg, createBlitsklieg } from 'blitsklieg'
+import { type Blitsklieg, type FireOptions, createBlitsklieg } from 'blitsklieg'
 import { useCallback, useEffect, useState } from 'react'
+import { cryptoRng } from '../wheel/selection'
 import type { Landing } from '../wheel/useSpin'
+import { type BannerStyle, rollStyle } from './style'
 
 /**
  * An effect plays enter, holds, then leaves; there is no stay-up mode. So the
@@ -9,14 +11,26 @@ import type { Landing } from '../wheel/useSpin'
  */
 const HOLD_MS = 30 * 60 * 1000
 
-const ARRIVE = { enter: 'slam', active: 'sweep', exit: 'none', hold: HOLD_MS } as const
+const arriveWith = (style: BannerStyle): FireOptions => ({
+  enter: style.enter,
+  active: style.active,
+  exit: 'none',
+  look: style.look,
+  hold: HOLD_MS,
+})
 
 /**
- * The same word in the same place, with no entrance and no hold. Under the
- * `replace` policy it takes over from the held effect mid-pose, so the two fires
- * read as one word that slams in, waits, and shatters.
+ * The same word in the same material and the same place, with no entrance and
+ * no hold. Under the `replace` policy it takes over from the held effect
+ * mid-pose, so the two fires read as one word arriving, waiting, and leaving.
  */
-const LEAVE = { enter: 'none', active: 'sweep', exit: 'shatter', hold: 0 } as const
+const leaveWith = (style: BannerStyle): FireOptions => ({
+  enter: 'none',
+  active: style.active,
+  exit: style.exit,
+  look: style.look,
+  hold: 0,
+})
 
 export type CreateBanner = (fontUrl: string) => Blitsklieg
 
@@ -63,10 +77,13 @@ export function useBanner(
   // this cleanup, so the word has exactly one way off the screen.
   useEffect(() => {
     if (stage === null || shown === null || landingId === null) return
+    // Rolled here so both fires wear it: the exit has to be the same word in the
+    // same material, or dismissing it swaps the metal on the way out.
+    const style = rollStyle(cryptoRng)
     // A font that will not load would otherwise hold a scrim over an empty screen.
-    void stage.fire(shown, ARRIVE).catch(() => setDismissedId(landingId))
+    void stage.fire(shown, arriveWith(style)).catch(() => setDismissedId(landingId))
     return () => {
-      void stage.fire(shown, LEAVE).catch(() => undefined)
+      void stage.fire(shown, leaveWith(style)).catch(() => undefined)
     }
   }, [stage, shown, landingId])
 
