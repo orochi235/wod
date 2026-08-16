@@ -4,8 +4,8 @@ import { getSlice } from '../slice/registry'
 import type { FontId, Measure, SliceElement, SliceInstance } from '../slice/types'
 import type { Segment } from '../wheel/types'
 
-/** The widths worth checking a part against, in degrees. */
-export const ARC_STEPS = [4, 8, 12, 20, 30]
+/** The widths worth checking a part against, in degrees. 15 is the cash board's. */
+export const ARC_STEPS = [8, 12, 15, 20, 30]
 
 /**
  * The preview's radius, in the same user units the wheel uses, and fixed. Every
@@ -14,6 +14,13 @@ export const ARC_STEPS = [4, 8, 12, 20, 30]
  * is the one thing showing five of them side by side exists to disprove.
  */
 export const PREVIEW_RADIUS = 100
+
+/** The radius a theme's metrics are authored against — `Wheel`'s own default. */
+const METRIC_RADIUS = 200
+
+/** A theme's hub, in the preview's units rather than the wheel's. */
+export const previewHubRadius = (hubRadius: number): number =>
+  (hubRadius / METRIC_RADIUS) * PREVIEW_RADIUS
 
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
 
@@ -47,13 +54,20 @@ export const MAX_ARC_DEG = 45
 
 const MARGIN = 8
 
+/** The wedges too wide for the standard box, which take a doubled one. */
+export const WIDE_ARC_STEPS = [60, 120]
+
 /**
- * One box for every width, sized to the widest the scrubber can reach —
- * cropped to the wedge rather than the wheel, but never cropped per wedge: a
- * box that hugged each width would rescale the type it is there to compare.
+ * One box for every width, sized to the widest the scrubber can reach — cropped
+ * to the wedge rather than the wheel, but never cropped per wedge: a box that
+ * hugged each width would rescale the type it is there to compare.
+ *
+ * `scale` doubles the box for a wedge the standard one cannot hold. Drawn into
+ * twice the CSS width it is the same px-per-unit, which is the whole point: a
+ * half-turn wedge has to look wider, not the same at a smaller size.
  */
-export function previewBox(): { x: number; y: number; width: number; height: number } {
-  const half = PREVIEW_RADIUS * Math.sin(Math.PI * (MAX_ARC_DEG / 360)) + MARGIN
+export function previewBox(scale = 1): { x: number; y: number; width: number; height: number } {
+  const half = (PREVIEW_RADIUS * Math.sin(Math.PI * (MAX_ARC_DEG / 360)) + MARGIN) * scale
   return {
     x: -half,
     y: -(PREVIEW_RADIUS + MARGIN),

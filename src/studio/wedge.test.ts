@@ -3,7 +3,7 @@ import { ARC_STEPS, turnFraction } from './wedge'
 
 describe('turnFraction', () => {
   it('names each step the share of the wheel it is', () => {
-    expect(ARC_STEPS.map(turnFraction)).toEqual(['1/90', '1/45', '1/30', '1/18', '1/12'])
+    expect(ARC_STEPS.map(turnFraction)).toEqual(['1/45', '1/30', '1/24', '1/18', '1/12'])
   })
 
   it('reduces to lowest terms rather than leaving 4/360', () => {

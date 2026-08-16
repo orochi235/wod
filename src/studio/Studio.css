@@ -24,6 +24,12 @@
   width: 9rem;
 }
 
+/* Twice the box drawn at twice the width, which is the same px-per-unit: a
+   half-turn wedge has to look wider rather than the same at a smaller size. */
+.studio__slot--wide {
+  width: 18rem;
+}
+
 .studio__preview {
   width: 100%;
   height: auto;

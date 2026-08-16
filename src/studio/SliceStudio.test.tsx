@@ -2,8 +2,9 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { loadPreset, savePreset } from '../preset/storage'
+import { getTheme } from '../wheel/themes/registry'
 import { SliceStudio } from './SliceStudio'
-import { ARC_STEPS, PREVIEW_FILL } from './wedge'
+import { ARC_STEPS, PREVIEW_FILL, PREVIEW_RADIUS, WIDE_ARC_STEPS, previewHubRadius } from './wedge'
 
 describe('SliceStudio', () => {
   beforeEach(() => {
@@ -13,12 +14,12 @@ describe('SliceStudio', () => {
   it('shows every step width at once rather than one at a time', () => {
     render(<SliceStudio />)
 
-    for (const step of ARC_STEPS) {
+    for (const step of [...ARC_STEPS, ...WIDE_ARC_STEPS]) {
       expect(screen.getByRole('img', { name: `wedge at ${step} degrees` })).toBeInTheDocument()
     }
   })
 
-  it('renders a sixth wedge the scrubber drives', () => {
+  it('renders one last wedge the scrubber drives', () => {
     render(<SliceStudio />)
 
     const scrub = screen.getByLabelText('Scrubbed arc width')
@@ -27,13 +28,65 @@ describe('SliceStudio', () => {
     expect(screen.getByRole('img', { name: 'wedge at 37 degrees' })).toBeInTheDocument()
   })
 
-  // Cropped to the wedge, and one box for all six: a per-wedge crop would
-  // rescale the type the gallery exists to compare.
-  it('crops every render to the same box', () => {
+  const boxWidthOf = (deg: number) =>
+    Number(
+      screen
+        .getByRole('img', { name: `wedge at ${deg} degrees` })
+        .getAttribute('viewBox')
+        ?.split(' ')[2],
+    )
+
+  // Cropped to the wedge, and one scale for all of them: a per-wedge crop would
+  // rescale the type the gallery exists to compare. The wide pair earns a
+  // doubled box by being drawn at doubled width, which is the same scale.
+  it('crops every standard render to the same box', () => {
     render(<SliceStudio />)
 
-    const boxes = screen.getAllByRole('img').map((node) => node.getAttribute('viewBox'))
+    const boxes = ARC_STEPS.map((step) =>
+      screen.getByRole('img', { name: `wedge at ${step} degrees` }).getAttribute('viewBox'),
+    )
     expect(new Set(boxes).size).toBe(1)
+  })
+
+  it('gives the wide pair exactly twice the box, and twice the slot', () => {
+    render(<SliceStudio />)
+
+    expect(boxWidthOf(WIDE_ARC_STEPS[0])).toBeCloseTo(boxWidthOf(ARC_STEPS[0]) * 2, 6)
+    for (const step of WIDE_ARC_STEPS) {
+      const slot = screen.getByRole('img', { name: `wedge at ${step} degrees` }).closest('li')
+      expect(slot?.className).toContain('studio__slot--wide')
+    }
+  })
+
+  // The widest wedge has to fit the box it was given, or the crop is a clip.
+  it('holds the widest wedge inside the doubled box', () => {
+    render(<SliceStudio />)
+
+    const widest = Math.max(...WIDE_ARC_STEPS)
+    const half = PREVIEW_RADIUS * Math.sin(Math.PI * (widest / 360))
+    expect(boxWidthOf(widest) / 2).toBeGreaterThan(half)
+  })
+
+  // The cap covers the tip on the real wheel, so a preview that drew it would
+  // show room the type can never have.
+  it('masks the hub out of every preview when the look wears one', () => {
+    savePreset({ ...loadPreset(), theme: 'board' })
+    render(<SliceStudio />)
+
+    for (const node of screen.getAllByRole('img')) {
+      const masked = node.querySelector('g[mask]')
+      expect(masked).not.toBeNull()
+      expect(node.querySelector('mask circle')?.getAttribute('r')).toBe(
+        String(previewHubRadius(getTheme('board')?.metrics.hubRadius ?? 0)),
+      )
+    }
+  })
+
+  it('masks nothing out for a look with no hub at all', () => {
+    savePreset({ ...loadPreset(), theme: 'flat' })
+    render(<SliceStudio />)
+
+    expect(screen.getAllByRole('img')[0].querySelector('mask')).toBeNull()
   })
 
   it('offers the slice controls rather than a second set of its own', () => {
