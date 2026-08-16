@@ -226,6 +226,66 @@ describe('App empty guard', () => {
   })
 })
 
+describe('App wheel click', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  const wheel = () => screen.getByRole('img', { name: 'wheel' })
+
+  it('spins when the wheel itself is clicked', async () => {
+    const harness = installSpinHarness()
+    try {
+      render(<App />)
+      expect(screen.getByRole('button', { name: /spin/i })).toBeEnabled()
+
+      await userEvent.click(wheel())
+
+      // The button going out is the wheel reporting a spin in flight.
+      expect(screen.getByRole('button', { name: /spin/i })).toBeDisabled()
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('ignores a click on a wheel with nothing to land on', async () => {
+    const harness = installSpinHarness()
+    try {
+      window.localStorage.setItem(
+        PRESET_KEY,
+        JSON.stringify({ ...DEFAULT_PRESET, segments: [], feeds: [], tricks: [], branches: [] }),
+      )
+      render(<App />)
+
+      await userEvent.click(wheel())
+
+      // Same guard the button wears: a click onSpin cannot resolve reads as a
+      // broken wheel rather than an empty one.
+      expect(screen.getByText(/nothing on the wheel yet/i)).toBeInTheDocument()
+      expect(harness.calls.animate).toBe(0)
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('ignores a click while the wheel is already spinning', async () => {
+    const harness = installSpinHarness()
+    try {
+      render(<App />)
+      await userEvent.click(wheel())
+      const spun = harness.calls.animate
+      expect(spun).toBeGreaterThan(0)
+
+      await userEvent.click(wheel())
+
+      // A second spin mid-flight would restart the animation under itself.
+      expect(harness.calls.animate).toBe(spun)
+    } finally {
+      harness.restore()
+    }
+  })
+})
+
 describe('App spin', () => {
   beforeEach(() => {
     window.localStorage.clear()

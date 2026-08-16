@@ -174,27 +174,36 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
   // around a dark wheel was the only thing on it that was not the show.
   const staged = partOn(theme, 'stage')
 
+  // One condition, worn by the button and by the wheel alike. The wheel is the
+  // obvious thing to hit in a room, so the host offers the click rather than the
+  // wheel itself: `Wheel` draws, and what a click means belongs to the page it
+  // is drawn on. Pointer only — the button beside it is the control that carries
+  // a name and a tab stop, and a second one for the same spin would announce
+  // itself twice.
+  const canSpin = !isSpinning && !isEmpty && shown === null && banner.shown === null
+
   return (
     <main className={staged ? 'app app--staged' : 'app'} style={styleOfTheme(theme)}>
-      <Wheel
-        segments={displaySegments}
-        layoutFrom={layoutSegments}
-        slice={preset.slice}
-        rotorRef={rotorRef}
-        levelRef={levelRef}
-        transitions={preset.transitions}
-        retainedRef={retainedRef}
-        held={held}
-        theme={theme}
-        muted={muted}
-      />
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: the Spin button is this action's keyboard control; a second tab stop would announce the same spin twice. */}
+      <div
+        className={canSpin ? 'app__stage app__stage--live' : 'app__stage'}
+        onClick={canSpin ? onSpin : undefined}
+      >
+        <Wheel
+          segments={displaySegments}
+          layoutFrom={layoutSegments}
+          slice={preset.slice}
+          rotorRef={rotorRef}
+          levelRef={levelRef}
+          transitions={preset.transitions}
+          retainedRef={retainedRef}
+          held={held}
+          theme={theme}
+          muted={muted}
+        />
+      </div>
       <div className="app__controls">
-        <button
-          className="app__button"
-          type="button"
-          onClick={onSpin}
-          disabled={isSpinning || isEmpty || shown !== null || banner.shown !== null}
-        >
+        <button className="app__button" type="button" onClick={onSpin} disabled={!canSpin}>
           Spin
         </button>
         <button

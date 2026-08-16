@@ -16,6 +16,18 @@
   color: var(--wheel-stage-ink, canvastext);
 }
 
+/* Sized by the wheel it holds, so the click lands on the wheel and not on the
+   column's full width. */
+.app__stage {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
+.app__stage--live {
+  cursor: pointer;
+}
+
 .app__controls {
   display: flex;
   gap: 0.75rem;
