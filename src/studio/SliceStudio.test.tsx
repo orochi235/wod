@@ -279,3 +279,20 @@ describe('SliceStudio breakpoints', () => {
     expect(container.querySelectorAll('.studio__resolved')).toHaveLength(3)
   })
 })
+
+describe('SliceStudio breakpoint authoring', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('authors a breakpoint that the gallery immediately draws', async () => {
+    render(<SliceStudio />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add breakpoint' }))
+
+    // `DEFAULT_SLICE` is the composed layout, and a new breakpoint's floor of a
+    // twelfth of a turn is exactly the 30° step, so that caption names it.
+    expect(loadPreset().breakpoints).toHaveLength(1)
+    expect(screen.getAllByText('Composed', { selector: '.studio__resolved' })).toHaveLength(3)
+  })
+})

@@ -1,5 +1,6 @@
 import { CheckboxRow, ColorRow, LabShell, PropertyPanel, SelectRow } from '@weasel-js/labkit'
 import { useCallback, useMemo, useState } from 'react'
+import { BreakpointPanel } from '../editor/BreakpointPanel'
 import { SlicePanel } from '../editor/SlicePanel'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
@@ -166,6 +167,10 @@ export function SliceStudio() {
             <CheckboxRow label="Show the room" value={showBands} onChange={setShowBands} />
           </PropertyPanel>
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
+          <BreakpointPanel
+            breakpoints={preset.breakpoints}
+            onChange={(breakpoints) => update({ ...preset, breakpoints })}
+          />
         </section>
       </div>
     </LabShell>
