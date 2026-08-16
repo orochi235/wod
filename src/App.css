@@ -1,10 +1,19 @@
 .app {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  min-height: 100dvh;
   padding: 2rem 1rem;
   font-family: system-ui, sans-serif;
+}
+
+/* The look's own ground, taken page-wide. `background-color` and not
+   `background`: the shorthand would let a token name a URL to fetch. */
+.app--staged {
+  background-color: var(--wheel-stage-fill, transparent);
+  color: var(--wheel-stage-ink, canvastext);
 }
 
 .app__controls {

@@ -5,6 +5,7 @@ import { Editor } from './editor/Editor'
 import { consumeRigParam } from './rig/visibility'
 import { type Route, routeFromHash } from './routing'
 import '@weasel-js/labkit/styles.css'
+import './index.css'
 
 // Before the first render, so unlocking does not flash the locked editor.
 consumeRigParam()

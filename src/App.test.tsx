@@ -760,3 +760,34 @@ describe('App banner', () => {
     }
   })
 })
+
+describe('App stage', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  const seedTheme = (theme: string) => {
+    window.localStorage.setItem(PRESET_KEY, JSON.stringify({ ...DEFAULT_PRESET, theme }))
+  }
+
+  it('takes the look ground page-wide', async () => {
+    seedTheme('wof')
+    const { container } = render(<App />)
+    // The mute button is the signal that the stored look has been applied.
+    await screen.findByRole('button', { name: /mute/i })
+
+    const main = container.querySelector('.app') as HTMLElement
+    expect(main).toHaveClass('app--staged')
+    expect(main.style.getPropertyValue('--wheel-stage-fill')).toBe('#0b0f1c')
+    expect(main.style.getPropertyValue('--wheel-stage-ink')).toBe('#e8ecf4')
+  })
+
+  it('leaves the page alone under a look with no ground', () => {
+    seedTheme('flat')
+    const { container } = render(<App />)
+
+    // Buttons read their color off the page, so an unstaged one must not be
+    // recolored — there is nothing behind it but the browser's own canvas.
+    expect(container.querySelector('.app')).not.toHaveClass('app--staged')
+  })
+})

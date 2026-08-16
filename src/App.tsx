@@ -15,6 +15,8 @@ import { resolveTricks } from './tricks/resolve'
 import { Wheel } from './wheel/Wheel'
 import type { ChooseColor } from './wheel/colors'
 import { cryptoRng, forced } from './wheel/selection'
+import { partOn } from './wheel/theme'
+import { styleOfTheme } from './wheel/themeStyle'
 import { flat } from './wheel/themes/flat'
 import { getTheme } from './wheel/themes/registry'
 import type { SpinConfig } from './wheel/types'
@@ -148,8 +150,13 @@ export function App({ chooseColor, createBanner }: AppProps = {}) {
   // has anything to spin.
   const isEmpty = resolved.segments.length === 0
 
+  // A look with a stage owns the page it is shown on, not a square behind the
+  // wheel: this is the screen everyone is looking at, and the white margin
+  // around a dark wheel was the only thing on it that was not the show.
+  const staged = partOn(theme, 'stage')
+
   return (
-    <main className="app">
+    <main className={staged ? 'app app--staged' : 'app'} style={styleOfTheme(theme)}>
       <Wheel
         segments={displaySegments}
         layoutFrom={layoutSegments}

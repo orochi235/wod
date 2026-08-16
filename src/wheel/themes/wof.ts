@@ -30,6 +30,7 @@ export const wof: Theme = {
   },
   tokens: {
     '--wheel-stage-fill': '#0b0f1c',
+    '--wheel-stage-ink': '#e8ecf4',
     '--wheel-shadow': 'drop-shadow(0 14px 16px rgb(0 0 0 / 0.6))',
     '--wheel-rim-fill': 'url(#wheel-gold)',
     '--wheel-face-fill': '#14181f',

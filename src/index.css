@@ -1,0 +1,11 @@
+/* The UA's 8px body margin frames every view in a border no look can paint
+   over, because it is outside the element the look dresses. */
+body {
+  margin: 0;
+}
+
+/* The document's scrollbar belongs to the root element, so a staged page has to
+   reach it from up here or a dark show is framed in a white track. */
+:root:has(.app--staged) {
+  color-scheme: dark;
+}
