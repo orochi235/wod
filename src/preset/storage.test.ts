@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { SimulatedFeedConfig } from '../feed/types'
 import { MIN_POLL_INTERVAL_MS } from '../meet/poll'
+import { readParts } from '../slice/parts'
 import { DEFAULT_PRESET } from './defaults'
 import { PRESET_KEY, loadPreset, parsePreset, savePreset } from './storage'
 
@@ -1098,5 +1099,47 @@ describe('hub', () => {
     expect(withHub({ emblem: { kind: 'emoji', value: '🎡' }, spins: 'yes' }).hub).toEqual({
       emblem: { kind: 'emoji', value: '🎡' },
     })
+  })
+})
+
+describe('breakpoints', () => {
+  const round = (data: unknown) => parsePreset(JSON.stringify(data))
+
+  it('reads a list widest-first whatever order it was written in', () => {
+    const preset = round({
+      ...DEFAULT_PRESET,
+      breakpoints: [
+        { from: 0, slice: { id: 'radial', params: {} } },
+        { from: 1 / 12, slice: { id: 'curved', params: {} } },
+      ],
+    })
+    expect(preset.breakpoints?.map((point) => point.from)).toEqual([1 / 12, 0])
+  })
+
+  it('drops an entry with no usable width or no usable layout', () => {
+    const preset = round({
+      ...DEFAULT_PRESET,
+      breakpoints: [
+        { from: 'wide', slice: { id: 'radial', params: {} } },
+        { from: -1, slice: { id: 'radial', params: {} } },
+        { from: 0.1, slice: { id: 'spiral', params: {} } },
+        { from: 0.2, slice: { id: 'curved', params: {} } },
+      ],
+    })
+    expect(preset.breakpoints).toEqual([{ from: 0.2, slice: { id: 'curved', params: {} } }])
+  })
+
+  it('leaves a preset with no list undefined rather than empty', () => {
+    expect(round({ ...DEFAULT_PRESET }).breakpoints).toBeUndefined()
+    expect(round({ ...DEFAULT_PRESET, breakpoints: [] }).breakpoints).toBeUndefined()
+    expect(round({ ...DEFAULT_PRESET, breakpoints: 'nope' }).breakpoints).toBeUndefined()
+  })
+
+  it('reads the parts of a breakpoint the way it reads any other slice', () => {
+    const preset = round({
+      ...DEFAULT_PRESET,
+      breakpoints: [{ from: 0, slice: { id: 'composed', params: { parts: 'nope' } } }],
+    })
+    expect(preset.breakpoints?.[0].slice.params.parts).toEqual(readParts('nope'))
   })
 })

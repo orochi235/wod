@@ -3,6 +3,7 @@ import type { WedgeIndex } from '../compose/types'
 import { MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { FeedConfig, FeedDefaults, ItemOverride } from '../feed/types'
 import { DEFAULT_POLL_INTERVAL_MS, MIN_POLL_INTERVAL_MS } from '../meet/poll'
+import type { Breakpoint } from '../slice/breakpoints'
 import { readParts } from '../slice/parts'
 import { getSlice } from '../slice/registry'
 import type { SliceInstance } from '../slice/types'
@@ -70,6 +71,24 @@ function readSlice(value: unknown): SliceInstance | undefined {
     return { id: layout.id, params: { ...params, parts: readParts(params.parts) } }
   }
   return { id: layout.id, params }
+}
+
+function readBreakpoints(value: unknown): Breakpoint[] | undefined {
+  if (!Array.isArray(value)) return undefined
+
+  const points: Breakpoint[] = []
+  for (const entry of value) {
+    if (!isRecord(entry)) continue
+    if (typeof entry.from !== 'number' || !Number.isFinite(entry.from) || entry.from < 0) continue
+    const slice = readSlice(entry.slice)
+    if (slice === undefined) continue
+    points.push({ from: entry.from, slice })
+  }
+  points.sort((a, b) => b.from - a.from)
+
+  // Undefined rather than empty, so a preset that never had breakpoints and one
+  // whose breakpoints were all unreadable are the same preset.
+  return points.length > 0 ? points : undefined
 }
 
 function readSegments(value: unknown): Segment[] {
@@ -572,6 +591,7 @@ export function parsePreset(raw: string | null): Preset {
     branches: readBranches(data.branches),
     transitions: readTransitions(data.transitions),
     slice: readSlice(data.slice),
+    breakpoints: readBreakpoints(data.breakpoints),
     theme: readTheme(data.theme),
     hub: readHub(data.hub),
   }
