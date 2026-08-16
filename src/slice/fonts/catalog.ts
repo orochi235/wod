@@ -18,9 +18,15 @@ export type Font = {
 
 type Entry = Omit<Font, 'file' | 'google'> & { google?: string }
 
+/**
+ * Against the configured base, not the server root. Vite rewrites the `url()`
+ * in the generated stylesheet when the app is served under a subpath, but a
+ * path a fetch builds is a string it never sees — so the stylesheet found its
+ * faces on GitHub Pages and every parse and every overlay 404'd.
+ */
 const entry = (spec: Entry): Font => ({
   ...spec,
-  file: `/fonts/${spec.id}.ttf`,
+  file: `${import.meta.env.BASE_URL}fonts/${spec.id}.ttf`,
   google: spec.google ?? spec.family,
 })
 

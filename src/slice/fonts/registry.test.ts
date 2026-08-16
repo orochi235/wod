@@ -58,3 +58,14 @@ describe('resolveFamily', () => {
     expect(resolveFamily('made-up', 'also-made-up')).toBe(getFont(DEFAULT_FONT_ID)?.family)
   })
 })
+
+describe('where a face is served from', () => {
+  it('builds every path against the configured base', () => {
+    // The app is served under /<repo>/ on Pages. Vite rewrites the stylesheet's
+    // url() for that; a path handed to fetch is a string it never sees.
+    for (const font of FONT_LIST) {
+      expect(font.file.startsWith(import.meta.env.BASE_URL)).toBe(true)
+      expect(font.file).toBe(`${import.meta.env.BASE_URL}fonts/${font.id}.ttf`)
+    }
+  })
+})
