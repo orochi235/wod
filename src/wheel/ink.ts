@@ -24,6 +24,18 @@ function channels(color: string): [number, number, number] | null {
   return [at(0), at(1), at(2)]
 }
 
+/**
+ * The same color as one number, `0xe8442a`, for anything that takes a color as
+ * a number rather than as CSS. Null for one this cannot read.
+ */
+export function hexNumber(color: string | undefined): number | null {
+  if (color === undefined) return null
+  const rgb = channels(color)
+  if (!rgb) return null
+  const byte = (value: number): number => Math.round(value * 255)
+  return (byte(rgb[0]) << 16) | (byte(rgb[1]) << 8) | byte(rgb[2])
+}
+
 export function luminance(color: string): number | null {
   const rgb = channels(color)
   if (!rgb) return null

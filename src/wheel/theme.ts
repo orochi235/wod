@@ -45,6 +45,11 @@ export type Theme = {
    * than to every part. A part's own `font` overrides it.
    */
   font?: FontId
+  /**
+   * Where the winner's name takes its color from when it lands over the page.
+   * Absent leaves it whatever metal the roll picked.
+   */
+  tint?: 'wedge'
 }
 
 export const FLAT_METRICS: Metrics = {

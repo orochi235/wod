@@ -11,11 +11,12 @@ import { type BannerStyle, rollStyle } from './style'
  */
 const HOLD_MS = 30 * 60 * 1000
 
-const arriveWith = (style: BannerStyle): FireOptions => ({
+const arriveWith = (style: BannerStyle, tint?: number): FireOptions => ({
   enter: style.enter,
   active: style.active,
   exit: 'none',
   look: style.look,
+  tint,
   hold: HOLD_MS,
 })
 
@@ -24,17 +25,30 @@ const arriveWith = (style: BannerStyle): FireOptions => ({
  * no hold. Under the `replace` policy it takes over from the held effect
  * mid-pose, so the two fires read as one word arriving, waiting, and leaving.
  */
-const leaveWith = (style: BannerStyle): FireOptions => ({
+const leaveWith = (style: BannerStyle, tint?: number): FireOptions => ({
   enter: 'none',
   active: style.active,
   exit: style.exit,
   look: style.look,
+  tint,
   hold: 0,
 })
 
 export type CreateBanner = (fontUrl: string) => Blitsklieg
 
 const overThePage: CreateBanner = (fontUrl) => createBlitsklieg({ fontUrl, policy: 'replace' })
+
+export type BannerOptions = {
+  /** The face the word is set in. */
+  fontUrl: string
+  /**
+   * Recolors whichever metal the roll picked, as `0xe8442a`. Absent leaves it
+   * the metal's own color.
+   */
+  tint?: number
+  /** Undefined opens a real overlay. */
+  create?: CreateBanner
+}
 
 export type UseBannerResult = {
   /** The word on screen, or null when there is none. */
@@ -50,11 +64,8 @@ export type UseBannerResult = {
  * A page that cannot draw it raises nothing at all rather than a scrim over an
  * empty screen — the result line already names the winner.
  */
-export function useBanner(
-  landing: Landing | null,
-  fontUrl: string,
-  create: CreateBanner = overThePage,
-): UseBannerResult {
+export function useBanner(landing: Landing | null, options: BannerOptions): UseBannerResult {
+  const { fontUrl, tint, create = overThePage } = options
   // State rather than a ref: a change of face builds a second stage, and the
   // fire below has to be told to draw the word again on it.
   const [stage, setStage] = useState<Blitsklieg | null>(null)
@@ -81,11 +92,11 @@ export function useBanner(
     // same material, or dismissing it swaps the metal on the way out.
     const style = rollStyle(cryptoRng)
     // A font that will not load would otherwise hold a scrim over an empty screen.
-    void stage.fire(shown, arriveWith(style)).catch(() => setDismissedId(landingId))
+    void stage.fire(shown, arriveWith(style, tint)).catch(() => setDismissedId(landingId))
     return () => {
-      void stage.fire(shown, leaveWith(style)).catch(() => undefined)
+      void stage.fire(shown, leaveWith(style, tint)).catch(() => undefined)
     }
-  }, [stage, shown, landingId])
+  }, [stage, shown, landingId, tint])
 
   const dismiss = useCallback(() => {
     if (landingId !== null) setDismissedId(landingId)

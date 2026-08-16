@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { luminance, wantsInverseInk } from './ink'
+import { hexNumber, luminance, wantsInverseInk } from './ink'
 import { DEFAULT_PALETTE } from './palette'
 
 describe('wantsInverseInk', () => {
@@ -53,5 +53,19 @@ describe('luminance', () => {
 
   it('reports nothing for a color it cannot read', () => {
     expect(luminance('darkslategray')).toBeNull()
+  })
+})
+
+describe('hexNumber', () => {
+  it('reads a color as the number a 3d material takes', () => {
+    expect(hexNumber('#e8442a')).toBe(0xe8442a)
+    expect(hexNumber('#000000')).toBe(0x000000)
+    expect(hexNumber('#ffffff')).toBe(0xffffff)
+    expect(hexNumber('#f0a')).toBe(0xff00aa)
+  })
+
+  it('reports nothing for a color it cannot read', () => {
+    expect(hexNumber(undefined)).toBeNull()
+    expect(hexNumber('rebeccapurple')).toBeNull()
   })
 })

@@ -36,9 +36,13 @@ const landing = (id: number, label = 'Solo'): Landing => ({
 })
 
 const mount = (bk: ReturnType<typeof stage>, first: Landing | null = null) =>
-  renderHook(({ at }: { at: Landing | null }) => useBanner(at, '/fonts/bevan.ttf', bk.create), {
-    initialProps: { at: first },
-  })
+  renderHook(
+    ({ at }: { at: Landing | null }) =>
+      useBanner(at, { fontUrl: '/fonts/bevan.ttf', create: bk.create }),
+    {
+      initialProps: { at: first },
+    },
+  )
 
 describe('useBanner', () => {
   it('spells the winner out when the wheel stops', () => {
@@ -107,7 +111,7 @@ describe('useBanner', () => {
   it('draws the word again when the wheel changes face', () => {
     const bk = stage()
     const { result, rerender } = renderHook(
-      ({ font }: { font: string }) => useBanner(landing(1), font, bk.create),
+      ({ font }: { font: string }) => useBanner(landing(1), { fontUrl: font, create: bk.create }),
       { initialProps: { font: '/fonts/bevan.ttf' } },
     )
 
@@ -116,6 +120,25 @@ describe('useBanner', () => {
 
     expect(result.current.shown).toBe('Solo')
     expect(bk.fires.filter((fire) => fire.options.enter !== 'none')).toHaveLength(2)
+  })
+
+  it('wears the tint it was handed, arriving and leaving', () => {
+    const bk = stage()
+    const { result } = renderHook(() =>
+      useBanner(landing(1), { fontUrl: '/fonts/bevan.ttf', tint: 0xe8442a, create: bk.create }),
+    )
+
+    act(() => result.current.dismiss())
+
+    // Both fires, or dismissing it swaps the color on the way out.
+    for (const fire of bk.fires) expect(fire.options.tint).toBe(0xe8442a)
+    expect(bk.fires).toHaveLength(2)
+  })
+
+  it('leaves the metal its own color when handed no tint', () => {
+    const bk = stage()
+    mount(bk, landing(1))
+    expect(bk.arrival()?.options.tint).toBeUndefined()
   })
 
   it('raises nothing where the page cannot draw it', () => {

@@ -840,3 +840,66 @@ describe('App on a sample route', () => {
     expect(wheelHas('Zebediah')).toBe(true)
   })
 })
+
+describe('App banner tint', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  const stage = () => {
+    const fires: { text: string; tint?: number }[] = []
+    const createBanner: CreateBanner = () => ({
+      supported: true,
+      fire: (text, options) => {
+        fires.push({ text, tint: options?.tint })
+        return Promise.resolve()
+      },
+      destroy: () => undefined,
+    })
+    return { createBanner, fires }
+  }
+
+  const seed = (theme: string) => {
+    window.localStorage.setItem(
+      PRESET_KEY,
+      JSON.stringify({
+        ...DEFAULT_PRESET,
+        segments: [{ id: 'solo', label: 'Solo', weight: 1, color: '#e8442a' }],
+        feeds: [],
+        tricks: [],
+        branches: [],
+        theme,
+      }),
+    )
+  }
+
+  it('wears the color of the wedge it landed on under a look that asks for it', async () => {
+    const harness = installSpinHarness()
+    try {
+      seed('wof')
+      const bk = stage()
+      render(<App createBanner={bk.createBanner} />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      expect(bk.fires[0]).toEqual({ text: 'Solo', tint: 0xe8442a })
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('leaves the metal alone under a look that does not', async () => {
+    const harness = installSpinHarness()
+    try {
+      seed('flat')
+      const bk = stage()
+      render(<App createBanner={bk.createBanner} />)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      await harness.land()
+
+      expect(bk.fires[0].tint).toBeUndefined()
+    } finally {
+      harness.restore()
+    }
+  })
+})

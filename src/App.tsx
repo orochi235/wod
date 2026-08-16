@@ -15,6 +15,7 @@ import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
 import { Wheel } from './wheel/Wheel'
 import type { ChooseColor } from './wheel/colors'
+import { hexNumber } from './wheel/ink'
 import { cryptoRng, forced } from './wheel/selection'
 import { partOn } from './wheel/theme'
 import { styleOfTheme } from './wheel/themeStyle'
@@ -114,8 +115,13 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     levelRef,
   } = useSpin(resolved.segments, config)
 
-  // The banner is set in the face the wheel's own wedges are set in.
-  const banner = useBanner(landing, resolveFont(undefined, theme.font).file, createBanner)
+  // The banner is set in the face the wheel's own wedges are set in, and — where
+  // the look asks for it — in the color of the wedge it landed on.
+  const banner = useBanner(landing, {
+    fontUrl: resolveFont(undefined, theme.font).file,
+    tint: theme.tint === 'wedge' ? (hexNumber(landing?.winner.color) ?? undefined) : undefined,
+    create: createBanner,
+  })
 
   // One takeover at a time: the reveal is a second click to dismiss, and it
   // would otherwise open under type drawn on a canvas it cannot sit above.
