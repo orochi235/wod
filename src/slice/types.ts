@@ -201,9 +201,13 @@ export type SlicePart = {
   direction?: 'rimInward' | 'hubOutward'
   /** Letters keep their relative growth toward the rim. Default on, and moot on an arc. */
   fan?: boolean
-  /** Widen each glyph to the room at its radius. Default 'none'. */
+  /**
+   * Grow each glyph across the wedge to the room at its radius. Default 'none'.
+   * Across, never "wider": a quarter-turned run crosses the wedge with its
+   * height, so this is the glyph's y axis there and its x axis everywhere else.
+   */
   stretch?: 'none' | 'fill' | number
-  /** How a glyph the chord cannot hold gives way. Default 'proportional'. */
+  /** How a glyph the chord cannot hold gives way, on that same axis. Default 'proportional'. */
   shrink?: 'proportional' | 'condense'
   /** Set the resolved content in capitals, whatever case it arrived in. */
   caps?: boolean

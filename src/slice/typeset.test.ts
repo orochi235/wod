@@ -803,3 +803,34 @@ describe('leading on a stacked run', () => {
     expect(wide[0].size).toBeCloseTo(none[0].size, 5)
   })
 })
+
+describe('which axis condense squeezes', () => {
+  // The panel calls this "across the wedge" rather than "its width" because the
+  // axis is not the same one every orientation. A quarter-turned glyph crosses
+  // the wedge with its height, so squeezing its width would do nothing.
+  const narrow = context({ arc: { start: 0, end: 0.02 } })
+
+  const scaleOf = (orientation: SlicePart['orientation']) =>
+    glyphsOf(
+      { orientation, content: { from: 'text', value: 'WMW' }, shrink: 'condense', fan: false },
+      narrow,
+    )[0].scale
+
+  it('squeezes an upright run on its own x', () => {
+    const [x, y] = scaleOf('stacked')
+    expect(x).toBeLessThan(1)
+    expect(y).toBe(1)
+  })
+
+  it('squeezes a quarter-turned run on its own y', () => {
+    const [x, y] = scaleOf('taperedRadial')
+    expect(x).toBe(1)
+    expect(y).toBeLessThan(1)
+  })
+
+  it('squeezes an arched run on its own x, which follows the baseline', () => {
+    const [x, y] = scaleOf('archedRim')
+    expect(x).toBeLessThan(1)
+    expect(y).toBe(1)
+  })
+})

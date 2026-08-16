@@ -67,7 +67,9 @@ const SHAPES = [
 
 const SHRINKS = [
   { value: 'proportional', label: 'The whole letter' },
-  { value: 'condense', label: 'Its width only' },
+  // Not "its width": the squeeze is always the axis that crosses the wedge, and
+  // a quarter-turned run crosses it with its height.
+  { value: 'condense', label: 'Across the wedge only' },
 ]
 
 const stretchValue = (part: SlicePart): string =>
