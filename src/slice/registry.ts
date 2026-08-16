@@ -1,4 +1,5 @@
 import type { Segment } from '../wheel/types'
+import { type Breakpoint, sliceAt } from './breakpoints'
 import { auto } from './layouts/auto'
 import { cash } from './layouts/cash'
 import { composed } from './layouts/composed'
@@ -56,10 +57,30 @@ export function getSlice(id: string): SliceLayout | null {
   return Object.hasOwn(SLICE_LAYOUTS, id) ? SLICE_LAYOUTS[id as SliceLayoutId] : null
 }
 
-/** Segment override beats the wheel default beats the built-in. */
+/** Segment override beats a matching breakpoint beats the wheel default beats the built-in. */
 export function resolveInstance(
   segment: Segment,
   wheelDefault: SliceInstance | undefined,
+  breakpoints?: Breakpoint[],
+  /** Turns. Absent resolves as it did before there were breakpoints. */
+  width?: number,
 ): SliceInstance {
-  return segment.slice ?? wheelDefault ?? DEFAULT_SLICE
+  return segment.slice ?? sliceAt(breakpoints, width) ?? wheelDefault ?? DEFAULT_SLICE
+}
+
+/**
+ * Every instance a wheel could resolve to, whatever its wedges end up as wide
+ * as. What font preloading needs: it runs before any wedge has a width, and a
+ * face fetched only once a wedge reaches the breakpoint that wants it arrives
+ * after the run that measured against the fallback has already been cached.
+ */
+export function instancesUsed(
+  segments: Segment[],
+  wheelDefault: SliceInstance | undefined,
+  breakpoints: Breakpoint[] | undefined,
+): SliceInstance[] {
+  return [
+    ...segments.map((segment) => resolveInstance(segment, wheelDefault)),
+    ...(breakpoints ?? []).map((point) => point.slice),
+  ]
 }
