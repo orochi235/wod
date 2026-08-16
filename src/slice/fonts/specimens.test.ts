@@ -36,8 +36,12 @@ describe('the faces this app ships', () => {
       )
 
       expect(parsed.unitsPerEm).toBeGreaterThan(0)
-      for (const char of 'AMWaz') {
-        expect(`${font.id} ${char} ${parsed.charToGlyph(char).index}`).not.toContain(' 0')
+      // The specimen's own glyphs included: a face missing one bakes a .notdef
+      // box into the picker, which reads as a design choice rather than a gap.
+      // Index 0 is .notdef, and it is asserted as a number — spelling the check
+      // into a string made the digit '0' fail as if the face lacked it.
+      for (const char of 'AMWazRagez850$') {
+        expect(parsed.charToGlyph(char).index, `${font.id} has no ${char}`).not.toBe(0)
       }
     }
   })

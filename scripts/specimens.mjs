@@ -16,8 +16,14 @@ import opentype from 'opentype.js'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outPath = join(root, 'src', 'slice', 'fonts', 'specimens.ts')
 
-/** Long enough to show a face's rhythm, short enough that 33 of them are a few KB. */
-const WORD = 'Wheel'
+/**
+ * Nine glyphs, none repeated, grouped letters then figures. A wheel sets names
+ * and it sets money, so a specimen has to answer both. `e` and `z` carry the
+ * horizontals that a high-contrast face thins to hairlines — the first thing to
+ * disappear on a narrow wedge — and `0` shows the stress axis those horizontals
+ * belong to. A word would spend this width repeating a letter instead.
+ */
+const SPECIMEN = 'Ragez 850$'
 /** The height every specimen is normalised to, so the picker's rows line up. */
 export const HEIGHT = 24
 
@@ -39,7 +45,7 @@ const round = (n) => Math.round(n * 10) / 10
 function runPath(font, size) {
   const path = new opentype.Path()
   let x = 0
-  for (const char of WORD) {
+  for (const char of SPECIMEN) {
     const glyph = font.charToGlyph(char)
     path.extend(glyph.getPath(x, 0, size))
     x += ((glyph.advanceWidth ?? 0) * size) / font.unitsPerEm
