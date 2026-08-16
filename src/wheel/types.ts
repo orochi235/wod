@@ -21,6 +21,13 @@ export type Segment = {
   reveal?: Reveal
   /** Overrides the wheel's layout for this wedge alone. */
   slice?: SliceInstance
+  /**
+   * The material this wedge's winner is announced in, as a validated string
+   * rather than a union — the banner's library owns the names, and the wheel's
+   * vocabulary should not depend on it to say a wedge has one. `banner/style.ts`
+   * judges the id; one it does not carry rolls a material as if none were named.
+   */
+  look?: string
 }
 
 /** CSS cubic-bezier control points, in the order CSS writes them: x1, y1, x2, y2. */

@@ -860,6 +860,20 @@ describe('reveal and media', () => {
     },
   )
 
+  it('reads the material a wedge names', () => {
+    const [segment] = parseSegments([{ id: 'a', label: 'A', weight: 1, look: 'oil' }])
+    expect(segment.look).toBe('oil')
+  })
+
+  it.each([7, '', null, { name: 'oil' }])(
+    'drops a look of %p without losing the segment',
+    (look) => {
+      const [segment] = parseSegments([{ id: 'a', label: 'A', weight: 1, look }])
+      expect(segment).toMatchObject({ id: 'a', label: 'A' })
+      expect(segment.look).toBeUndefined()
+    },
+  )
+
   it.each([0, -5, 'soon', Number.NaN])('drops a holdMs of %p', (holdMs) => {
     const [segment] = parseSegments([
       { id: 'a', label: 'A', weight: 1, reveal: { headline: 'H', holdMs } },

@@ -46,6 +46,12 @@ export type BannerOptions = {
    * the metal's own color.
    */
   tint?: number
+  /**
+   * The material the word is extruded in. Absent — or an id the library does not
+   * carry — rolls one. Composes with `tint`, which recolors whichever metal ends
+   * up chosen rather than replacing it.
+   */
+  look?: string
   /** Undefined opens a real overlay. */
   create?: CreateBanner
 }
@@ -65,7 +71,7 @@ export type UseBannerResult = {
  * empty screen — the result line already names the winner.
  */
 export function useBanner(landing: Landing | null, options: BannerOptions): UseBannerResult {
-  const { fontUrl, tint, create = overThePage } = options
+  const { fontUrl, tint, look, create = overThePage } = options
   // State rather than a ref: a change of face builds a second stage, and the
   // fire below has to be told to draw the word again on it.
   const [stage, setStage] = useState<Blitsklieg | null>(null)
@@ -90,13 +96,13 @@ export function useBanner(landing: Landing | null, options: BannerOptions): UseB
     if (stage === null || shown === null || landingId === null) return
     // Rolled here so both fires wear it: the exit has to be the same word in the
     // same material, or dismissing it swaps the metal on the way out.
-    const style = rollStyle(cryptoRng)
+    const style = rollStyle(cryptoRng, look)
     // A font that will not load would otherwise hold a scrim over an empty screen.
     void stage.fire(shown, arriveWith(style, tint)).catch(() => setDismissedId(landingId))
     return () => {
       void stage.fire(shown, leaveWith(style, tint)).catch(() => undefined)
     }
-  }, [stage, shown, landingId, tint])
+  }, [stage, shown, landingId, tint, look])
 
   const dismiss = useCallback(() => {
     if (landingId !== null) setDismissedId(landingId)

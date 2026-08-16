@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import type { FireOptions } from 'blitsklieg'
+import { type FireOptions, LOOK_NAMES } from 'blitsklieg'
 import { describe, expect, it } from 'vitest'
 import type { Landing } from '../wheel/useSpin'
 import { type CreateBanner, useBanner } from './useBanner'
@@ -133,6 +133,25 @@ describe('useBanner', () => {
     // Both fires, or dismissing it swaps the color on the way out.
     for (const fire of bk.fires) expect(fire.options.tint).toBe(0xe8442a)
     expect(bk.fires).toHaveLength(2)
+  })
+
+  it('wears the material it was handed, arriving and leaving', () => {
+    const bk = stage()
+    const { result } = renderHook(() =>
+      useBanner(landing(1), { fontUrl: '/fonts/bevan.ttf', look: 'oil', create: bk.create }),
+    )
+
+    act(() => result.current.dismiss())
+
+    // Both fires, or dismissing it swaps the metal on the way out.
+    for (const fire of bk.fires) expect(fire.options.look).toBe('oil')
+    expect(bk.fires).toHaveLength(2)
+  })
+
+  it('rolls the material when the wedge names none', () => {
+    const bk = stage()
+    mount(bk, landing(1))
+    expect(LOOK_NAMES).toContain(bk.arrival()?.options.look)
   })
 
   it('leaves the metal its own color when handed no tint', () => {

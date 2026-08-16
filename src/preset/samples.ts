@@ -61,6 +61,14 @@ const PENALTY_COLORS: Record<string, string> = {
 }
 
 /**
+ * The metals a winner is announced in. Cycled like the colors — no face means
+ * its own metal — except the one that takes the round off you, which is
+ * iridescent near-black however much the wedge tints it.
+ */
+const SOLVENT_LOOKS = ['gold', 'ruby']
+const BANKRUPT_LOOK = 'oil'
+
+/**
  * The one face that is set rather than stacked: LOSE around the rim, A on a
  * line of its own, TURN down the wedge. Three words stacked end to end would
  * solve to the floor and read as one long column of letters.
@@ -155,12 +163,14 @@ const FACES = [
  */
 function faces(): Segment[] {
   let cash = 0
+  let solvent = 0
   return FACES.map((label, index) => ({
     id: `face${index + 1}`,
     label,
     weight: 1,
     color: PENALTY_COLORS[label] ?? CASH_COLORS[cash++ % CASH_COLORS.length],
     slice: FACE_SLICES[label] ?? cashSlice('$'),
+    look: label === 'BANKRUPT' ? BANKRUPT_LOOK : SOLVENT_LOOKS[solvent++ % SOLVENT_LOOKS.length],
   }))
 }
 

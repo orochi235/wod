@@ -98,6 +98,7 @@ function readSegments(value: unknown): Segment[] {
     if (reveal !== undefined) segment.reveal = reveal
     const slice = readSlice(entry.slice)
     if (slice !== undefined) segment.slice = slice
+    if (typeof entry.look === 'string' && entry.look !== '') segment.look = entry.look
     segments.push(segment)
   }
   return segments

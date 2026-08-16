@@ -115,11 +115,14 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     levelRef,
   } = useSpin(resolved.segments, config)
 
-  // The banner is set in the face the wheel's own wedges are set in, and — where
-  // the look asks for it — in the color of the wedge it landed on.
+  // The banner is set in the face the wheel's own wedges are set in, in the
+  // material its wedge names, and — where the look asks for it — in the color of
+  // the wedge it landed on. Material and tint compose: the tint recolors
+  // whichever metal is chosen rather than replacing it.
   const banner = useBanner(landing, {
     fontUrl: resolveFont(undefined, theme.font).file,
     tint: theme.tint === 'wedge' ? (hexNumber(landing?.winner.color) ?? undefined) : undefined,
+    look: landing?.winner.look,
     create: createBanner,
   })
 
