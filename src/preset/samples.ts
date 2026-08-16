@@ -12,8 +12,8 @@ export type Sample = {
 
 /**
  * A cash face is a small currency mark with the figure stacked under it, the
- * figures set in a condensed face so they come out tall rather than square in
- * a wedge this narrow. Two parts: the mark is furniture and holds its size,
+ * figures set in a banknote face so they come out round and grand rather than
+ * plain in a wedge this narrow. Two parts: the mark is furniture and holds its size,
  * while the figure takes the whole band and tapers down it.
  */
 const cashSlice = (mark: string): SliceInstance => ({
@@ -33,7 +33,9 @@ const cashSlice = (mark: string): SliceInstance => ({
         content: { from: 'label', transform: 'digits' },
         orientation: 'stacked',
         band: [0.29, 0.84],
-        font: 'bebas-neue',
+        // A fat didone: round bowls and heavy thick-to-thin, which is the genus
+        // the numerals engraved at the corners of a banknote belong to.
+        font: 'abril-fatface',
         stretch: 'fill',
       },
     ],
