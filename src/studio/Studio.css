@@ -1,6 +1,6 @@
 .studio {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 22rem;
+  grid-template-columns: minmax(0, 1fr) 26rem;
   gap: 1.5rem;
   align-items: start;
   padding: 1rem;
