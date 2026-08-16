@@ -1,10 +1,18 @@
 import { pointAt } from '../wheel/geometry'
-import { ARC_FILL, LINE_HEIGHT, arcLength, chord } from './fit'
+import { ARC_FILL, DEFAULT_LEADING, DEFAULT_TRACKING, arcLength, chord } from './fit'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
 import type { Glyph, PlacedRun, SliceContext, SlicePart } from './types'
 
-/** Added to every glyph's step so letters do not touch. A fraction of the size. */
-const TRACKING = 0.08
+const trackingOf = (part: SlicePart): number => part.tracking ?? DEFAULT_TRACKING
+const leadingOf = (part: SlicePart, fallback: number): number => part.leading ?? fallback
+
+/**
+ * A stacked run steps by its line box, never by tracking: the gap between two
+ * of its letters is vertical, and tracking is the horizontal one. The default
+ * is the glyph's own extent plus the space that reads as separation — not
+ * `DEFAULT_LEADING`, which is a line box for text set along a baseline.
+ */
+const STACK_LEADING = 1.08
 /** How much of the room at a glyph's own corners it may claim. */
 const GLYPH_CHORD_FILL = 0.86
 const MAX_STRETCH = 3
@@ -216,12 +224,21 @@ export function placeAlongRadius(
   // The other axis, which decides how far toward the hub a glyph's corners reach.
   const along = chars.map((_, i) => (stacked ? GLYPH_EXTENT : advances[i]))
 
+  const tracking = trackingOf(part)
   let steps: number[] = []
   let solved: Solved = { sizes: [], radii: [] }
   for (const concession of CONCESSIONS) {
     if (concession.fan && !fanned) continue
     // Upright letters step by the line; quarter-turned ones step by the advance.
-    steps = chars.map((_, i) => (stacked ? 1 : advances[i]) + (concession.tracked ? TRACKING : 0))
+    // Stacked concedes the air in its line box; the rest concede their tracking.
+    const leading = leadingOf(part, STACK_LEADING)
+    steps = chars.map((_, i) =>
+      stacked
+        ? concession.tracked
+          ? leading
+          : Math.min(leading, GLYPH_EXTENT)
+        : advances[i] + (concession.tracked ? tracking : 0),
+    )
     solved = solveRadial(steps, across, along, part, ctx, maxSize, concession.fan)
     if (spanOf(solved.sizes, steps) <= length + FIT_SLACK) break
   }
@@ -255,17 +272,17 @@ export function placeAlongArc(
   const advances = chars.map((char) => Math.max(ctx.measure(char, 1, family), MIN_ADVANCE))
 
   const run = arcLength(width, baseline) * ARC_FILL
-  const thickness = ((outer - inner) * ctx.radius) / LINE_HEIGHT
+  const thickness = ((outer - inner) * ctx.radius) / leadingOf(part, DEFAULT_LEADING)
   const maxSize = part.maxSize ?? DEFAULT_MAX_SIZE
   const condense = part.shrink === 'condense'
   const authored = authoredStretch(part)
 
   // Nothing narrows on an arc, so the tracking is the only rung there is.
-  let tracking = TRACKING
+  let tracking = trackingOf(part)
   let demand = 0
   let size = 0
   let factor = authored
-  for (const tracked of [TRACKING, 0]) {
+  for (const tracked of [trackingOf(part), 0]) {
     tracking = tracked
     demand = advances.reduce((sum, advance) => sum + advance + tracked, 0)
     const fit = demand > 0 ? run / demand : 0

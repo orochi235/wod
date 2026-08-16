@@ -28,6 +28,9 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
 
         if (element.kind === 'raw') return <g key={key}>{element.node}</g>
 
+        // A part's own color, or nothing — the class keeps the wedge's ink.
+        const fill = element.ink
+
         if (element.kind === 'path') {
           // A path with no fill of its own is a label — outline mode's warped
           // run — and takes the label's color rather than disappearing.
@@ -36,7 +39,7 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
               key={key}
               className={element.fill ? undefined : 'wheel__label'}
               d={element.d}
-              fill={element.fill}
+              fill={element.fill ?? fill}
               opacity={element.opacity}
             />
           )
@@ -55,6 +58,8 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
                 className="wheel__label"
                 fontFamily={fontFamily}
                 fontSize={element.size}
+                letterSpacing={element.letterSpacing}
+                fill={fill}
                 textAnchor="middle"
               >
                 <textPath href={`#${pathId}`} startOffset="50%">
@@ -76,6 +81,7 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
                   className="wheel__label"
                   fontFamily={fontFamily}
                   fontSize={glyph.size}
+                  fill={fill}
                   textAnchor="middle"
                   dominantBaseline="central"
                   transform={`translate(${glyph.x} ${glyph.y}) rotate(${glyph.rotate}) scale(${glyph.scale[0]} ${glyph.scale[1]})`}
@@ -108,6 +114,8 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
                     className="wheel__label"
                     fontFamily={fontFamily}
                     fontSize={element.size}
+                    letterSpacing={element.letterSpacing}
+                    fill={fill}
                     textAnchor="middle"
                     dominantBaseline="middle"
                   >
@@ -142,6 +150,8 @@ export function SliceElements({ elements, arc, radius, id, levelRef }: SliceElem
             className="wheel__label"
             fontFamily={fontFamily}
             fontSize={element.size}
+            letterSpacing={element.letterSpacing}
+            fill={fill}
             textAnchor="middle"
             dominantBaseline="middle"
             transform={`rotate(${midDeg}) translate(0 ${-anchorRadius})${along}`}

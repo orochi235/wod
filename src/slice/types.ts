@@ -25,7 +25,7 @@ export type ContentTransform =
   | 'digits'
   | 'ellipsis'
 
-export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed'
+export type SliceLayoutId = 'auto' | 'radial' | 'tangential' | 'curved' | 'composed' | 'cash'
 
 export type SliceParams = Record<string, unknown>
 
@@ -49,6 +49,14 @@ export type FitSpec = {
   minSize: number
   /** The CSS family the text is set in. Absent measures the default face. */
   family?: string
+  /**
+   * Extra advance per character, as a fraction of the size. It enters the solve
+   * rather than only the paint: a run tracked wider than it was sized for
+   * overflows the box the solve just proved it fit in.
+   */
+  tracking?: number
+  /** The line box, as a multiple of the size. */
+  leading?: number
 }
 
 export type Placement = {
@@ -115,8 +123,16 @@ export type GlyphSource = {
 }
 
 type Drawn =
-  | { kind: 'text'; text: string; along: 'radial' | 'tangential'; anchor: number; size: number }
-  | { kind: 'curvedText'; text: string; anchor: number; size: number }
+  | {
+      kind: 'text'
+      text: string
+      along: 'radial' | 'tangential'
+      anchor: number
+      size: number
+      /** User units, already multiplied out of the part's tracking. */
+      letterSpacing?: number
+    }
+  | { kind: 'curvedText'; text: string; anchor: number; size: number; letterSpacing?: number }
   | { kind: 'glyphRun'; glyphs: Glyph[] }
   | { kind: 'image'; href: string; anchor: number; size: number; clip?: 'circle' | 'wedge' }
   | { kind: 'path'; d: string; fill?: string; opacity?: number }
@@ -130,7 +146,7 @@ type Drawn =
  * `family` is a CSS family, already resolved, and painting an element in
  * anything else mis-sizes it: every size on it was measured in that face.
  */
-export type SliceElement = Drawn & { frame?: Frame; family?: string }
+export type SliceElement = Drawn & { frame?: Frame; family?: string; ink?: string }
 
 export type SliceContext = {
   segment: Segment
@@ -185,9 +201,13 @@ export type SlicePart = {
   direction?: 'rimInward' | 'hubOutward'
   /** Letters keep their relative growth toward the rim. Default on, and moot on an arc. */
   fan?: boolean
-  /** Widen each glyph to the room at its radius. Default 'none'. */
+  /**
+   * Grow each glyph across the wedge to the room at its radius. Default 'none'.
+   * Across, never "wider": a quarter-turned run crosses the wedge with its
+   * height, so this is the glyph's y axis there and its x axis everywhere else.
+   */
   stretch?: 'none' | 'fill' | number
-  /** How a glyph the chord cannot hold gives way. Default 'proportional'. */
+  /** How a glyph the chord cannot hold gives way, on that same axis. Default 'proportional'. */
   shrink?: 'proportional' | 'condense'
   /** Set the resolved content in capitals, whatever case it arrived in. */
   caps?: boolean
@@ -197,4 +217,10 @@ export type SlicePart = {
   font?: FontId
   maxSize?: number
   frame?: Frame
+  /** `#rgb` or `#rrggbb`. Absent takes the wedge's own label ink. */
+  color?: string
+  /** Extra advance per character, as a fraction of the size. Default 0.08. */
+  tracking?: number
+  /** The line box, as a multiple of the size. Default 1.2. */
+  leading?: number
 }

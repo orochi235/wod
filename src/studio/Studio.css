@@ -1,0 +1,71 @@
+.studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 1.5rem;
+  align-items: start;
+  padding: 1rem;
+}
+
+.studio__gallery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.studio__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Takes whatever the row has left. Its box is unchanged, so the slack is wider
+   background rather than bigger type — the scale is set by the height. */
+.studio__slot--fill {
+  flex: 1 1 auto;
+  min-width: 9rem;
+}
+
+.studio__slot--fill .studio__preview {
+  width: 100%;
+}
+
+/* Every box is the same height, so pinning the height pins px-per-unit for all
+   of them at once — a wider wedge gets a wider box and a wider preview rather
+   than the same wedge drawn smaller. Growing with the viewport scales the whole
+   row together, which keeps that true. */
+.studio__preview {
+  height: clamp(8rem, 16vw, 18rem);
+  width: auto;
+  background: var(--wheel-stage-fill, #14161c);
+  border-radius: 0.35rem;
+}
+
+.studio__caption {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.studio__slot--scrubbed .studio__caption {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.studio__scrub {
+  width: 100%;
+}
+
+.studio__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.studio__exit {
+  color: inherit;
+}

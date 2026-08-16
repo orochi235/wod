@@ -76,6 +76,24 @@ function readFrame(value: unknown): Frame | undefined {
   return value === 'level' || value === 'wheel' ? value : undefined
 }
 
+const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
+
+function readColor(value: unknown): string | undefined {
+  return typeof value === 'string' && HEX.test(value) ? value : undefined
+}
+
+/**
+ * Leading's floor is above zero on purpose: it divides the band into a size, so
+ * a stored 0 would hand every fitted run an infinite one.
+ */
+export const TRACKING_RANGE: [number, number] = [0, 1]
+export const LEADING_RANGE: [number, number] = [0.5, 4]
+
+function readSpacing(value: unknown, [low, high]: [number, number]): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+  return Math.min(high, Math.max(low, value))
+}
+
 function readPart(value: unknown): SlicePart | null {
   if (!isRecord(value)) return null
   const orientation = ORIENTATIONS.find((entry) => entry === value.orientation)
@@ -99,6 +117,12 @@ function readPart(value: unknown): SlicePart | null {
   }
   const frame = readFrame(value.frame)
   if (frame) part.frame = frame
+  const color = readColor(value.color)
+  if (color) part.color = color
+  const tracking = readSpacing(value.tracking, TRACKING_RANGE)
+  if (tracking !== undefined) part.tracking = tracking
+  const leading = readSpacing(value.leading, LEADING_RANGE)
+  if (leading !== undefined) part.leading = leading
   return part
 }
 

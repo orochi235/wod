@@ -19,6 +19,7 @@ import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
 import { FeedPanel } from './FeedPanel'
 import { FitReport } from './FitReport'
+import { HubPanel } from './HubPanel'
 import { MeetPanel } from './MeetPanel'
 import { MotionPanel } from './MotionPanel'
 import { OverridesPanel } from './OverridesPanel'
@@ -138,10 +139,8 @@ export function Editor() {
     [preset.spin, resolved.morphs],
   )
 
-  const { displaySegments, layoutSegments, isSpinning, spin, rotorRef, levelRef } = useSpin(
-    resolved.segments,
-    spinConfig,
-  )
+  const { displaySegments, layoutSegments, isSpinning, spin, rotorRef, levelRef, riderRef } =
+    useSpin(resolved.segments, spinConfig)
   const [scrubbed, setScrubbed] = useState<Segment[] | null>(null)
   // Handing the wheel back to the scrubber the moment `isSpinning` goes false
   // would erase the landing — the one frame the whole trick exists to produce.
@@ -239,6 +238,8 @@ export function Editor() {
             slice={preset.slice}
             rotorRef={rotorRef}
             levelRef={levelRef}
+            riderRef={riderRef}
+            hub={preset.hub}
             transitions={preset.transitions}
             held={spinOwns}
             theme={getTheme(preset.theme ?? '') ?? flat}
@@ -265,6 +266,7 @@ export function Editor() {
           />
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
           <ThemePanel theme={preset.theme} onChange={(theme) => update({ ...preset, theme })} />
+          <HubPanel hub={preset.hub} onChange={(hub) => update({ ...preset, hub })} />
           <FitReport segments={shown} slice={preset.slice} />
         </section>
         {rigVisible ? (

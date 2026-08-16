@@ -12,6 +12,7 @@ import type { Field } from '../form/fields'
 import { SELECTOR_TOKENS, type SelectorToken } from '../tricks/targets'
 import type { TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
+import { FontField } from './FontField'
 import { PartsField } from './PartsField'
 
 /**
@@ -83,6 +84,15 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
             label={field.label}
             value={typeof value === 'string' ? value : ''}
             onChange={(next) => set(field.key, next)}
+          />
+        )
+      case 'font':
+        return (
+          <FontField
+            key={field.key}
+            label={field.label}
+            value={typeof value === 'string' && value !== '' ? value : undefined}
+            onChange={(next) => set(field.key, next ?? '')}
           />
         )
       case 'toggle':

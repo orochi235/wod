@@ -19,6 +19,7 @@ import type {
   BranchAction,
   BranchNode,
   Condition,
+  Hub,
   Motion,
   Preset,
   ScriptedSpin,
@@ -514,6 +515,19 @@ function readTheme(value: unknown): string | undefined {
   return getTheme(value)?.id
 }
 
+/**
+ * Absent rather than empty, as `readTransitions` is: a hub with neither an
+ * emblem nor a flag is the bare cap, which is what no hub at all already means.
+ */
+function readHub(value: unknown): Hub | undefined {
+  if (!isRecord(value)) return undefined
+  const hub: Hub = {}
+  const emblem = readMedia(value.emblem)
+  if (emblem !== undefined) hub.emblem = emblem
+  if (typeof value.spins === 'boolean') hub.spins = value.spins
+  return Object.keys(hub).length === 0 ? undefined : hub
+}
+
 export function parsePreset(raw: string | null): Preset {
   if (raw === null) return DEFAULT_PRESET
 
@@ -559,6 +573,7 @@ export function parsePreset(raw: string | null): Preset {
     transitions: readTransitions(data.transitions),
     slice: readSlice(data.slice),
     theme: readTheme(data.theme),
+    hub: readHub(data.hub),
   }
 }
 

@@ -1065,3 +1065,38 @@ describe('theme', () => {
     expect(parsePreset(raw).version).toBe(5)
   })
 })
+
+describe('hub', () => {
+  const withHub = (hub: unknown) =>
+    parsePreset(JSON.stringify({ ...DEFAULT_PRESET, version: 5, hub }))
+
+  it('keeps an emblem and its flag as written', () => {
+    expect(withHub({ emblem: { kind: 'emoji', value: '🎡' }, spins: true }).hub).toEqual({
+      emblem: { kind: 'emoji', value: '🎡' },
+      spins: true,
+    })
+  })
+
+  it('keeps a flag with no emblem, and an emblem with no flag', () => {
+    expect(withHub({ spins: true }).hub).toEqual({ spins: true })
+    expect(withHub({ emblem: { kind: 'image', value: '/logo.png' } }).hub).toEqual({
+      emblem: { kind: 'image', value: '/logo.png' },
+    })
+  })
+
+  // An empty hub and no hub are the bare cap either way, and only one of them
+  // survives a round trip unchanged.
+  it('comes back absent when nothing is authored', () => {
+    expect(withHub({}).hub).toBeUndefined()
+    expect(withHub(undefined).hub).toBeUndefined()
+    expect(withHub('🎡').hub).toBeUndefined()
+  })
+
+  it('drops an emblem whose kind or value is not one', () => {
+    expect(withHub({ emblem: { kind: 'sculpture', value: 'x' } }).hub).toBeUndefined()
+    expect(withHub({ emblem: { kind: 'emoji', value: 7 } }).hub).toBeUndefined()
+    expect(withHub({ emblem: { kind: 'emoji', value: '🎡' }, spins: 'yes' }).hub).toEqual({
+      emblem: { kind: 'emoji', value: '🎡' },
+    })
+  })
+})

@@ -19,6 +19,7 @@ describe('getSlice', () => {
   it('lists every registered layout', () => {
     expect(SLICE_LIST.map((layout) => layout.id).sort()).toEqual([
       'auto',
+      'cash',
       'composed',
       'curved',
       'radial',

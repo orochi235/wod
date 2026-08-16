@@ -411,8 +411,17 @@
 }
 
 /* The picker's baked previews: outlines, so a menu of faces loads none of them. */
+/* Set live in the face itself, so it is text rather than a picture. Clipped
+   rather than wrapped: a specimen that reflowed to two lines would move every
+   row under it as the face changed. */
 .parts__specimen {
   justify-self: end;
-  fill: currentColor;
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 1.15rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   opacity: 0.75;
 }

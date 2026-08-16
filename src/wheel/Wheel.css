@@ -20,10 +20,17 @@
 /* `--label-ink` is set per wedge, and deliberately outside the two scopes a
    theme may write: it is computed from the wedge's own fill, not authored. */
 .wheel__label {
-  fill: var(--label-ink, var(--wheel-label-color, #11111a));
   font-weight: 400;
   pointer-events: none;
   user-select: none;
+}
+
+/* A part that names its own color renders a `fill` attribute, and a stylesheet
+   declaration would otherwise beat it — a presentation attribute is the weakest
+   thing in the cascade. Excluding those elements here is what lets the
+   attribute paint without an inline style or an `!important`. */
+.wheel__label:not([fill]) {
+  fill: var(--label-ink, var(--wheel-label-color, #11111a));
 }
 
 .wheel__pointer {
@@ -114,4 +121,11 @@
   transform-box: view-box;
   transform-origin: 0 0;
   transition: transform 60ms ease-out;
+}
+
+/* The emblem is the one thing on the cap that is not the cap, so it takes no
+   fill of its own: an emoji paints itself and a picture carries its own pixels. */
+.wheel__emblem {
+  pointer-events: none;
+  user-select: none;
 }

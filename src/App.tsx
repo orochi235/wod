@@ -113,6 +113,7 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     reset,
     rotorRef,
     levelRef,
+    riderRef,
   } = useSpin(resolved.segments, config)
 
   // The banner is set in the face the wheel's own wedges are set in, in the
@@ -198,6 +199,8 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
           slice={preset.slice}
           rotorRef={rotorRef}
           levelRef={levelRef}
+          riderRef={riderRef}
+          hub={preset.hub}
           transitions={preset.transitions}
           retainedRef={retainedRef}
           held={held}

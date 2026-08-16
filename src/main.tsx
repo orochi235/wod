@@ -4,6 +4,7 @@ import { App } from './App'
 import { Editor } from './editor/Editor'
 import { consumeRigParam } from './rig/visibility'
 import { type Route, routeFromHash } from './routing'
+import { SliceStudio } from './studio/SliceStudio'
 import '@weasel-js/labkit/styles.css'
 import './index.css'
 
@@ -20,6 +21,7 @@ function Root() {
   }, [])
 
   if (route.kind === 'edit') return <Editor />
+  if (route.kind === 'slice') return <SliceStudio />
   return <App sample={route.kind === 'sample' ? route.id : undefined} />
 }
 

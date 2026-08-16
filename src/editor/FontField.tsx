@@ -1,14 +1,18 @@
 import { SelectRow } from '@weasel-js/labkit'
 import { CLASS_NAMES } from '../slice/fonts/catalog'
-import { FONT_LIST } from '../slice/fonts/registry'
-import { SPECIMENS } from '../slice/fonts/specimens'
+import { FONT_LIST, getFont } from '../slice/fonts/registry'
+import { specimenText } from '../slice/fonts/specimen'
+import { familyStack } from '../slice/measure'
 import type { FontId } from '../slice/types'
+import { useFaces } from '../wheel/useFaces'
 
 export type FontFieldProps = {
   label: string
   /** Absent follows the look's face. */
   value: FontId | undefined
   onChange: (font: FontId | undefined) => void
+  /** What the specimen is set in. Absent takes the url's, then the built-in. */
+  specimen?: string
 }
 
 const FOLLOW = ''
@@ -22,8 +26,13 @@ const OPTIONS = [
   })),
 ]
 
-export function FontField({ label, value, onChange }: FontFieldProps) {
-  const specimen = value ? SPECIMENS[value] : undefined
+export function FontField({ label, value, onChange, specimen }: FontFieldProps) {
+  const font = getFont(value)
+  // The one face the picker is showing, which is the one about to be used. The
+  // wheel asks for the same face through the same loader, so picking it here
+  // costs nothing twice.
+  useFaces(font ? [{ id: font.id, family: font.family, outline: false }] : [])
+  const text = specimenText(specimen)
 
   return (
     <>
@@ -33,18 +42,17 @@ export function FontField({ label, value, onChange }: FontFieldProps) {
         options={OPTIONS}
         onChange={(next) => onChange(next === FOLLOW ? undefined : next)}
       />
-      {specimen ? (
-        // Baked at build time, so a menu of 33 faces loads none of them.
-        <svg
+      {font ? (
+        // The family is data — which of thirty-three faces — so it rides an
+        // inline style rather than thirty-three classes. It is the only thing
+        // here that is not in the stylesheet.
+        <p
           className="parts__specimen"
-          viewBox={`0 0 ${specimen.width} ${specimen.height}`}
-          height={22}
-          width={Math.min(220, (specimen.width * 22) / specimen.height)}
-          role="img"
-          aria-label={`${value} specimen`}
+          data-specimen={font.id}
+          style={{ fontFamily: familyStack(font.family) }}
         >
-          <path d={specimen.d} />
-        </svg>
+          {text}
+        </p>
       ) : null}
     </>
   )

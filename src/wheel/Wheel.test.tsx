@@ -493,3 +493,79 @@ describe('parts', () => {
     expect(peg?.closest('.wheel__rotor')).not.toBeNull()
   })
 })
+
+describe('hub emblem', () => {
+  const hubTheme = wof
+
+  it('sets an emoji emblem on the cap', () => {
+    const { container } = render(
+      <Wheel
+        segments={segments}
+        theme={hubTheme}
+        hub={{ emblem: { kind: 'emoji', value: '🎡' } }}
+      />,
+    )
+    expect(container.querySelector('.wheel__emblem')?.textContent).toBe('🎡')
+  })
+
+  // Clipped rather than fitted: a logo that is not square would otherwise sit
+  // in a moat of hub, or spill off the cap it is meant to be printed on.
+  it('clips a picture emblem back to the cap', () => {
+    const { container } = render(
+      <Wheel
+        segments={segments}
+        theme={hubTheme}
+        hub={{ emblem: { kind: 'image', value: '/logo.png' } }}
+      />,
+    )
+    const image = container.querySelector('image.wheel__emblem')
+    expect(image?.getAttribute('href')).toBe('/logo.png')
+    expect(image?.getAttribute('clip-path')).toMatch(/^url\(#hub-emblem-/)
+    expect(container.querySelector('clipPath circle')?.getAttribute('r')).toBe(
+      String(hubTheme.metrics.hubRadius),
+    )
+  })
+
+  it('draws no emblem when none is named', () => {
+    const { container } = render(
+      <Wheel segments={segments} theme={hubTheme} hub={{ spins: true }} />,
+    )
+    expect(container.querySelector('.wheel__emblem')).toBeNull()
+  })
+
+  // The rider is what turns a hub that lives outside the rotor. A fixed hub
+  // must not register one, or it would follow the spin it is meant to sit out.
+  it('registers a rider only when the hub turns with the wheel', () => {
+    const riderRef = vi.fn()
+    const { unmount } = render(
+      <Wheel segments={segments} theme={hubTheme} hub={{ spins: true }} riderRef={riderRef} />,
+    )
+    expect(riderRef).toHaveBeenCalledWith(expect.anything())
+    unmount()
+
+    const fixed = vi.fn()
+    render(<Wheel segments={segments} theme={hubTheme} hub={{ spins: false }} riderRef={fixed} />)
+    expect(fixed).not.toHaveBeenCalled()
+  })
+
+  it('turns a spinning hub to the same angle as the rotor at rest', () => {
+    const { container } = render(
+      <Wheel segments={segments} theme={hubTheme} rotationDeg={40} hub={{ spins: true }} />,
+    )
+    expect(container.querySelector('.wheel__hub-group')?.getAttribute('transform')).toBe(
+      'rotate(40)',
+    )
+  })
+
+  it('leaves a fixed hub untransformed however far the rotor has turned', () => {
+    const { container } = render(
+      <Wheel
+        segments={segments}
+        theme={hubTheme}
+        rotationDeg={40}
+        hub={{ emblem: { kind: 'emoji', value: '🎡' } }}
+      />,
+    )
+    expect(container.querySelector('.wheel__hub-group')?.getAttribute('transform')).toBeNull()
+  })
+})
