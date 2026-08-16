@@ -34,6 +34,13 @@ export function previewArc(degrees: number): { start: number; end: number } {
   return { start: -turns / 2, end: turns / 2 }
 }
 
+/**
+ * What a wedge is painted when its segment names no color. SVG's own default is
+ * black, and the label ink is dark too — a preview of black type on a black
+ * wedge shows nothing at all.
+ */
+export const PREVIEW_FILL = '#3b6ea5'
+
 export const MIN_ARC_DEG = 2
 /** The scrubber's ceiling, and what the shared box is sized to hold. */
 export const MAX_ARC_DEG = 45

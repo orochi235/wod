@@ -12,12 +12,21 @@ export type WedgePreviewProps = {
   degrees: number
   theme: Theme
   measure: Measure
+  /** What the wedge is painted. The segment's own color is only the default. */
+  fill: string
 }
 
 const BOX = previewBox()
 const VIEW_BOX = `${BOX.x} ${BOX.y} ${BOX.width} ${BOX.height}`
 
-export function WedgePreview({ instance, segment, degrees, theme, measure }: WedgePreviewProps) {
+export function WedgePreview({
+  instance,
+  segment,
+  degrees,
+  theme,
+  measure,
+  fill,
+}: WedgePreviewProps) {
   const arc = previewArc(degrees)
   const elements = drawWedge({ instance, segment, degrees, measure, font: theme.font })
 
@@ -32,7 +41,7 @@ export function WedgePreview({ instance, segment, degrees, theme, measure }: Wed
       <path
         className="wheel__segment"
         d={arcPath(arc.start, arc.end, PREVIEW_RADIUS)}
-        fill={segment.color}
+        fill={fill}
       />
       <SliceElements
         elements={elements}

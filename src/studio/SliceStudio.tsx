@@ -1,4 +1,4 @@
-import { LabShell, PropertyPanel, SelectRow } from '@weasel-js/labkit'
+import { ColorRow, LabShell, PropertyPanel, SelectRow } from '@weasel-js/labkit'
 import { useCallback, useMemo, useState } from 'react'
 import { SlicePanel } from '../editor/SlicePanel'
 import { loadPreset, savePreset } from '../preset/storage'
@@ -13,7 +13,7 @@ import { useFaces } from '../wheel/useFaces'
 import './Studio.css'
 import '../wheel/Wheel.css'
 import { WedgePreview } from './WedgePreview'
-import { ARC_STEPS, MAX_ARC_DEG, MIN_ARC_DEG, turnFraction } from './wedge'
+import { ARC_STEPS, MAX_ARC_DEG, MIN_ARC_DEG, PREVIEW_FILL, turnFraction } from './wedge'
 
 /** What the studio previews when the preset carries no wedges of its own. */
 const STAND_IN: Segment = { id: 'stand-in', label: 'Ada Lovelace', weight: 1, color: '#3b6ea5' }
@@ -24,6 +24,9 @@ export function SliceStudio() {
   const [preset, setPreset] = useState<Preset>(loadPreset)
   const [scrubbed, setScrubbed] = useState(DEFAULT_SCRUB_DEG)
   const [segmentId, setSegmentId] = useState<string | null>(null)
+  // Null follows the wedge's own color, so picking a different segment still
+  // repaints until someone actually chooses one here.
+  const [chosenFill, setChosenFill] = useState<string | null>(null)
 
   // Same contract as the editor's: every edit persists, and an open show window
   // picks it up through the storage event.
@@ -45,7 +48,8 @@ export function SliceStudio() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `faceLoaded` is the point — it is what retires the cache.
   const measure = useMemo(() => createMeasure(), [faceLoaded])
 
-  const shared = { instance, segment, theme, measure }
+  const fill = chosenFill ?? segment.color ?? PREVIEW_FILL
+  const shared = { instance, segment, theme, measure, fill }
 
   return (
     <LabShell
@@ -94,6 +98,7 @@ export function SliceStudio() {
               options={segments.map((entry) => ({ value: entry.id, label: entry.label }))}
               onChange={setSegmentId}
             />
+            <ColorRow label="Wedge color" value={fill} onChange={setChosenFill} />
           </PropertyPanel>
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
         </section>

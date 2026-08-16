@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { loadPreset, savePreset } from '../preset/storage'
 import { SliceStudio } from './SliceStudio'
-import { ARC_STEPS } from './wedge'
+import { ARC_STEPS, PREVIEW_FILL } from './wedge'
 
 describe('SliceStudio', () => {
   beforeEach(() => {
@@ -59,5 +59,45 @@ describe('SliceStudio', () => {
     render(<SliceStudio />)
 
     expect(screen.getByLabelText('Preview on')).toHaveValue('only')
+  })
+})
+
+describe('SliceStudio wedge color', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  // SVG's default fill is black and the label ink is dark, so a wedge with no
+  // color of its own previewed as nothing at all.
+  it('paints a colorless wedge something other than black', () => {
+    savePreset({ ...loadPreset(), segments: [{ id: 'bare', label: 'Ana', weight: 1 }] })
+    render(<SliceStudio />)
+
+    const painted = [...document.querySelectorAll('.wheel__segment')].map((node) =>
+      node.getAttribute('fill'),
+    )
+    expect(painted.every((fill) => fill === PREVIEW_FILL)).toBe(true)
+  })
+
+  it('follows the wedge’s own color when it has one', () => {
+    savePreset({
+      ...loadPreset(),
+      segments: [{ id: 'red', label: 'Ana', weight: 1, color: '#e8442a' }],
+    })
+    render(<SliceStudio />)
+
+    expect(document.querySelector('.wheel__segment')?.getAttribute('fill')).toBe('#e8442a')
+  })
+
+  it('lets a chosen color beat the wedge’s own', async () => {
+    savePreset({
+      ...loadPreset(),
+      segments: [{ id: 'red', label: 'Ana', weight: 1, color: '#e8442a' }],
+    })
+    render(<SliceStudio />)
+
+    fireEvent.change(screen.getByLabelText('Wedge color'), { target: { value: '#00ff00' } })
+
+    expect(document.querySelector('.wheel__segment')?.getAttribute('fill')).toBe('#00ff00')
   })
 })
