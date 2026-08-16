@@ -7,7 +7,7 @@ import type { Theme } from '../theme'
  */
 export const wof: Theme = {
   id: 'wof',
-  name: 'Wheel of Fortune',
+  name: 'Fortunate',
   parts: {
     stage: true,
     shadow: true,

@@ -6,7 +6,7 @@ import { ThemePanel } from './ThemePanel'
 describe('ThemePanel', () => {
   it('offers every registered look', () => {
     render(<ThemePanel theme={undefined} onChange={() => {}} />)
-    expect(screen.getByRole('option', { name: 'Wheel of Fortune' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Fortunate' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Flat' })).toBeInTheDocument()
   })
 
