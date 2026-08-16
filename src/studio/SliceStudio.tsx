@@ -13,7 +13,7 @@ import { useFaces } from '../wheel/useFaces'
 import './Studio.css'
 import '../wheel/Wheel.css'
 import { WedgePreview } from './WedgePreview'
-import { ARC_STEPS, MAX_ARC_DEG, MIN_ARC_DEG } from './wedge'
+import { ARC_STEPS, MAX_ARC_DEG, MIN_ARC_DEG, turnFraction } from './wedge'
 
 /** What the studio previews when the preset carries no wedges of its own. */
 const STAND_IN: Segment = { id: 'stand-in', label: 'Ada Lovelace', weight: 1, color: '#3b6ea5' }
@@ -67,7 +67,7 @@ export function SliceStudio() {
             {ARC_STEPS.map((step) => (
               <li className="studio__slot" key={step}>
                 <WedgePreview {...shared} degrees={step} />
-                <p className="studio__caption">{step}°</p>
+                <p className="studio__caption">{turnFraction(step)}</p>
               </li>
             ))}
             <li className="studio__slot studio__slot--scrubbed">
