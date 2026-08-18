@@ -8,6 +8,7 @@ import { sliceAt } from '../slice/breakpoints'
 import { facesUsed } from '../slice/fonts/usage'
 import { createMeasure } from '../slice/measure'
 import { getSlice, instancesUsed, resolveInstance } from '../slice/registry'
+import { turnFraction } from '../slice/turns'
 import { partOn } from '../wheel/theme'
 import { flat } from '../wheel/themes/flat'
 import { getTheme } from '../wheel/themes/registry'
@@ -24,7 +25,6 @@ import {
   PREVIEW_FILL,
   WIDE_ARC_STEPS,
   previewHubRadius,
-  turnFraction,
 } from './wedge'
 
 /** What the studio previews when the preset carries no wedges of its own. */
@@ -169,6 +169,7 @@ export function SliceStudio() {
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
           <BreakpointPanel
             breakpoints={preset.breakpoints}
+            wheelSlice={preset.slice}
             onChange={(breakpoints) => update({ ...preset, breakpoints })}
           />
         </section>

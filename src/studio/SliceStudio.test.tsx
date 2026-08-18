@@ -290,11 +290,11 @@ describe('SliceStudio breakpoint authoring', () => {
   it('authors a breakpoint that the gallery immediately draws', async () => {
     render(<SliceStudio />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Add breakpoint' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Split band' }))
 
-    // `DEFAULT_SLICE` is the composed layout, and a new breakpoint's floor of a
-    // twelfth of a turn is exactly the 30° step, so that caption names it.
+    // Splitting the band no breakpoint claims cuts it at the middle of the
+    // axis, and every preview at or above that width names what it resolved to.
     expect(loadPreset().breakpoints).toHaveLength(1)
-    expect(screen.getAllByText('Composed', { selector: '.studio__resolved' })).toHaveLength(3)
+    expect(screen.getAllByText('Composed', { selector: '.studio__resolved' })).toHaveLength(5)
   })
 })
