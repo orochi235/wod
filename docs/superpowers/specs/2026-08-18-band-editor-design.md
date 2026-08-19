@@ -110,11 +110,12 @@ has to draw it as nothing rather than divide by it.
 so `removeBand` and the layout form both have to refuse it — its `source` is
 null, not an index.
 
-**The track's styles live here, not in labkit.** labkit passed weasel-ui's
-`Slider` through while shipping none of its CSS modules, so the component
-arrived with class names matching no rule and a track of no height.
-`BandTrack.css` styles it by role and data attribute rather than by those
-hashed names. That gap is fixed upstream (weasel `08585a05`), but wod is on
-the published labkit that predates it: the shim block comes out when wod picks
-up a release carrying the fix, and deleting it before then collapses the
-control.
+**wod resolves labkit through a local link.** labkit shipped none of
+weasel-ui's CSS modules, so the passthrough `Slider` arrived with class names
+matching no rule and a track of no height; `BandTrack.css` carried a shim that
+styled it by role and data attribute instead. That is fixed upstream (weasel
+`08585a05`, unreleased), and the shim is gone. wod reaches the fix by `npm link
+@weasel-js/labkit` against the local weasel checkout — `package.json` still
+declares `^0.1.0`, so **an `npm install` re-resolves to the published 0.1.0 and
+collapses the control.** Relink until a release carries the fix and the
+dependency is bumped.
