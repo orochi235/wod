@@ -15,7 +15,7 @@
     "check": "biome check --write ."
   },
   "dependencies": {
-    "@weasel-js/labkit": "^0.1.0",
+    "@weasel-js/labkit": "^1.0.2",
     "blitsklieg": "^0.2.0",
     "opentype.js": "^2.0.0",
     "react": "^19.0.0",

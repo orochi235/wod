@@ -4,7 +4,7 @@ Authoring breakpoints as bands on a width axis instead of as a list of floors
 typed in degrees.
 
 Audience: anyone about to build it. It answers one question — what is on screen
-and what backs it — and names the four things that will bite. It assumes
+and what backs it — and names the three things that will bite. It assumes
 `2026-08-16-responsive-slices-design.md`, which is where `Breakpoint` and
 `sliceAt` come from.
 
@@ -93,7 +93,7 @@ made, and it inherits the wheel's own slice. Its form offers only the split —
 the layout it names is the wheel's, and the wheel's layout is edited in the
 panel above.
 
-## Four things that will bite
+## Three things that will bite
 
 **Selection is an index into a list that sorts itself.** `write` sorts
 widest-first on every write while the track reads ascending. Selection has to
@@ -109,13 +109,3 @@ has to draw it as nothing rather than divide by it.
 **The fall-through region is not an entry.** It has no `Breakpoint` behind it,
 so `removeBand` and the layout form both have to refuse it — its `source` is
 null, not an index.
-
-**wod resolves labkit through a local link.** labkit shipped none of
-weasel-ui's CSS modules, so the passthrough `Slider` arrived with class names
-matching no rule and a track of no height; `BandTrack.css` carried a shim that
-styled it by role and data attribute instead. That is fixed upstream (weasel
-`08585a05`, unreleased), and the shim is gone. wod reaches the fix by `npm link
-@weasel-js/labkit` against the local weasel checkout — `package.json` still
-declares `^0.1.0`, so **an `npm install` re-resolves to the published 0.1.0 and
-collapses the control.** Relink until a release carries the fix and the
-dependency is bumped.
