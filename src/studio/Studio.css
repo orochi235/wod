@@ -70,9 +70,9 @@
   font-style: italic;
 }
 
-.studio__slot--scrubbed /* The room a part was given, not what took it — dotted so it never reads as
+/* The room a part was given, not what took it — dotted so it never reads as
    something the wedge is actually painted with. */
-  .studio__band {
+.studio__slot--scrubbed .studio__band {
   fill: none;
   stroke: var(--wheel-stage-ink, #e8ecf4);
   stroke-width: 1;
@@ -81,7 +81,7 @@
   pointer-events: none;
 }
 
-.studio__caption {
+.studio__slot--scrubbed .studio__caption {
   opacity: 1;
   font-weight: 600;
 }
