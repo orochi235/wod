@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { Breakpoint } from '../slice/breakpoints'
+import { turnFraction } from '../slice/turns'
 import {
   AXIS_MAX_DEG,
   AXIS_MIN_DEG,
+  STOPS,
   bandsOf,
   fromAxis,
   removeBand,
+  snapDegrees,
   splitBand,
+  stopAbove,
+  stopBelow,
   toAxis,
 } from './bands'
 
@@ -75,9 +80,9 @@ describe('splitBand', () => {
   it('adds a floor inside the band, inheriting what the band resolved to', () => {
     const split = splitBand(list, bands[2], null)
 
-    expect(split?.from).toBe(19)
+    expect(split?.from).toBe(18)
     expect(split?.next).toHaveLength(4)
-    expect(split?.next.find((point) => point.from === 19 / 360)?.slice.id).toBe('cash')
+    expect(split?.next.find((point) => point.from === 18 / 360)?.slice.id).toBe('cash')
   })
 
   it('cuts at the middle of the log axis, not of the degrees', () => {
@@ -104,6 +109,11 @@ describe('splitBand', () => {
   it('refuses a band with no room for a floor of its own', () => {
     expect(splitBand(list, { source: 0, slice: null, from: 12, to: 13 }, null)).toBeNull()
   })
+
+  // 12 and 15 are adjacent stops: the band spans a boundary but contains none.
+  it('refuses a band that holds no stop, however wide', () => {
+    expect(splitBand(list, { source: 0, slice: null, from: 12, to: 15 }, null)).toBeNull()
+  })
 })
 
 describe('removeBand', () => {
@@ -123,5 +133,43 @@ describe('the axis', () => {
 
   it('gives every doubling the same room', () => {
     expect(toAxis(8) - toAxis(4)).toBeCloseTo(toAxis(60) - toAxis(30))
+  })
+})
+
+describe('the stops', () => {
+  // The whole point of the grid: a width the wheel can actually be cut into.
+  it('is every width that divides the wheel evenly', () => {
+    for (const stop of STOPS) expect(360 % stop).toBe(0)
+  })
+
+  it('names every stop as one wedge of an n-wedge wheel', () => {
+    for (const stop of STOPS) expect(turnFraction(stop)).toMatch(/^1\/\d+$/)
+  })
+
+  it('spans the axis end to end', () => {
+    expect(STOPS[0]).toBe(AXIS_MIN_DEG)
+    expect(STOPS[STOPS.length - 1]).toBe(AXIS_MAX_DEG)
+  })
+
+  it('takes the nearest stop along the log axis, not the nearest degree', () => {
+    // 42 is nearer 40 than 45 by degrees and by ratio alike; 44 flips by ratio.
+    expect(snapDegrees(toAxis(42))).toBe(40)
+    expect(snapDegrees(toAxis(44))).toBe(45)
+  })
+
+  it('lands inside the axis however far the drag went', () => {
+    expect(snapDegrees(toAxis(1000))).toBe(AXIS_MAX_DEG)
+    expect(snapDegrees(toAxis(0.1))).toBe(AXIS_MIN_DEG)
+  })
+
+  it('steps to the neighbouring stop, which is not a degree away', () => {
+    expect(stopAbove(12)).toBe(15)
+    expect(stopBelow(12)).toBe(10)
+    expect(stopAbove(90)).toBe(120)
+  })
+
+  it('holds at the ends rather than stepping off the axis', () => {
+    expect(stopAbove(AXIS_MAX_DEG)).toBe(AXIS_MAX_DEG)
+    expect(stopBelow(AXIS_MIN_DEG)).toBe(AXIS_MIN_DEG)
   })
 })

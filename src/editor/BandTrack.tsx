@@ -10,11 +10,12 @@ import {
   AXIS_MIN,
   AXIS_MIN_DEG,
   type Band,
-  STOP_STEP_DEG,
   bandsOf,
   floorsOf,
   fromAxis,
   snapDegrees,
+  stopAbove,
+  stopBelow,
   toAxis,
 } from './bands'
 
@@ -54,24 +55,24 @@ export function BandTrack({
       degrees,
       value: toAxis(degrees),
       bounds: ({ thumbs, index }) => [
-        index > 0 ? toAxis(fromAxis(thumbs[index - 1].value) + STOP_STEP_DEG) : AXIS_MIN,
-        index < thumbs.length - 1
-          ? toAxis(fromAxis(thumbs[index + 1].value) - STOP_STEP_DEG)
-          : AXIS_MAX,
+        index > 0 ? toAxis(stopAbove(fromAxis(thumbs[index - 1].value))) : AXIS_MIN,
+        index < thumbs.length - 1 ? toAxis(stopBelow(fromAxis(thumbs[index + 1].value))) : AXIS_MAX,
       ],
     }
   })
 
   /**
-   * A stop that moved lands on a whole degree, and on the next one along when
-   * rounding would have left it where it was: the arrow key steps the axis by a
-   * hundredth of its length, which past 30° is less than a degree.
+   * A stop that moved lands on a stop, and on the next one along when snapping
+   * would have left it where it was: the arrow key steps the axis by a hundredth
+   * of its length, far less than the gap between stops.
    */
   const settle = (stop: Stop, before: Stop, lower: number, upper: number): number => {
     const snapped = snapDegrees(stop.value)
     const stepped =
       snapped === before.degrees
-        ? before.degrees + Math.sign(stop.value - before.value) * STOP_STEP_DEG
+        ? stop.value > before.value
+          ? stopAbove(before.degrees)
+          : stopBelow(before.degrees)
         : snapped
     return clamp(stepped, lower, upper)
   }
@@ -86,8 +87,8 @@ export function BandTrack({
         kept.set(stop.source, before.degrees)
         continue
       }
-      const lower = index > 0 ? next[index - 1].degrees + STOP_STEP_DEG : AXIS_MIN_DEG
-      const upper = index < next.length - 1 ? next[index + 1].degrees - STOP_STEP_DEG : AXIS_MAX_DEG
+      const lower = index > 0 ? stopAbove(next[index - 1].degrees) : AXIS_MIN_DEG
+      const upper = index < next.length - 1 ? stopBelow(next[index + 1].degrees) : AXIS_MAX_DEG
       kept.set(stop.source, settle(stop, before, lower, upper))
     }
 

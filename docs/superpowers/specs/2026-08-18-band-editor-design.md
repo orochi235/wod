@@ -45,8 +45,14 @@ the left fifth of a linear track. Log spacing gives 2°–4° the same room as
 what a wedge has to hold. `turnFraction` already prints them, and moves
 from `studio/wedge.ts` to `slice/turns.ts` where the editor reaches it too.
 
-Stops snap to 1°, which is what keeps a ratio legible: 8° is `1/45` and 8.5° is
-`17/720`. A preset carrying a finer floor keeps it until someone drags that stop.
+**Stops are the widths a wheel can be cut into** — every divisor of 360 the axis
+covers, 21 of them. That is what makes a label `1/n`; whole degrees would not,
+since 42° is `7/60`. It costs resolution at the wide end, where the stops run
+45, 60, 72, 90, 120.
+
+Uniform wedges are the editor's assumption, not the data's. The arithmetic takes
+the stop list as an argument, and `bandsOf` never snaps, so a preset carrying a
+floor off the grid keeps it until someone drags that stop.
 
 The axis runs 2°–120°. `WIDE_ARC_STEPS` already goes to 120° and a three-wedge
 wheel is exactly that.

@@ -68,15 +68,15 @@ describe('BandTrack', () => {
     expect(screen.getByRole('button', { name: 'curved' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  // A key press moves the axis by a hundredth of its length, which at the wide
-  // end is less than the degree the stops land on — the boundary has to move
-  // anyway, or the arrow key does nothing there.
-  it('moves a boundary a whole degree at a time', () => {
+  // A key press moves the axis by a hundredth of its length, far less than the
+  // gap between stops — the boundary has to reach the next one anyway, or the
+  // arrow key does nothing.
+  it('moves a boundary one stop at a time', () => {
     const { onChange } = draw()
 
     fireEvent.keyDown(screen.getAllByRole('slider')[1], { key: 'ArrowRight' })
 
-    expect(onChange).toHaveBeenCalledWith([at(31, 'curved'), at(12, 'cash')])
+    expect(onChange).toHaveBeenCalledWith([at(36, 'curved'), at(12, 'cash')])
   })
 
   it('leaves the boundaries it did not move exactly as they were stored', () => {
@@ -91,8 +91,8 @@ describe('BandTrack', () => {
     expect(onChange.mock.lastCall?.[0][1].from).toBe(12.4 / 360)
   })
 
-  it('keeps a boundary a degree clear of its neighbour', () => {
-    const tight = [at(13, 'curved'), at(12, 'cash')]
+  it('keeps a boundary a stop clear of its neighbour', () => {
+    const tight = [at(15, 'curved'), at(12, 'cash')]
     const { onChange } = draw({ breakpoints: tight })
 
     fireEvent.keyDown(screen.getAllByRole('slider')[0], { key: 'ArrowRight' })

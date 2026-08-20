@@ -4,8 +4,20 @@ import type { SliceInstance } from '../slice/types'
 /** Degrees. A three-wedge wheel is the widest thing worth a breakpoint of its own. */
 export const AXIS_MIN_DEG = 2
 export const AXIS_MAX_DEG = 120
-/** Boundaries land on whole degrees, which is what keeps their turn fraction legible. */
-export const STOP_STEP_DEG = 1
+
+/**
+ * The widths a wheel of equal wedges can actually have — every divisor of 360
+ * the axis covers. A floor authored here is one wedge of an n-wedge wheel, so
+ * it reads as `1/n`; whole degrees would not, since 42° is `7/60`.
+ *
+ * Uniform wedges are the editor's assumption, not the data's: everything below
+ * takes the stop list as an argument, and `bandsOf` never snaps, so a preset
+ * carrying a floor off this grid keeps it until someone drags that stop.
+ */
+export const STOPS: readonly number[] = Array.from(
+  { length: AXIS_MAX_DEG - AXIS_MIN_DEG + 1 },
+  (_, index) => index + AXIS_MIN_DEG,
+).filter((degrees) => 360 % degrees === 0)
 
 /** Doublings, so the narrow end where the layouts change gets its share of the track. */
 export const toAxis = (degrees: number): number => Math.log2(degrees)
@@ -26,9 +38,24 @@ export type Band = {
 
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n))
 
-/** Whole degrees on the axis, from a position in axis units. */
-export const snapDegrees = (axis: number): number =>
-  clamp(Math.round(fromAxis(axis) / STOP_STEP_DEG) * STOP_STEP_DEG, AXIS_MIN_DEG, AXIS_MAX_DEG)
+/** The stop nearest a position in axis units, measured along the axis itself. */
+export const snapDegrees = (axis: number, stops: readonly number[] = STOPS): number => {
+  const target = toAxis(clamp(fromAxis(axis), stops[0], stops[stops.length - 1]))
+  let best = stops[0]
+  // Ties go to the narrower stop: the log middle of two stops whose product is
+  // 360 sits exactly between them, which is where `splitBand` most often lands.
+  for (const stop of stops) {
+    if (Math.abs(toAxis(stop) - target) < Math.abs(toAxis(best) - target) - 1e-9) best = stop
+  }
+  return best
+}
+
+/** The next stop along, or the end of the axis where there is none. */
+export const stopAbove = (degrees: number, stops: readonly number[] = STOPS): number =>
+  stops.find((stop) => stop > degrees) ?? stops[stops.length - 1]
+
+export const stopBelow = (degrees: number, stops: readonly number[] = STOPS): number =>
+  stops.reduce((below, stop) => (stop < degrees ? stop : below), stops[0])
 
 export type Floor = { source: number; degrees: number; slice: SliceInstance }
 
@@ -73,15 +100,13 @@ export function splitBand(
   band: Band,
   wheelSlice: SliceInstance | null,
 ): Split | null {
-  if (band.to - band.from < 2 * STOP_STEP_DEG) return null
+  const low = stopAbove(band.from)
+  const high = stopBelow(band.to)
+  if (low > high) return null
   const inherited = band.slice ?? wheelSlice
   if (!inherited) return null
 
-  const middle = clamp(
-    snapDegrees((toAxis(band.from) + toAxis(band.to)) / 2),
-    band.from + STOP_STEP_DEG,
-    band.to - STOP_STEP_DEG,
-  )
+  const middle = clamp(snapDegrees((toAxis(band.from) + toAxis(band.to)) / 2), low, high)
   const slice = { id: inherited.id, params: structuredClone(inherited.params) }
   return { next: [...breakpoints, { from: middle / 360, slice }], from: middle }
 }
