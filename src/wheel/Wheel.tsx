@@ -1,11 +1,12 @@
 import type { Ref } from 'react'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { Hub } from '../preset/types'
+import type { Breakpoint } from '../slice/breakpoints'
 import { createFit } from '../slice/fit'
 import { sourceFor } from '../slice/fonts/load'
 import { facesUsed } from '../slice/fonts/usage'
 import { createMeasure } from '../slice/measure'
-import { getSlice, resolveInstance } from '../slice/registry'
+import { getSlice, instancesUsed, resolveInstance } from '../slice/registry'
 import type { SliceInstance } from '../slice/types'
 import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
@@ -36,6 +37,8 @@ export type WheelProps = {
   transitions?: Transitions
   /** The wheel's default layout. A segment's own `slice` beats it. */
   slice?: SliceInstance
+  /** Widths that get a layout of their own. A wedge matching none takes `slice`. */
+  breakpoints?: Breakpoint[]
   /**
    * Geometry the layouts resolve against, when it differs from what is drawn.
    * A morph changes weights every frame; resolving against those would pop
@@ -95,6 +98,7 @@ export function Wheel({
   rotorRef,
   transitions,
   slice,
+  breakpoints,
   layoutFrom,
   levelRef,
   held = false,
@@ -154,14 +158,12 @@ export function Wheel({
   }, [muted, clicker])
 
   // Every face a wedge is set in is a webfont, so the first render measures
-  // whatever the fallback is.
+  // whatever the fallback is. Every breakpoint's faces, not just the resolved
+  // one's: a face requested only once a wedge reaches its breakpoint arrives
+  // after that wedge has been measured against the fallback and cached.
   const faces = useMemo(
-    () =>
-      facesUsed(
-        segments.map((segment) => resolveInstance(segment, slice)),
-        theme.font,
-      ),
-    [segments, slice, theme.font],
+    () => facesUsed(instancesUsed(segments, slice, breakpoints), theme.font),
+    [segments, slice, breakpoints, theme.font],
   )
   const faceLoaded = useFaces(faces)
 
@@ -220,7 +222,12 @@ export function Wheel({
               if (d === '') return null
 
               const layoutArc = lastLayoutArcs.get(segment.id) ?? presenceArc
-              const instance = resolveInstance(segment, slice)
+              const instance = resolveInstance(
+                segment,
+                slice,
+                breakpoints,
+                layoutArc.end - layoutArc.start,
+              )
               const authored = getSlice(instance.id)
               const elements = authored
                 ? authored.draw(instance.params, {

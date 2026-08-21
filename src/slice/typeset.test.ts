@@ -834,3 +834,46 @@ describe('which axis condense squeezes', () => {
     expect(y).toBe(1)
   })
 })
+
+describe('padding across the wedge', () => {
+  const narrow = context({ arc: { start: 0, end: 0.03 } })
+  const spec = {
+    orientation: 'stacked' as const,
+    content: { from: 'text' as const, value: 'WWWW' },
+    band: [0.3, 0.95] as [number, number],
+    stretch: 'fill' as const,
+    fan: false,
+  }
+  const widthOf = (glyph: Glyph) => glyph.size * glyph.scale[0]
+
+  it('leaves today’s room when neither lever is set', () => {
+    const bare = glyphsOf(spec, narrow)
+    const explicit = glyphsOf({ ...spec, padding: 0.14, padTaper: 0 }, narrow)
+    expect(bare.map(widthOf)).toEqual(explicit.map(widthOf))
+  })
+
+  it('narrows every glyph as the padding opens up', () => {
+    const tight = glyphsOf({ ...spec, padding: 0 }, narrow)
+    const loose = glyphsOf({ ...spec, padding: 0.4 }, narrow)
+    for (let i = 0; i < tight.length; i++) {
+      expect(widthOf(loose[i])).toBeLessThan(widthOf(tight[i]))
+    }
+  })
+
+  // The point of the taper: an even padding leaves the wedge's own shape, and a
+  // signed one spends the margin at one end rather than both.
+  it('spends the padding at the rim when the taper is positive', () => {
+    const even = glyphsOf({ ...spec, padding: 0.2, padTaper: 0 }, narrow)
+    const rimward = glyphsOf({ ...spec, padding: 0.2, padTaper: 1 }, narrow)
+    // Rim-inward, so glyph 0 is the outermost and the last is nearest the hub.
+    expect(widthOf(rimward[0])).toBeLessThan(widthOf(even[0]))
+    expect(widthOf(rimward[rimward.length - 1])).toBeGreaterThan(widthOf(even[even.length - 1]))
+  })
+
+  it('spends it at the hub when the taper is negative', () => {
+    const even = glyphsOf({ ...spec, padding: 0.2, padTaper: 0 }, narrow)
+    const hubward = glyphsOf({ ...spec, padding: 0.2, padTaper: -1 }, narrow)
+    expect(widthOf(hubward[0])).toBeGreaterThan(widthOf(even[0]))
+    expect(widthOf(hubward[hubward.length - 1])).toBeLessThan(widthOf(even[even.length - 1]))
+  })
+})

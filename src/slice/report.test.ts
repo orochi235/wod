@@ -80,3 +80,33 @@ describe('fitReport', () => {
     expect(rows[0].degraded).toBe(false)
   })
 })
+
+describe('breakpoints', () => {
+  // A fixed string per instance, so the row names which one resolved without
+  // depending on how either of them would have fitted the label.
+  const saying = (text: string): SliceInstance => ({
+    id: 'composed',
+    params: {
+      parts: [{ content: { from: 'text', value: text }, orientation: 'radial', band: [0.2, 0.9] }],
+    },
+  })
+
+  const segments = [
+    { id: 'a', label: 'Cal Whitmore', weight: 1 },
+    { id: 'b', label: 'Cal Whitmore', weight: 1 },
+  ]
+  const points = [{ from: 0.25, slice: saying('WIDE') }]
+
+  it('reports the breakpoint a wedge is wide enough for', () => {
+    // Two wedges is half a turn each, over a quarter-turn floor.
+    const rows = fitReport(segments, saying('NARROW'), 200, measure, points)
+    expect(rows.map((row) => row.drawn)).toEqual(['WIDE', 'WIDE'])
+  })
+
+  it('reports the wheel default for a wedge under every floor', () => {
+    const rows = fitReport(segments, saying('NARROW'), 200, measure, [
+      { from: 0.75, slice: saying('WIDE') },
+    ])
+    expect(rows.map((row) => row.drawn)).toEqual(['NARROW', 'NARROW'])
+  })
+})

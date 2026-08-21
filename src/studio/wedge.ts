@@ -1,4 +1,4 @@
-import { createFit } from '../slice/fit'
+import { RUN_BAND, createFit } from '../slice/fit'
 import { sourceFor } from '../slice/fonts/load'
 import { getSlice } from '../slice/registry'
 import type { FontId, Measure, SliceElement, SliceInstance } from '../slice/types'
@@ -28,19 +28,6 @@ export const previewHubRadius = (hubRadius: number): number =>
  * teaches the wrong thing about the tip of a wedge.
  */
 export const FALLBACK_HUB_RADIUS = 62
-
-const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
-
-/**
- * A width as the share of the wheel it is, in lowest terms. What a wedge has to
- * hold is a function of how many of them there are, and "1/90" says that where
- * "4°" makes you divide.
- */
-export function turnFraction(degrees: number): string {
-  const whole = Math.round(degrees * 100)
-  const divisor = gcd(whole, 36000)
-  return `${whole / divisor}/${36000 / divisor}`
-}
 
 /** Straddling 12 o'clock, where turns are zero. */
 export function previewArc(degrees: number): { start: number; end: number } {
@@ -96,6 +83,17 @@ export type WedgeSpec = {
   degrees: number
   measure: Measure
   font?: FontId
+}
+
+/**
+ * The bands the layout will set type into — the room, not what took it. A
+ * layout that names none is one whose room is the wedge's own run, which is
+ * what `RUN_BAND` is.
+ */
+export function bandsOf(instance: SliceInstance): [number, number][] {
+  const authored = getSlice(instance.id)
+  if (!authored) return []
+  return authored.bands?.(instance.params) ?? [RUN_BAND]
 }
 
 export function drawWedge({

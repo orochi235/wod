@@ -73,4 +73,7 @@ export const cash: SliceLayout = {
   draw(params, ctx) {
     return partsOf(params).flatMap((part) => typeset(part, ctx))
   },
+  bands(params) {
+    return partsOf(params).map((part) => part.band)
+  },
 }

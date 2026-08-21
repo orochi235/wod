@@ -569,3 +569,54 @@ describe('hub emblem', () => {
     expect(container.querySelector('.wheel__hub-group')?.getAttribute('transform')).toBeNull()
   })
 })
+
+describe('breakpoints', () => {
+  // `radial` paints plain <text>, `curved` paints a <textPath>. That is the whole
+  // discriminator: which one a wedge got is readable straight off the DOM.
+  // `AUTO` is no good here — its first ladder rung is curved too, so a wide
+  // wedge produces a textPath whether a breakpoint fired or not.
+  const RADIAL: SliceInstance = { id: 'radial', params: {} }
+  const curvedAt = (from: number) => [{ from, slice: { id: 'curved' as const, params: {} } }]
+
+  const evenly = (count: number): Segment[] =>
+    Array.from({ length: count }, (_, index) => ({
+      id: `w${index}`,
+      label: 'Cal Whitmore',
+      weight: 1,
+    }))
+
+  it('takes the breakpoint a wedge is wide enough for', () => {
+    // Two wedges is half a turn each, well over a quarter-turn floor.
+    const { container } = render(
+      <Wheel segments={evenly(2)} slice={RADIAL} breakpoints={curvedAt(0.25)} />,
+    )
+    expect(container.querySelector('textPath')).not.toBeNull()
+  })
+
+  it('leaves a wedge below every floor exactly as it was', () => {
+    // Eight wedges is an eighth of a turn each, under the floor.
+    const { container } = render(
+      <Wheel segments={evenly(8)} slice={RADIAL} breakpoints={curvedAt(0.25)} />,
+    )
+    expect(container.querySelector('textPath')).toBeNull()
+  })
+
+  // The arc a morph is animating through must not pick the layout; only the arc
+  // the wheel lays out against may. Otherwise a wedge crosses a floor mid-spin
+  // and re-lays-out under the pointer.
+  it('resolves against the layout arc rather than the drawn one', () => {
+    const drawn: Segment[] = [
+      { id: 'a', label: 'Cal Whitmore', weight: 1 },
+      { id: 'b', label: 'Cal Whitmore', weight: 99 },
+    ]
+    const layout: Segment[] = [
+      { id: 'a', label: 'Cal Whitmore', weight: 1 },
+      { id: 'b', label: 'Cal Whitmore', weight: 1 },
+    ]
+    const { container } = render(
+      <Wheel segments={drawn} layoutFrom={layout} slice={RADIAL} breakpoints={curvedAt(0.25)} />,
+    )
+
+    expect(container.querySelector('[data-segment-id="a"] textPath')).not.toBeNull()
+  })
+})

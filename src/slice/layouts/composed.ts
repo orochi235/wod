@@ -12,4 +12,7 @@ export const composed: SliceLayout = {
   draw(params, ctx) {
     return readParts(params.parts).flatMap((part) => typeset(part, ctx))
   },
+  bands(params) {
+    return readParts(params.parts).map((part) => part.band)
+  },
 }

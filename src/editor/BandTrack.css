@@ -1,0 +1,94 @@
+.bands {
+  padding: 0.25rem 0 0.5rem;
+}
+
+.bands__track {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.bands .bands__band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--band-from);
+  width: var(--band-span);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 0.25rem;
+  border: 0;
+  border-right: 1px solid var(--lk-border, #c9bba5);
+  background: color-mix(in srgb, var(--lk-accent, #a86f3c) 22%, transparent);
+  color: var(--lk-text, #2a2018);
+  font: 500 0.65rem / 1 ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.bands .bands__band:last-child {
+  border-right: 0;
+}
+
+/* The span no breakpoint claims: the wheel's own slice, not an entry. */
+.bands .bands__band--fallback {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 4px,
+    color-mix(in srgb, var(--lk-text-muted, #6b5c4a) 40%, transparent) 4px 8px
+  );
+  color: var(--lk-text-muted, #6b5c4a);
+}
+
+.bands .bands__band[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--lk-accent, #a86f3c) 65%, transparent);
+  color: var(--lk-bg-elevated, #fff);
+  box-shadow: inset 0 0 0 2px var(--lk-accent, #a86f3c);
+}
+
+/* The hatch says "no breakpoint claims this", which stays true while it is lit. */
+.bands .bands__band--fallback[aria-pressed="true"] {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 4px,
+    color-mix(in srgb, var(--lk-accent, #a86f3c) 45%, transparent) 4px 8px
+  );
+  color: var(--lk-text, #2a2018);
+}
+
+.bands .bands__band:focus-visible {
+  outline: 2px solid var(--lk-accent, #a86f3c);
+  outline-offset: -2px;
+}
+
+.bands__note {
+  margin: 0;
+  color: var(--lk-text-muted, #6b5c4a);
+  font-size: 0.75rem;
+}
+
+.bands__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.bands__actions button {
+  flex: 1;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--lk-border, #c9bba5);
+  border-radius: 3px;
+  background: var(--lk-bg-canvas, #f0ebe2);
+  color: inherit;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.bands__actions button:hover {
+  background: color-mix(in srgb, var(--lk-accent, #a86f3c) 25%, transparent);
+}

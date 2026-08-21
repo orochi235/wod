@@ -236,6 +236,7 @@ export function Editor() {
             segments={shown}
             layoutFrom={spinOwns ? layoutSegments : undefined}
             slice={preset.slice}
+            breakpoints={preset.breakpoints}
             rotorRef={rotorRef}
             levelRef={levelRef}
             riderRef={riderRef}
@@ -267,7 +268,7 @@ export function Editor() {
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
           <ThemePanel theme={preset.theme} onChange={(theme) => update({ ...preset, theme })} />
           <HubPanel hub={preset.hub} onChange={(hub) => update({ ...preset, hub })} />
-          <FitReport segments={shown} slice={preset.slice} />
+          <FitReport segments={shown} slice={preset.slice} breakpoints={preset.breakpoints} />
         </section>
         {rigVisible ? (
           <section className="editor__column editor__column--right">

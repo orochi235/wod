@@ -1,4 +1,5 @@
 import type { FeedConfig, ItemOverride } from '../feed/types'
+import type { Breakpoint } from '../slice/breakpoints'
 import type { SliceInstance } from '../slice/types'
 import type { Transitions } from '../transition/types'
 import type { Trick } from '../tricks/types'
@@ -82,6 +83,11 @@ export type Preset = {
   transitions?: Transitions
   /** The wheel's default slice layout. Absent means the built-in `auto`. */
   slice?: SliceInstance
+  /**
+   * Widths that get a layout of their own, widest first. A wedge matching none
+   * of them takes `slice`.
+   */
+  breakpoints?: Breakpoint[]
   /** Absent means the flat look, which is what the wheel drew before themes. */
   theme?: string
   /** Absent leaves the hub the bare cap the look paints. */

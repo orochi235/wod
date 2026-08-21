@@ -175,6 +175,12 @@ export type SliceLayout = {
   fields: Field[]
   /** Pure. The only thing that affects what gets drawn. */
   draw(params: SliceParams, ctx: SliceContext): SliceElement[]
+  /**
+   * The radial bands this layout will set type into, for a lab that wants to
+   * draw the room rather than only what took it. Absent for a layout whose
+   * room is the wedge's own run rather than a band it names.
+   */
+  bands?(params: SliceParams): [number, number][]
 }
 
 export type SliceInstance = { id: SliceLayoutId; params: SliceParams }
@@ -223,4 +229,17 @@ export type SlicePart = {
   tracking?: number
   /** The line box, as a multiple of the size. Default 1.2. */
   leading?: number
+  /**
+   * How much of the room across the wedge to leave empty at the sides, as a
+   * fraction. Default 0.14.
+   */
+  padding?: number
+  /**
+   * How that padding changes down the taper, from -1 to 1. Zero spends it
+   * evenly, which leaves the same fraction at every radius and so the same
+   * shape the wedge has. Positive leaves more at the rim and less at the hub;
+   * negative does the opposite, which is what keeps a tapered run from closing
+   * on its own point.
+   */
+  padTaper?: number
 }

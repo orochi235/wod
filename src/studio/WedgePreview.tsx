@@ -2,10 +2,11 @@ import { useId } from 'react'
 import type { Measure, SliceInstance } from '../slice/types'
 import { SliceElements } from '../wheel/SliceElements'
 import { arcPath } from '../wheel/geometry'
+import { panelPath } from '../wheel/panel'
 import type { Theme } from '../wheel/theme'
 import { styleOfTheme } from '../wheel/themeStyle'
 import type { Segment } from '../wheel/types'
-import { PREVIEW_RADIUS, drawWedge, previewArc, previewBox } from './wedge'
+import { PREVIEW_RADIUS, bandsOf, drawWedge, previewArc, previewBox } from './wedge'
 
 export type WedgePreviewProps = {
   instance: SliceInstance
@@ -22,6 +23,8 @@ export type WedgePreviewProps = {
   fitDegrees?: number
   /** The cap to mask out, in preview units. Zero draws the tip in full. */
   hub: number
+  /** Outline the room each part has, rather than only what took it. */
+  showBands?: boolean
 }
 
 const SHARED_BOX = previewBox()
@@ -37,6 +40,7 @@ export function WedgePreview({
   fill,
   fitDegrees,
   hub,
+  showBands = false,
 }: WedgePreviewProps) {
   const box = fitDegrees === undefined ? SHARED_BOX : previewBox(fitDegrees)
   const arc = previewArc(degrees)
@@ -71,6 +75,14 @@ export function WedgePreview({
           radius={PREVIEW_RADIUS}
           id={`studio-${degrees}`}
         />
+        {showBands &&
+          bandsOf(instance).map((band) => (
+            <path
+              className="studio__band"
+              key={`${band[0]}-${band[1]}`}
+              d={panelPath(arc.start, arc.end, PREVIEW_RADIUS, band, 0)}
+            />
+          ))}
       </g>
     </svg>
   )
