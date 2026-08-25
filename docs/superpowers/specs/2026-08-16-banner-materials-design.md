@@ -1,21 +1,21 @@
 # Banner materials
 
 A wedge may name the material its winner's banner is extruded in. The cash wheel
-uses it to put every cash face in gold or ruby and both BANKRUPT faces in oil.
+uses it to put every cash face in gold or gem and both BANKRUPT faces in oil.
 
 For anyone working on the banner or on a sample preset. It answers: where does
 the material come from, and what happens to a wheel that names none?
 
 ## Today
 
-`rollStyle` (`src/banner/style.ts`) picks a `look` uniformly from blitsklieg's
-`LOOK_NAMES` — `gold`, `chrome`, `oil`, `ruby` — once per landing, and both the
+`rollStyle` (`src/banner/style.ts`) picks a `look` uniformly from klieg's
+`LOOK_NAMES` — `gold`, `chrome`, `oil`, `gem` and eight more — once per landing, and both the
 arriving and leaving fire wear it. Nothing upstream has a say.
 
 The board theme also sets `tint: 'wedge'`, which recolors the rolled material
 with the landed wedge's own color. Material and tint compose rather than
 compete: `applyLook` replaces only the hue-carrying property — `color` for gold,
-chrome and oil, `attenuationColor` for ruby, which is clear glass whose red comes
+chrome and oil, `attenuationColor` for gem, which is clear stone whose red comes
 from light passing through it — and leaves metalness, roughness, transmission and
 iridescence alone. A red-tinted gold is metallic red; a red-tinted oil is
 iridescent near-black red. The tint stays.
@@ -27,7 +27,7 @@ iridescent near-black red. The tint stays.
 vocabulary and should not import the banner's rendering library, and a stored id
 from a newer build should fall back rather than fail to compile.
 
-`src/banner/style.ts` is the only module that knows blitsklieg's names, so it is
+`src/banner/style.ts` is the only module that knows klieg's names, so it is
 where the id is validated. An unreadable id — a typo, a name a future build
 carries — rolls the full set, exactly as a segment with no `look` does.
 
@@ -42,12 +42,12 @@ different pieces of motion in the same oil.
 ## The cash wheel
 
 `faces()` in `src/preset/samples.ts` assigns alongside the color it already
-cycles: gold and ruby alternating across the cash faces, oil on BANKRUPT. `LOSE A
+cycles: gold and gem alternating across the cash faces, oil on BANKRUPT. `LOSE A
 TURN` stays in the cycle — the material marks the face that ends your turn with
 nothing, and giving both penalties their own metal would leave the distinction to
 hue alone.
 
-The roster wheel names no look and rolls all four, as it does now.
+The roster wheel names no look and rolls the whole set, as it does now.
 
 ## Persistence
 
@@ -62,5 +62,5 @@ look on any segment, which is the existing behavior.
 - `useBanner.test.ts` — the look reaches both the arriving and the leaving fire,
   and both carry the same one.
 - `storage.test.ts` — `look` round-trips; a non-string is dropped.
-- `samples.test.ts` — every cash face is gold or ruby, both BANKRUPT faces are
+- `samples.test.ts` — every cash face is gold or gem, both BANKRUPT faces are
   oil, and every id names a material the library carries.

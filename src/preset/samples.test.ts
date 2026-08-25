@@ -1,4 +1,4 @@
-import { LOOK_NAMES } from 'blitsklieg'
+import { LOOK_NAMES } from 'klieg'
 import { describe, expect, it } from 'vitest'
 import { getSlice } from '../slice/registry'
 import { wantsInverseInk } from '../wheel/ink'
@@ -68,11 +68,11 @@ describe('the cash wheel', () => {
     }
   })
 
-  it('announces every face but bankruptcy in gold and ruby, alternating', () => {
+  it('announces every face but bankruptcy in gold and gem, alternating', () => {
     // Cycled rather than assigned, as the colors are: no face means its metal.
     const solvent = preset.segments.filter((segment) => segment.label !== 'BANKRUPT')
     expect(solvent.map((segment) => segment.look)).toEqual(
-      solvent.map((_, index) => (index % 2 === 0 ? 'gold' : 'ruby')),
+      solvent.map((_, index) => (index % 2 === 0 ? 'gold' : 'gem')),
     )
   })
 

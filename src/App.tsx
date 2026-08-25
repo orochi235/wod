@@ -28,7 +28,7 @@ import './App.css'
 export type AppProps = {
   /** Picks a color for a wedge with none authored. Undefined uses the palette. */
   chooseColor?: ChooseColor
-  /** Opens the overlay the winner's name is drawn on. Undefined uses blitsklieg. */
+  /** Opens the overlay the winner's name is drawn on. Undefined uses klieg. */
   createBanner?: CreateBanner
   /**
    * Show this sample instead of the stored wheel. The URL is the whole of it:

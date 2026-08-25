@@ -8,7 +8,7 @@ export type BannerProps = {
 }
 
 /**
- * The scrim under the winner's name. The type itself is drawn by blitsklieg,
+ * The scrim under the winner's name. The type itself is drawn by klieg,
  * onto its own click-through canvas above everything; this is what makes that
  * modal — it takes the click, and it is the only thing on the page that can.
  */

@@ -1,4 +1,4 @@
-import { ACTIVE_NAMES, ENTER_NAMES, EXIT_NAMES, LOOK_NAMES } from 'blitsklieg'
+import { ACTIVE_NAMES, ENTER_NAMES, EXIT_NAMES, LOOK_NAMES } from 'klieg'
 import { describe, expect, it } from 'vitest'
 import { rollStyle } from './style'
 

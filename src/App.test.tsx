@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { LOOK_NAMES } from 'blitsklieg'
+import { type FireOptions, LOOK_NAMES } from 'klieg'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import type { CreateBanner } from './banner/useBanner'
@@ -908,7 +908,7 @@ describe('App banner tint', () => {
   })
 
   const stage = () => {
-    const fires: { text: string; tint?: number; look?: string }[] = []
+    const fires: { text: string; tint?: FireOptions['tint']; look?: FireOptions['look'] }[] = []
     const createBanner: CreateBanner = () => ({
       supported: true,
       fire: (text, options) => {

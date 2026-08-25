@@ -7,7 +7,7 @@ import {
   type ExitName,
   LOOK_NAMES,
   type LookName,
-} from 'blitsklieg'
+} from 'klieg'
 import type { Rng } from '../wheel/selection'
 
 export type BannerStyle = {

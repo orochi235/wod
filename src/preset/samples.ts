@@ -41,7 +41,7 @@ const PENALTY_COLORS: Record<string, string> = {
  * its own metal — except the one that takes the round off you, which is
  * iridescent near-black however much the wedge tints it.
  */
-const SOLVENT_LOOKS = ['gold', 'ruby']
+const SOLVENT_LOOKS = ['gold', 'gem']
 const BANKRUPT_LOOK = 'oil'
 
 /**

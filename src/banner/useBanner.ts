@@ -1,4 +1,4 @@
-import { type Blitsklieg, type FireOptions, createBlitsklieg } from 'blitsklieg'
+import { type FireOptions, type Klieg, createKlieg } from 'klieg'
 import { useCallback, useEffect, useState } from 'react'
 import { cryptoRng } from '../wheel/selection'
 import type { Landing } from '../wheel/useSpin'
@@ -34,9 +34,9 @@ const leaveWith = (style: BannerStyle, tint?: number): FireOptions => ({
   hold: 0,
 })
 
-export type CreateBanner = (fontUrl: string) => Blitsklieg
+export type CreateBanner = (fontUrl: string) => Klieg
 
-const overThePage: CreateBanner = (fontUrl) => createBlitsklieg({ fontUrl, policy: 'replace' })
+const overThePage: CreateBanner = (fontUrl) => createKlieg({ fontUrl, policy: 'replace' })
 
 export type BannerOptions = {
   /** The face the word is set in. */
@@ -74,7 +74,7 @@ export function useBanner(landing: Landing | null, options: BannerOptions): UseB
   const { fontUrl, tint, look, create = overThePage } = options
   // State rather than a ref: a change of face builds a second stage, and the
   // fire below has to be told to draw the word again on it.
-  const [stage, setStage] = useState<Blitsklieg | null>(null)
+  const [stage, setStage] = useState<Klieg | null>(null)
   const [dismissedId, setDismissedId] = useState<number | null>(null)
 
   useEffect(() => {

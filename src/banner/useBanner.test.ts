@@ -1,12 +1,12 @@
 import { act, renderHook } from '@testing-library/react'
-import { type FireOptions, LOOK_NAMES } from 'blitsklieg'
+import { type FireOptions, LOOK_NAMES } from 'klieg'
 import { describe, expect, it } from 'vitest'
 import type { Landing } from '../wheel/useSpin'
 import { type CreateBanner, useBanner } from './useBanner'
 
 type Fire = { text: string; options: FireOptions }
 
-/** A blitsklieg that records what it was asked to draw instead of drawing it. */
+/** A klieg that records what it was asked to draw instead of drawing it. */
 function stage(options: { supported?: boolean; fails?: boolean } = {}) {
   const fires: Fire[] = []
   let destroyed = 0
