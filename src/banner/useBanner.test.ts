@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { type FireOptions, LOOK_NAMES } from 'klieg'
+import { type FireOptions, LIGHTING_NAMES, LOOK_NAMES } from 'klieg'
 import { describe, expect, it } from 'vitest'
 import type { Landing } from '../wheel/useSpin'
 import { type CreateBanner, useBanner } from './useBanner'
@@ -146,6 +146,21 @@ describe('useBanner', () => {
     // Both fires, or dismissing it swaps the metal on the way out.
     for (const fire of bk.fires) expect(fire.options.look).toBe('oil')
     expect(bk.fires).toHaveLength(2)
+  })
+
+  it('lights both fires the same way', () => {
+    const bk = stage()
+    const { result } = renderHook(() =>
+      useBanner(landing(1), { fontUrl: '/fonts/bevan.ttf', create: bk.create }),
+    )
+
+    act(() => result.current.dismiss())
+
+    // The environment is what makes the metal read as metal; relighting it on
+    // the way out is a different material leaving than arrived.
+    const [arrive, leave] = bk.fires
+    expect(LIGHTING_NAMES).toContain(arrive.options.lighting)
+    expect(leave.options.lighting).toBe(arrive.options.lighting)
   })
 
   it('rolls the material when the wedge names none', () => {

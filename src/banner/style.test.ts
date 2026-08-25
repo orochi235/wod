@@ -1,4 +1,4 @@
-import { ACTIVE_NAMES, ENTER_NAMES, EXIT_NAMES, LOOK_NAMES } from 'klieg'
+import { ACTIVE_NAMES, ENTER_NAMES, EXIT_NAMES, LIGHTING_NAMES, LOOK_NAMES } from 'klieg'
 import { describe, expect, it } from 'vitest'
 import { rollStyle } from './style'
 
@@ -9,12 +9,13 @@ const sweep = (steps: number) => {
 }
 
 describe('rollStyle', () => {
-  it('names motion and a material the library carries', () => {
+  it('names motion, a material and lighting the library carries', () => {
     const style = rollStyle(() => 0.5)
     expect(ENTER_NAMES).toContain(style.enter)
     expect(ACTIVE_NAMES).toContain(style.active)
     expect(EXIT_NAMES).toContain(style.exit)
     expect(LOOK_NAMES).toContain(style.look)
+    expect(LIGHTING_NAMES).toContain(style.lighting)
   })
 
   it('never rolls a slot off', () => {
@@ -34,6 +35,7 @@ describe('rollStyle', () => {
     expect(seen((s) => s.active).size).toBe(ACTIVE_NAMES.length - 1)
     expect(seen((s) => s.exit).size).toBe(EXIT_NAMES.length - 1)
     expect(seen((s) => s.look).size).toBe(LOOK_NAMES.length)
+    expect(seen((s) => s.lighting).size).toBe(LIGHTING_NAMES.length)
   })
 
   it('takes an rng at its word at the top of the interval', () => {
@@ -58,6 +60,7 @@ describe('rollStyle', () => {
     expect(new Set(rolls.map((s) => s.look))).toEqual(new Set(['oil']))
     expect(new Set(rolls.map((s) => s.enter)).size).toBe(ENTER_NAMES.length - 1)
     expect(new Set(rolls.map((s) => s.active)).size).toBe(ACTIVE_NAMES.length - 1)
+    expect(new Set(rolls.map((s) => s.lighting)).size).toBe(LIGHTING_NAMES.length)
   })
 
   it('rolls the material for a name the library does not carry', () => {

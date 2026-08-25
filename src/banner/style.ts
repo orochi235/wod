@@ -5,7 +5,9 @@ import {
   EXIT_NAMES,
   type EnterName,
   type ExitName,
+  LIGHTING_NAMES,
   LOOK_NAMES,
+  type LightingName,
   type LookName,
 } from 'klieg'
 import type { Rng } from '../wheel/selection'
@@ -15,6 +17,7 @@ export type BannerStyle = {
   active: ActiveName
   exit: ExitName
   look: LookName
+  lighting: LightingName
 }
 
 /**
@@ -40,10 +43,10 @@ const named = (look: string | undefined): LookName | null =>
  * fixed: the banner is the same three seconds every spin otherwise, and the
  * library ships enough motion that a meeting need not see the same one twice.
  *
- * `look` names the material, leaving the motion rolled: two landings on the same
- * wedge are the same metal and never the same three seconds of it. An id the
- * library does not carry rolls the material too — falling back beats drawing
- * nothing for the sake of a typo.
+ * `look` names the material, leaving the motion and the lighting rolled: two
+ * landings on the same wedge are the same metal and never the same three seconds
+ * of it. An id the library does not carry rolls the material too — falling back
+ * beats drawing nothing for the sake of a typo.
  */
 export function rollStyle(rng: Rng, look?: string): BannerStyle {
   return {
@@ -51,5 +54,6 @@ export function rollStyle(rng: Rng, look?: string): BannerStyle {
     active: pick(ACTIVES, rng),
     exit: pick(EXITS, rng),
     look: named(look) ?? pick(LOOK_NAMES, rng),
+    lighting: pick(LIGHTING_NAMES, rng),
   }
 }

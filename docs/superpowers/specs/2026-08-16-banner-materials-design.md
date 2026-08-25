@@ -12,6 +12,12 @@ the material come from, and what happens to a wheel that names none?
 `LOOK_NAMES` — `gold`, `chrome`, `oil`, `gem` and eight more — once per landing, and both the
 arriving and leaving fire wear it. Nothing upstream has a say.
 
+It rolls `lighting` from `LIGHTING_NAMES` the same way. The environment is what
+makes metal read as metal, so it is rolled per landing rather than left at
+klieg's `sweep` default, and both fires carry the one roll — relighting on the
+way out is a different material leaving than arrived. A wedge cannot name it:
+only the material is a property of the face.
+
 The board theme also sets `tint: 'wedge'`, which recolors the rolled material
 with the landed wedge's own color. Material and tint compose rather than
 compete: `applyLook` replaces only the hue-carrying property — `color` for gold,
