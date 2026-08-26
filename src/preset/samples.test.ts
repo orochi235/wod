@@ -91,3 +91,38 @@ describe('the cash wheel', () => {
     expect(preset.tricks).toEqual([])
   })
 })
+
+describe('the material specimen', () => {
+  const preset = (getSample('materials') as { preset: ReturnType<typeof parsePreset> }).preset
+
+  it('carries one face per material the library ships', () => {
+    // Derived from LOOK_NAMES rather than listed, so a klieg that adds a
+    // material adds a wedge and one that drops it cannot leave a dead face.
+    expect(preset.segments.map((segment) => segment.look)).toEqual([...LOOK_NAMES])
+  })
+
+  it('letters each face with the material it announces in', () => {
+    for (const segment of preset.segments) {
+      expect(segment.label).toBe(segment.look?.toUpperCase())
+    }
+  })
+
+  it('stands on a theme that does not tint', () => {
+    // `wof` and the board built on it set `tint: 'wedge'`, which recolors the
+    // banner with the landed wedge's own color — twelve materials in one hue,
+    // and the specimen shows nothing.
+    expect(getTheme(preset.theme ?? '')?.tint).toBeUndefined()
+  })
+
+  it('is all spinnable, and colors every face', () => {
+    for (const segment of preset.segments) {
+      expect(segment.weight).toBe(1)
+      expect(segment.color).toBeDefined()
+    }
+  })
+
+  it('stands alone, with no roster behind it', () => {
+    expect(preset.feeds).toEqual([])
+    expect(preset.tricks).toEqual([])
+  })
+})
