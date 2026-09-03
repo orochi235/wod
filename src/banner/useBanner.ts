@@ -42,7 +42,9 @@ const leaveWith = (style: BannerStyle, tint?: number): FireOptions => ({
 
 export type CreateBanner = (fontUrl: string) => Klieg
 
-const overThePage: CreateBanner = (fontUrl) => createKlieg({ fontUrl, policy: 'replace' })
+// A single entry, so it is also the default a bare `fire()` sets type in.
+const overThePage: CreateBanner = (fontUrl) =>
+  createKlieg({ fonts: { display: fontUrl }, policy: 'replace' })
 
 export type BannerOptions = {
   /** The face the word is set in. */
