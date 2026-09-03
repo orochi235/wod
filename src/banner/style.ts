@@ -1,8 +1,10 @@
 import {
   ACTIVE_NAMES,
   type ActiveName,
+  EFFECT_NAMES,
   ENTER_NAMES,
   EXIT_NAMES,
+  type EffectSpec,
   type EnterName,
   type ExitName,
   LIGHTING_NAMES,
@@ -14,6 +16,7 @@ import {
   specOf,
   sweep,
   track,
+  wantsBloom,
 } from 'klieg'
 import type { Rng } from '../wheel/selection'
 
@@ -39,6 +42,10 @@ export type BannerStyle = {
   /** Which lighting was rolled, before it was built into a slot. */
   lit: LightingShape
   lighting: LightingSlot
+  /** Set only to switch bloom on; absent leaves the material's own answer. */
+  bloom?: boolean
+  /** Absent draws the word statically, which is most landings. */
+  effects?: EffectSpec[]
 }
 
 /**
@@ -90,6 +97,23 @@ const COMPOSED: Partial<Record<LookName, LookSpec>> = {
 }
 
 /**
+ * `hue` is held out: it walks the word's color away from the wedge's, and the
+ * banner exists to announce which wedge won. The other two drive brightness and
+ * timing, which nothing else on screen is carrying.
+ */
+const EFFECTS_PLAYED = EFFECT_NAMES.filter((name) => name !== 'hue')
+
+/** How often a landing is driven at all, and how much of the word it reaches. */
+const EFFECT_CHANCE = 0.35
+const EFFECT_SHARE = 0.5
+
+/**
+ * How often a material that does not ask for bloom gets it anyway. Only `tubing`
+ * and `neon` ask, so left alone the page glows about one landing in eight.
+ */
+const BLOOM_CHANCE = 0.4
+
+/**
  * Built per landing, not per fire. The library's advice is the opposite — a
  * constructed piece carries its own eased angle, so sharing one across two fires
  * carries its state into the second — and that is the point here: the arrival
@@ -115,13 +139,31 @@ const lightingFor = (shape: LightingShape): LightingSlot =>
 export function rollStyle(rng: Rng, look?: string, previous?: BannerStyle): BannerStyle {
   const material = named(look) ?? pick(LOOK_NAMES, rng)
   const lit = differentFrom(LIGHTING_SHAPES, rng, previous?.lit)
+  const enter = differentFrom(ENTERS, rng, previous?.enter)
+  const active = differentFrom(ACTIVES, rng, previous?.active)
+  const exit = differentFrom(EXITS, rng, previous?.exit)
+  // Drawn unconditionally, and every roll before them left where it was. A
+  // branch that skips a draw makes the whole sequence depend on it, and which
+  // names the other slots can reach then turns on an unrelated coin.
+  const bloomRoll = rng()
+  const effectRoll = rng()
+  const piece = pick(EFFECTS_PLAYED, rng)
+
+  const drawn = COMPOSED[material] ?? material
   return {
-    enter: differentFrom(ENTERS, rng, previous?.enter),
-    active: differentFrom(ACTIVES, rng, previous?.active),
-    exit: differentFrom(EXITS, rng, previous?.exit),
+    enter,
+    active,
+    exit,
     material,
-    look: COMPOSED[material] ?? material,
+    look: drawn,
     lit,
     lighting: lightingFor(lit),
+    // Never false: an explicit answer outranks the look's own, and darkening a
+    // material whose surface is made of highlights is not a variation.
+    bloom: !wantsBloom(undefined, drawn) && bloomRoll < BLOOM_CHANCE ? true : undefined,
+    effects:
+      effectRoll < EFFECT_CHANCE
+        ? [{ piece, target: { kind: 'run', by: 'seed', amount: EFFECT_SHARE } }]
+        : undefined,
   }
 }

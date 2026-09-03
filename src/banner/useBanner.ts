@@ -17,6 +17,8 @@ const arriveWith = (style: BannerStyle, tint?: number): FireOptions => ({
   exit: 'none',
   look: style.look,
   lighting: style.lighting,
+  bloom: style.bloom,
+  effects: style.effects,
   tint,
   hold: HOLD_MS,
 })
@@ -32,6 +34,8 @@ const leaveWith = (style: BannerStyle, tint?: number): FireOptions => ({
   exit: style.exit,
   look: style.look,
   lighting: style.lighting,
+  bloom: style.bloom,
+  effects: style.effects,
   tint,
   hold: 0,
 })

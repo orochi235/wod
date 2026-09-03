@@ -1,4 +1,12 @@
-import { ACTIVE_NAMES, ENTER_NAMES, EXIT_NAMES, LOOK_NAMES, specOf } from 'klieg'
+import {
+  ACTIVE_NAMES,
+  EFFECT_NAMES,
+  ENTER_NAMES,
+  EXIT_NAMES,
+  LOOK_NAMES,
+  specOf,
+  wantsBloom,
+} from 'klieg'
 import { describe, expect, it } from 'vitest'
 import { LIGHTING_SHAPES, rollStyle } from './style'
 
@@ -103,6 +111,41 @@ describe('rollStyle', () => {
     // Two pieces on their own periods, which is what 0.10.0's slots added.
     for (const style of raked) expect(style.lighting).toHaveLength(2)
     for (const style of named) expect(style.lighting).toBe(style.lit)
+  })
+
+  it('never switches bloom off under a material that asks for it', () => {
+    const rng = sweep(37)
+    for (const name of LOOK_NAMES) {
+      for (let i = 0; i < 40; i++) {
+        const style = rollStyle(rng, name)
+        // An explicit answer outranks the look's own, so `false` would darken a
+        // material whose surface is made of highlights.
+        expect(style.bloom).not.toBe(false)
+        if (wantsBloom(undefined, style.look)) expect(style.bloom).toBeUndefined()
+      }
+    }
+  })
+
+  it('drives some landings and leaves most of them static', () => {
+    const rng = sweep(37)
+    const rolls = Array.from({ length: 400 }, () => rollStyle(rng))
+    const driven = rolls.filter((style) => style.effects !== undefined)
+    expect(driven.length).toBeGreaterThan(0)
+    expect(driven.length).toBeLessThan(rolls.length)
+    for (const style of driven) {
+      expect(style.effects).toHaveLength(1)
+      expect(style.effects?.[0].target).toMatchObject({ kind: 'run', by: 'seed' })
+    }
+  })
+
+  it('never drives the word with the effect that recolors it', () => {
+    // Math.random, not the sweep: the effect roll and the piece are adjacent
+    // draws, so a periodic rng correlates them and reaches only one piece.
+    const rolls = Array.from({ length: 600 }, () => rollStyle(Math.random))
+    const pieces = new Set(rolls.flatMap((style) => style.effects ?? []).map((e) => e.piece))
+    // `hue` would walk the word away from the wedge's own color.
+    expect(pieces).not.toContain('hue')
+    expect(pieces.size).toBe(EFFECT_NAMES.length - 1)
   })
 
   it('does not repeat the roll it was handed', () => {
