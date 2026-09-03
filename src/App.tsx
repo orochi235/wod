@@ -116,6 +116,16 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     riderRef,
   } = useSpin(resolved.segments, config)
 
+  // Every letter on the wheel, so the face is extruded while the roster is
+  // sitting there rather than inside the landing that needs it.
+  const corpus = useMemo(
+    () =>
+      [...new Set(resolved.segments.map((segment) => segment.label).join(''))]
+        .filter((char) => char.trim() !== '')
+        .join(''),
+    [resolved.segments],
+  )
+
   // The banner is set in the face the wheel's own wedges are set in, in the
   // material its wedge names, and — where the look asks for it — in the color of
   // the wedge it landed on. Material and tint compose: the tint recolors
@@ -124,6 +134,7 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     fontUrl: resolveFont(undefined, theme.font).file,
     tint: theme.tint === 'wedge' ? (hexNumber(landing?.winner.color) ?? undefined) : undefined,
     look: landing?.winner.look,
+    corpus,
     create: createBanner,
   })
 

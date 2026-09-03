@@ -14,24 +14,38 @@ const handle = (settled: Promise<void>): FireHandle =>
   Object.assign(settled, { advance: () => undefined })
 
 /** A klieg that records what it was asked to draw instead of drawing it. */
-function stage(options: { supported?: boolean; fails?: boolean } = {}) {
+function stage(options: { supported?: boolean; fails?: boolean; coldFont?: boolean } = {}) {
   const fires: Fire[] = []
+  const warms: number[] = []
+  const preheats: string[] = []
   let destroyed = 0
+  let built = 0
   const create: CreateBanner = () => ({
     supported: options.supported ?? true,
     fire(text, fireOptions = {}) {
       fires.push({ text: spelled(text), options: fireOptions })
       return handle(options.fails ? Promise.reject(new Error('no font')) : Promise.resolve())
     },
-    warm: () => Promise.resolve(),
-    preheat: () => Promise.resolve(),
+    warm: () => {
+      warms.push(built)
+      return Promise.resolve()
+    },
+    preheat: (chars: string) => {
+      preheats.push(chars)
+      return options.coldFont ? Promise.reject(new Error('no face')) : Promise.resolve()
+    },
     destroy() {
       destroyed += 1
     },
   })
   return {
-    create,
+    create: ((url: string) => {
+      built += 1
+      return create(url)
+    }) as CreateBanner,
     fires,
+    warms,
+    preheats,
     destroys: () => destroyed,
     /** How the word arrived, or null if it never did. */
     arrival: () => fires.find((fire) => fire.options.enter !== 'none') ?? null,
@@ -227,6 +241,44 @@ describe('useBanner', () => {
     await act(async () => undefined)
 
     expect(result.current.shown).toBeNull()
+  })
+
+  it('warms the stage and extrudes the corpus before anything is fired', () => {
+    const bk = stage()
+    renderHook(() =>
+      useBanner(null, { fontUrl: '/fonts/bevan.ttf', corpus: 'Ana', create: bk.create }),
+    )
+
+    // The first fire otherwise pays for the whole face while the wheel is
+    // already stopped, and a fire that loses that race dismisses the landing.
+    expect(bk.warms.length).toBeGreaterThan(0)
+    expect(bk.preheats.join('')).toBe('Ana')
+    expect(bk.fires).toHaveLength(0)
+  })
+
+  it('extrudes only the characters it has not already', () => {
+    const bk = stage()
+    const { rerender } = renderHook(
+      ({ corpus }: { corpus: string }) =>
+        useBanner(null, { fontUrl: '/fonts/bevan.ttf', corpus, create: bk.create }),
+      { initialProps: { corpus: 'Ana' } },
+    )
+    rerender({ corpus: 'Anabel' })
+
+    // A churning roster re-renders constantly; re-extruding its whole alphabet
+    // on every change is the cost this exists to avoid.
+    expect(bk.preheats).toEqual(['Ana', 'bel'])
+  })
+
+  it('raises the banner anyway when the corpus cannot be extruded', () => {
+    const bk = stage({ coldFont: true })
+    const { result } = renderHook(() =>
+      useBanner(landing(1), { fontUrl: '/fonts/bevan.ttf', corpus: 'Solo', create: bk.create }),
+    )
+
+    // A warm is an optimisation. Failing one must not cost the word.
+    expect(result.current.shown).toBe('Solo')
+    expect(bk.arrival()).not.toBeNull()
   })
 
   it('gives the drawing context back on unmount', () => {

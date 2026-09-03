@@ -60,6 +60,11 @@ export type BannerOptions = {
    * up chosen rather than replacing it.
    */
   look?: string
+  /**
+   * Every character the wheel's names are spelled with, extruded ahead of the
+   * first fire. Absent pays for the face inside the first landing instead.
+   */
+  corpus?: string
   /** Undefined opens a real overlay. */
   create?: CreateBanner
 }
@@ -79,7 +84,7 @@ export type UseBannerResult = {
  * empty screen — the result line already names the winner.
  */
 export function useBanner(landing: Landing | null, options: BannerOptions): UseBannerResult {
-  const { fontUrl, tint, look, create = overThePage } = options
+  const { fontUrl, tint, look, corpus, create = overThePage } = options
   // State rather than a ref: a change of face builds a second stage, and the
   // fire below has to be told to draw the word again on it.
   const [stage, setStage] = useState<Klieg | null>(null)
@@ -93,6 +98,25 @@ export function useBanner(landing: Landing | null, options: BannerOptions): UseB
     setStage(made)
     return () => made.destroy()
   }, [fontUrl, create])
+
+  // Which characters this stage has already extruded. A change of face builds a
+  // second stage, which is cold again however much the first one warmed.
+  const warmed = useRef<{ stage: Klieg | null; chars: string }>({ stage: null, chars: '' })
+  useEffect(() => {
+    if (stage === null || !stage.supported) return
+    if (warmed.current.stage !== stage) {
+      warmed.current = { stage, chars: '' }
+      void stage.warm()
+    }
+    const fresh = [...new Set(corpus ?? '')]
+      .filter((char) => !warmed.current.chars.includes(char))
+      .join('')
+    if (fresh === '') return
+    warmed.current = { stage, chars: warmed.current.chars + fresh }
+    // Swallowed: a warm is an optimisation, and a face that cannot be parsed
+    // here is the same failure the fire would hit and already reports.
+    void stage.preheat(fresh).catch(() => undefined)
+  }, [stage, corpus])
 
   const landingId = landing?.id ?? null
   const label = landing?.winner.label.trim() ?? ''
