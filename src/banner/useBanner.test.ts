@@ -1,10 +1,17 @@
 import { act, renderHook } from '@testing-library/react'
-import { type FireOptions, LIGHTING_NAMES, LOOK_NAMES } from 'klieg'
+import { type FireHandle, type FireOptions, LIGHTING_NAMES, LOOK_NAMES, type TextRun } from 'klieg'
 import { describe, expect, it } from 'vitest'
 import type { Landing } from '../wheel/useSpin'
 import { type CreateBanner, useBanner } from './useBanner'
 
+const spelled = (text: string | TextRun[]): string =>
+  typeof text === 'string' ? text : text.map((run) => run.text).join('')
+
 type Fire = { text: string; options: FireOptions }
+
+/** klieg's fire returns a promise carrying the dismissing press; the stub never holds. */
+const handle = (settled: Promise<void>): FireHandle =>
+  Object.assign(settled, { advance: () => undefined })
 
 /** A klieg that records what it was asked to draw instead of drawing it. */
 function stage(options: { supported?: boolean; fails?: boolean } = {}) {
@@ -13,9 +20,11 @@ function stage(options: { supported?: boolean; fails?: boolean } = {}) {
   const create: CreateBanner = () => ({
     supported: options.supported ?? true,
     fire(text, fireOptions = {}) {
-      fires.push({ text, options: fireOptions })
-      return options.fails ? Promise.reject(new Error('no font')) : Promise.resolve()
+      fires.push({ text: spelled(text), options: fireOptions })
+      return handle(options.fails ? Promise.reject(new Error('no font')) : Promise.resolve())
     },
+    warm: () => Promise.resolve(),
+    preheat: () => Promise.resolve(),
     destroy() {
       destroyed += 1
     },
