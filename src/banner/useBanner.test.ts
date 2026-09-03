@@ -166,10 +166,13 @@ describe('useBanner', () => {
     act(() => result.current.dismiss())
 
     // The environment is what makes the metal read as metal; relighting it on
-    // the way out is a different material leaving than arrived.
+    // the way out is a different material leaving than arrived. Identity, not
+    // equality: a layered slot carries eased state, and both fires share it.
     const [arrive, leave] = bk.fires
-    expect(LIGHTING_NAMES).toContain(arrive.options.lighting)
-    expect(leave.options.lighting).toBe(arrive.options.lighting)
+    const lighting = arrive.options.lighting
+    if (Array.isArray(lighting)) expect(lighting.length).toBeGreaterThan(1)
+    else expect(LIGHTING_NAMES).toContain(lighting)
+    expect(leave.options.lighting).toBe(lighting)
   })
 
   it('does not dress two landings in a row the same way', () => {
@@ -186,7 +189,11 @@ describe('useBanner', () => {
   it('rolls the material when the wedge names none', () => {
     const bk = stage()
     mount(bk, landing(1))
-    expect(LOOK_NAMES).toContain(bk.arrival()?.options.look)
+    const look = bk.arrival()?.options.look
+    // A name the library carries, or a spec wod composed from one — which of
+    // the two depends on which material the roll landed on.
+    if (typeof look === 'string') expect(LOOK_NAMES).toContain(look)
+    else expect(look).toBeTypeOf('object')
   })
 
   it('leaves the metal its own color when handed no tint', () => {
