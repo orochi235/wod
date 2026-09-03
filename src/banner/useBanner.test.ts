@@ -172,6 +172,17 @@ describe('useBanner', () => {
     expect(leave.options.lighting).toBe(arrive.options.lighting)
   })
 
+  it('does not dress two landings in a row the same way', () => {
+    const bk = stage()
+    const { rerender } = mount(bk, landing(1))
+    rerender({ at: landing(2, 'Duo') })
+
+    const arrivals = bk.fires.filter((fire) => fire.options.enter !== 'none')
+    expect(arrivals).toHaveLength(2)
+    expect(arrivals[1].options.enter).not.toBe(arrivals[0].options.enter)
+    expect(arrivals[1].options.active).not.toBe(arrivals[0].options.active)
+  })
+
   it('rolls the material when the wedge names none', () => {
     const bk = stage()
     mount(bk, landing(1))

@@ -34,6 +34,17 @@ const EXITS = played(EXIT_NAMES)
 const pick = <T>(from: readonly T[], rng: Rng): T =>
   from[Math.min(Math.floor(rng() * from.length), from.length - 1)]
 
+/**
+ * Picks from the list with the last name removed, so avoiding it is a guarantee
+ * rather than a retry that a periodic rng can fail to escape. Falls back to the
+ * whole list where that leaves nothing — a slot the library ships one of has no
+ * other name to offer.
+ */
+const differentFrom = <T>(from: readonly T[], rng: Rng, last: T | undefined): T => {
+  const others = from.filter((name) => name !== last)
+  return pick(others.length > 0 ? others : from, rng)
+}
+
 /** The one place that knows the library's names, so it is where an id is judged. */
 const named = (look: string | undefined): LookName | null =>
   LOOK_NAMES.find((name) => name === look) ?? null
@@ -42,18 +53,21 @@ const named = (look: string | undefined): LookName | null =>
  * How one winner arrives, holds, and leaves. Rolled per landing rather than
  * fixed: the banner is the same three seconds every spin otherwise, and the
  * library ships enough motion that a meeting need not see the same one twice.
+ * `previous` is what the last landing wore, and no slot repeats it — a
+ * memoryless pick lands on the same name about one landing in five, which reads
+ * as a stall rather than a roll.
  *
  * `look` names the material, leaving the motion and the lighting rolled: two
  * landings on the same wedge are the same metal and never the same three seconds
  * of it. An id the library does not carry rolls the material too — falling back
  * beats drawing nothing for the sake of a typo.
  */
-export function rollStyle(rng: Rng, look?: string): BannerStyle {
+export function rollStyle(rng: Rng, look?: string, previous?: BannerStyle): BannerStyle {
   return {
-    enter: pick(ENTERS, rng),
-    active: pick(ACTIVES, rng),
-    exit: pick(EXITS, rng),
+    enter: differentFrom(ENTERS, rng, previous?.enter),
+    active: differentFrom(ACTIVES, rng, previous?.active),
+    exit: differentFrom(EXITS, rng, previous?.exit),
     look: named(look) ?? pick(LOOK_NAMES, rng),
-    lighting: pick(LIGHTING_NAMES, rng),
+    lighting: differentFrom(LIGHTING_NAMES, rng, previous?.lighting),
   }
 }

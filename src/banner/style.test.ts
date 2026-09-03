@@ -70,6 +70,34 @@ describe('rollStyle', () => {
     expect(new Set(rolls.map((s) => s.look)).size).toBe(LOOK_NAMES.length)
   })
 
+  it('does not repeat the roll it was handed', () => {
+    // The docstring promises a meeting need not see the same one twice, and a
+    // memoryless pick breaks that promise about one landing in five.
+    const rng = sweep(37)
+    let previous = rollStyle(rng, 'oil')
+    for (let i = 0; i < 300; i++) {
+      const next = rollStyle(rng, 'oil', previous)
+      expect(next.enter).not.toBe(previous.enter)
+      expect(next.active).not.toBe(previous.active)
+      expect(next.exit).not.toBe(previous.exit)
+      previous = next
+    }
+  })
+
+  it('still reaches every piece when avoiding the last roll', () => {
+    const rng = sweep(37)
+    let previous = rollStyle(rng, 'oil')
+    const rolls = [previous]
+    for (let i = 0; i < 600; i++) {
+      previous = rollStyle(rng, 'oil', previous)
+      rolls.push(previous)
+    }
+    // Avoiding one name must not make any other unreachable.
+    expect(new Set(rolls.map((s) => s.enter)).size).toBe(ENTER_NAMES.length - 1)
+    expect(new Set(rolls.map((s) => s.active)).size).toBe(ACTIVE_NAMES.length - 1)
+    expect(new Set(rolls.map((s) => s.exit)).size).toBe(EXIT_NAMES.length - 1)
+  })
+
   it('rolls the material for an empty name', () => {
     const rng = sweep(37)
     const rolls = Array.from({ length: 400 }, () => rollStyle(rng, ''))

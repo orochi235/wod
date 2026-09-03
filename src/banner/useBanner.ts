@@ -1,5 +1,5 @@
 import { type FireOptions, type Klieg, createKlieg } from 'klieg'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { cryptoRng } from '../wheel/selection'
 import type { Landing } from '../wheel/useSpin'
 import { type BannerStyle, rollStyle } from './style'
@@ -78,6 +78,9 @@ export function useBanner(landing: Landing | null, options: BannerOptions): UseB
   // fire below has to be told to draw the word again on it.
   const [stage, setStage] = useState<Klieg | null>(null)
   const [dismissedId, setDismissedId] = useState<number | null>(null)
+  // A ref, not state: the roll reads it and writes it inside the same effect,
+  // and nothing renders from it.
+  const lastStyle = useRef<BannerStyle | null>(null)
 
   useEffect(() => {
     const made = create(fontUrl)
@@ -98,7 +101,8 @@ export function useBanner(landing: Landing | null, options: BannerOptions): UseB
     if (stage === null || shown === null || landingId === null) return
     // Rolled here so both fires wear it: the exit has to be the same word in the
     // same material, or dismissing it swaps the metal on the way out.
-    const style = rollStyle(cryptoRng, look)
+    const style = rollStyle(cryptoRng, look, lastStyle.current ?? undefined)
+    lastStyle.current = style
     // A font that will not load would otherwise hold a scrim over an empty screen.
     void stage.fire(shown, arriveWith(style, tint)).catch(() => setDismissedId(landingId))
     return () => {
