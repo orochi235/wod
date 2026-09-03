@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@weasel-js/labkit": "^1.0.2",
-    "klieg": "^0.7.0",
+    "klieg": "^0.10.0",
     "opentype.js": "^2.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

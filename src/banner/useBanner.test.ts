@@ -1,10 +1,17 @@
 import { act, renderHook } from '@testing-library/react'
-import { type FireOptions, LIGHTING_NAMES, LOOK_NAMES } from 'klieg'
+import { type FireHandle, type FireOptions, LIGHTING_NAMES, LOOK_NAMES, type TextRun } from 'klieg'
 import { describe, expect, it } from 'vitest'
 import type { Landing } from '../wheel/useSpin'
 import { type CreateBanner, useBanner } from './useBanner'
 
+const spelled = (text: string | TextRun[]): string =>
+  typeof text === 'string' ? text : text.map((run) => run.text).join('')
+
 type Fire = { text: string; options: FireOptions }
+
+/** klieg's fire returns a promise carrying the dismissing press; the stub never holds. */
+const handle = (settled: Promise<void>): FireHandle =>
+  Object.assign(settled, { advance: () => undefined })
 
 /** A klieg that records what it was asked to draw instead of drawing it. */
 function stage(options: { supported?: boolean; fails?: boolean } = {}) {
@@ -13,9 +20,11 @@ function stage(options: { supported?: boolean; fails?: boolean } = {}) {
   const create: CreateBanner = () => ({
     supported: options.supported ?? true,
     fire(text, fireOptions = {}) {
-      fires.push({ text, options: fireOptions })
-      return options.fails ? Promise.reject(new Error('no font')) : Promise.resolve()
+      fires.push({ text: spelled(text), options: fireOptions })
+      return handle(options.fails ? Promise.reject(new Error('no font')) : Promise.resolve())
     },
+    warm: () => Promise.resolve(),
+    preheat: () => Promise.resolve(),
     destroy() {
       destroyed += 1
     },
@@ -157,16 +166,34 @@ describe('useBanner', () => {
     act(() => result.current.dismiss())
 
     // The environment is what makes the metal read as metal; relighting it on
-    // the way out is a different material leaving than arrived.
+    // the way out is a different material leaving than arrived. Identity, not
+    // equality: a layered slot carries eased state, and both fires share it.
     const [arrive, leave] = bk.fires
-    expect(LIGHTING_NAMES).toContain(arrive.options.lighting)
-    expect(leave.options.lighting).toBe(arrive.options.lighting)
+    const lighting = arrive.options.lighting
+    if (Array.isArray(lighting)) expect(lighting.length).toBeGreaterThan(1)
+    else expect(LIGHTING_NAMES).toContain(lighting)
+    expect(leave.options.lighting).toBe(lighting)
+  })
+
+  it('does not dress two landings in a row the same way', () => {
+    const bk = stage()
+    const { rerender } = mount(bk, landing(1))
+    rerender({ at: landing(2, 'Duo') })
+
+    const arrivals = bk.fires.filter((fire) => fire.options.enter !== 'none')
+    expect(arrivals).toHaveLength(2)
+    expect(arrivals[1].options.enter).not.toBe(arrivals[0].options.enter)
+    expect(arrivals[1].options.active).not.toBe(arrivals[0].options.active)
   })
 
   it('rolls the material when the wedge names none', () => {
     const bk = stage()
     mount(bk, landing(1))
-    expect(LOOK_NAMES).toContain(bk.arrival()?.options.look)
+    const look = bk.arrival()?.options.look
+    // A name the library carries, or a spec wod composed from one — which of
+    // the two depends on which material the roll landed on.
+    if (typeof look === 'string') expect(LOOK_NAMES).toContain(look)
+    else expect(look).toBeTypeOf('object')
   })
 
   it('leaves the metal its own color when handed no tint', () => {

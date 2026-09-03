@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { type FireOptions, LOOK_NAMES } from 'klieg'
+import { type FireHandle, type FireOptions, LOOK_NAMES, type TextRun } from 'klieg'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import type { CreateBanner } from './banner/useBanner'
@@ -8,6 +8,9 @@ import { publishFeed, subscribeFeedRequests } from './feed/bus'
 import { DEFAULT_PRESET } from './preset/defaults'
 import { PRESET_KEY } from './preset/storage'
 import type { Reveal, Segment } from './wheel/types'
+
+const spelled = (text: string | TextRun[]): string =>
+  typeof text === 'string' ? text : text.map((run) => run.text).join('')
 
 /**
  * What each wedge spells, with any ellipsis stripped. Two reasons this is not a
@@ -766,9 +769,11 @@ describe('App banner', () => {
       return {
         supported: true,
         fire: (text) => {
-          fired.push(text)
-          return Promise.resolve()
+          fired.push(spelled(text))
+          return Object.assign(Promise.resolve(), { advance: () => undefined }) as FireHandle
         },
+        warm: () => Promise.resolve(),
+        preheat: () => Promise.resolve(),
         destroy: () => undefined,
       }
     }
@@ -912,9 +917,11 @@ describe('App banner tint', () => {
     const createBanner: CreateBanner = () => ({
       supported: true,
       fire: (text, options) => {
-        fires.push({ text, tint: options?.tint, look: options?.look })
-        return Promise.resolve()
+        fires.push({ text: spelled(text), tint: options?.tint, look: options?.look })
+        return Object.assign(Promise.resolve(), { advance: () => undefined }) as FireHandle
       },
+      warm: () => Promise.resolve(),
+      preheat: () => Promise.resolve(),
       destroy: () => undefined,
     })
     return { createBanner, fires }
