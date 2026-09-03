@@ -36,7 +36,7 @@ export function SlicePanel({ slice, onChange }: SlicePanelProps) {
 
   return (
     <>
-      <PropertyPanel title="Slice layout">
+      <PropertyPanel title="Slice layout" className="editor__center-panel">
         <SelectRow
           label="Layout"
           value={layout?.id ?? NONE}
@@ -51,7 +51,7 @@ export function SlicePanel({ slice, onChange }: SlicePanelProps) {
         ) : null}
       </PropertyPanel>
       {slice && contents.length > 0 ? (
-        <PropertyPanel title="On the slice">
+        <PropertyPanel title="On the slice" className="editor__center-panel">
           <RecipeForm fields={contents} params={slice.params} segments={[]} onChange={edit} />
         </PropertyPanel>
       ) : null}

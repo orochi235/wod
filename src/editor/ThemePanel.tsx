@@ -8,7 +8,7 @@ export type ThemePanelProps = {
 
 export function ThemePanel({ theme, onChange }: ThemePanelProps) {
   return (
-    <PropertyPanel title="Look">
+    <PropertyPanel title="Look" className="editor__center-panel">
       <SelectRow
         label="Wheel"
         value={getTheme(theme ?? '')?.id ?? 'flat'}

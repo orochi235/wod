@@ -49,7 +49,7 @@ export function MotionPanel({ motion, onChange }: MotionPanelProps) {
   }
 
   return (
-    <PropertyPanel title="Motion">
+    <PropertyPanel title="Motion" className="editor__center-panel">
       {/* Floored at 1, not 0: Element.animate() throws synchronously on a
           negative duration, and the parser only guards data arriving by import. */}
       <NumberRow

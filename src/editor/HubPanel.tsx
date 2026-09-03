@@ -33,7 +33,7 @@ export function HubPanel({ hub, onChange }: HubPanelProps) {
   }
 
   return (
-    <PropertyPanel title="Hub">
+    <PropertyPanel title="Hub" className="editor__center-panel">
       <SelectRow
         label="Emblem"
         value={emblem?.kind ?? NONE}

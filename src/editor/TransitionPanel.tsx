@@ -39,7 +39,7 @@ export function TransitionPanel({ transitions, onChange }: TransitionPanelProps)
   }
 
   return (
-    <PropertyPanel title="Transitions">
+    <PropertyPanel title="Transitions" className="editor__center-panel">
       {MOMENTS.map(({ moment, label }) => {
         const armed = transitions?.[moment]
         const transition = armed ? getTransition(armed.id) : null

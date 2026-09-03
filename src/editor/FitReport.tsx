@@ -20,7 +20,7 @@ export function FitReport({ segments, slice, breakpoints, radius = 200, measure 
   const rows = fitReport(segments, slice, radius, measure ?? fallback, breakpoints)
 
   return (
-    <PropertyPanel title="Fit report">
+    <PropertyPanel title="Fit report" className="editor__center-panel">
       <ul className="fit-report">
         {rows.map((row) => (
           <li
