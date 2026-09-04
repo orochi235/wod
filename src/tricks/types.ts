@@ -1,5 +1,6 @@
 import type { Origin, WedgeIndex } from '../compose/types'
 import type { Field } from '../form/fields'
+import type { NameContext } from '../text/template'
 import type { EasingName, Morph, Segment } from '../wheel/types'
 
 export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel' | 'swap'
@@ -19,6 +20,8 @@ export type RecipeContext = {
   trickId: string
   segments: Segment[]
   origins: Map<string, Origin>
+  /** Carried from the composition so recipe text can expand `{first}` per target. */
+  names?: Map<string, NameContext>
   durationMs: number
   /**
    * The resolution's frozen roll. Selectors draw from it rather than from a

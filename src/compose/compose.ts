@@ -1,5 +1,7 @@
 import type { FeedConfig, FeedItem, ItemOverride } from '../feed/types'
-import type { Segment } from '../wheel/types'
+import type { NameContext } from '../text/template'
+import { expand, namesOf } from '../text/template'
+import type { Reveal, Segment } from '../wheel/types'
 import type { Composition, Origin, WedgeIndex } from './types'
 
 export type ComposeInput = {
@@ -37,16 +39,33 @@ function safeWeight(value: number): number {
   return Number.isFinite(value) ? Math.max(0, value) : 0
 }
 
-function toSegment(feed: FeedConfig, item: FeedItem, override: ItemOverride | undefined): Segment {
+function expandReveal(reveal: Reveal, names: NameContext): Reveal {
+  const expanded: Reveal = { ...reveal }
+  if (reveal.headline !== undefined) expanded.headline = expand(reveal.headline, names)
+  if (reveal.body !== undefined) expanded.body = expand(reveal.body, names)
+  return expanded
+}
+
+/**
+ * Templates expand against `item.label` rather than against the label this
+ * returns: an override of "{first} owes a beer" has to read the feed's name for
+ * this person, not re-read its own output and find no name left in it.
+ */
+function toSegment(
+  feed: FeedConfig,
+  item: FeedItem,
+  override: ItemOverride | undefined,
+  names: NameContext,
+): Segment {
   const segment: Segment = {
     id: wedgeId(feed.id, item.id),
-    label: override?.label ?? item.label,
+    label: override?.label === undefined ? item.label : expand(override.label, names),
     weight: safeWeight(override?.weight ?? feed.defaults.weight),
   }
   const color = override?.color ?? feed.defaults.color
   if (color !== undefined) segment.color = color
   if (override?.media !== undefined) segment.media = override.media
-  if (override?.reveal !== undefined) segment.reveal = override.reveal
+  if (override?.reveal !== undefined) segment.reveal = expandReveal(override.reveal, names)
   if (override?.slice !== undefined) segment.slice = override.slice
   return segment
 }
@@ -61,6 +80,7 @@ function toSegment(feed: FeedConfig, item: FeedItem, override: ItemOverride | un
  */
 export function composeBase(input: ComposeInput): Composition {
   const origins = new Map<string, Origin>()
+  const names = new Map<string, NameContext>()
   const statics: Segment[] = []
   for (const segment of input.statics) {
     if (origins.has(segment.id)) continue
@@ -85,8 +105,10 @@ export function composeBase(input: ComposeInput): Composition {
       if (override?.excluded) continue
       const id = wedgeId(feed.id, item.id)
       if (origins.has(id)) continue
-      block.push(toSegment(feed, item, override))
+      const itemNames = namesOf(item.label)
+      block.push(toSegment(feed, item, override, itemNames))
       origins.set(id, { kind: 'external', feedId: feed.id, itemId: item.id })
+      names.set(id, itemNames)
     }
 
     // An anchor naming a segment that is not there degrades to appending rather
@@ -108,5 +130,5 @@ export function composeBase(input: ComposeInput): Composition {
   }
   segments.push(...appended)
 
-  return { segments, origins }
+  return { segments, origins, names }
 }

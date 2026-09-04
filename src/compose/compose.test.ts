@@ -206,3 +206,68 @@ describe('slice overrides', () => {
     expect(wedge?.slice).toBeUndefined()
   })
 })
+
+describe('name templates', () => {
+  const named: FeedItem[] = [
+    { id: 'ana', label: 'Ana Delacroix Ruiz' },
+    { id: 'prince', label: 'Prince' },
+  ]
+
+  function composeNamed(overrides: Record<string, ItemOverride> = {}) {
+    return composeBase({ statics, feeds: [roster], items: { sim: named }, overrides })
+  }
+
+  function labelOf(id: string, overrides: Record<string, ItemOverride> = {}) {
+    return composeNamed(overrides).segments.find((s) => s.id === id)?.label
+  }
+
+  it('expands a template in an override label', () => {
+    expect(labelOf('sim:ana', { ana: { label: '{first} owes a beer' } })).toBe('Ana owes a beer')
+  })
+
+  it('expands against the feed name, not against the override it is producing', () => {
+    // The bug this pins: reading the override's own output would leave no name
+    // in it by the time {last} is looked up.
+    expect(labelOf('sim:ana', { ana: { label: '{first} {last}' } })).toBe('Ana Delacroix Ruiz')
+  })
+
+  it('drops a token the name cannot fill', () => {
+    expect(labelOf('sim:prince', { prince: { label: '{first} {last} is out' } })).toBe(
+      'Prince is out',
+    )
+  })
+
+  it('leaves an override label with no tokens alone', () => {
+    expect(labelOf('sim:ana', { ana: { label: 'the boss' } })).toBe('the boss')
+  })
+
+  it('leaves an unoverridden label exactly as the feed sent it', () => {
+    expect(labelOf('sim:ana')).toBe('Ana Delacroix Ruiz')
+  })
+
+  it('expands both halves of an override reveal', () => {
+    const reveal = composeNamed({
+      ana: { reveal: { headline: '{first} wins', body: 'well done, {name}' } },
+    }).segments.find((s) => s.id === 'sim:ana')?.reveal
+    expect(reveal).toEqual({ headline: 'Ana wins', body: 'well done, Ana Delacroix Ruiz' })
+  })
+
+  it('leaves the rest of a reveal untouched', () => {
+    const reveal = composeNamed({
+      ana: { reveal: { headline: '{first}', effect: 'confetti', holdMs: 2000 } },
+    }).segments.find((s) => s.id === 'sim:ana')?.reveal
+    expect(reveal).toEqual({ headline: 'Ana', effect: 'confetti', holdMs: 2000 })
+  })
+
+  it('records a name for every roster wedge', () => {
+    expect(composeNamed().names?.get('sim:ana')).toEqual({
+      name: 'Ana Delacroix Ruiz',
+      first: 'Ana',
+      last: 'Delacroix Ruiz',
+    })
+  })
+
+  it('records no name for a static wedge, so a template on one expands to nothing', () => {
+    expect(composeNamed().names?.has('seg1')).toBe(false)
+  })
+})

@@ -1,3 +1,4 @@
+import type { NameContext } from '../text/template'
 import type { Segment } from '../wheel/types'
 
 /**
@@ -13,6 +14,13 @@ export type Origin =
 export type Composition = {
   segments: Segment[]
   origins: Map<string, Origin>
+  /**
+   * The person behind each roster wedge, keyed by segment id, for `{first}` and
+   * `{last}` to expand against. Static and computed wedges are absent, and so is
+   * the whole map on a hand-built composition — both read as `NO_NAME`, which is
+   * the same answer.
+   */
+  names?: Map<string, NameContext>
 }
 
 /**

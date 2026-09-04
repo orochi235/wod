@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { wedgeIndexOf } from '../../compose/compose'
+import { namesOf } from '../../text/template'
 import { applyMorphs } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import type { RecipeContext } from '../types'
@@ -70,5 +71,46 @@ describe('relabel', () => {
     expect(relabel.validate({ targets: ['@extrenal'] }, wedgeIndexOf(segments))).toMatch(
       /@extrenal/,
     )
+  })
+})
+
+describe('relabel name templates', () => {
+  const named: RecipeContext = {
+    ...ctx,
+    segments: [
+      { id: 'sim:ana', label: 'Ana Delacroix', weight: 1 },
+      { id: 'sim:prince', label: 'Prince', weight: 1 },
+      { id: 'seg1', label: 'Free beer', weight: 1 },
+    ],
+    names: new Map([
+      ['sim:ana', namesOf('Ana Delacroix')],
+      ['sim:prince', namesOf('Prince')],
+    ]),
+  }
+
+  function switchedTo(targets: string[], toLabel: string) {
+    return relabel
+      .resolve({ targets, toLabel, at: 0.8 }, named)
+      .map((morph) => [morph.segmentId, morph.keyframes[1].label])
+  }
+
+  it('says a different name on every wedge one string lands on', () => {
+    expect(switchedTo(['sim:ana', 'sim:prince'], '{first} is out')).toEqual([
+      ['sim:ana', 'Ana is out'],
+      ['sim:prince', 'Prince is out'],
+    ])
+  })
+
+  it('expands to nothing on a static wedge caught by a broad target', () => {
+    expect(switchedTo(['seg1'], '{first} is out')).toEqual([['seg1', 'is out']])
+  })
+
+  it('leaves a label with no tokens alone', () => {
+    expect(switchedTo(['sim:ana'], 'LOSER')).toEqual([['sim:ana', 'LOSER']])
+  })
+
+  it('falls back to nameless when the context carries no map', () => {
+    const morphs = relabel.resolve({ targets: ['ana'], toLabel: '{first} is out', at: 0.8 }, ctx)
+    expect(morphs[0].keyframes[1].label).toBe('is out')
   })
 })

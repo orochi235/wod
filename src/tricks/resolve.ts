@@ -58,6 +58,7 @@ export function resolveTricks(
         trickId: trick.id,
         segments: colored,
         origins,
+        names: base.names,
         durationMs,
         roll,
         winnerId,
@@ -65,7 +66,7 @@ export function resolveTricks(
     )
   }
 
-  return { segments: colored, origins, morphs, colors }
+  return { segments: colored, origins, names: base.names, morphs, colors }
 }
 
 /**

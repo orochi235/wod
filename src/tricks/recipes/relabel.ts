@@ -1,4 +1,5 @@
 import type { WedgeIndex } from '../../compose/types'
+import { expand, nameFor } from '../../text/template'
 import type { Morph } from '../../wheel/types'
 import { readString, readStringArray, readUnit } from '../params'
 import { isSelectorToken, resolveTargets } from '../targets'
@@ -8,7 +9,8 @@ export const relabel: Recipe = {
   id: 'relabel',
   name: 'Named wedges change label',
   description:
-    'The chosen wedges switch to new text at a chosen moment. The change is a cut, not a fade.',
+    'The chosen wedges switch to new text at a chosen moment. The change is a cut, not a fade. ' +
+    'The text may use {first}, {last} and {name}, which expand per wedge.',
   defaults: { targets: [], toLabel: 'LOSER', at: 0.8 },
   fields: [
     { key: 'targets', label: 'Wedges', kind: 'segments' },
@@ -24,12 +26,15 @@ export const relabel: Recipe = {
 
     // Labels are step-sampled, so two keyframes are enough: the base holds
     // until `at`, then the new text takes over for the rest of the spin.
+    //
+    // Expanded per target rather than once: one authored string has to say a
+    // different name on every wedge it lands on.
     return resolveTargets(readStringArray(params, 'targets'), ctx).map((segment) => ({
       segmentId: segment.id,
       durationMs: ctx.durationMs,
       keyframes: [
         { at: 0, label: segment.label },
-        { at, label: toLabel },
+        { at, label: expand(toLabel, nameFor(ctx.names, segment.id)) },
       ],
     }))
   },
