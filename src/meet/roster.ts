@@ -1,6 +1,12 @@
 import type { FeedItem } from '../feed/types'
-import { activeParticipants, liveConferences, matchesPin, pickConference } from './api'
-import { itemsForPeople, personOf } from './identity'
+import {
+  type Participant,
+  activeParticipants,
+  liveConferences,
+  matchesPin,
+  pickConference,
+} from './api'
+import { isBot, itemsForPeople, personOf } from './identity'
 
 export type RosterSnapshot = {
   /** What to hand back as `cached` next tick. Null means nothing was watched. */
@@ -8,6 +14,11 @@ export type RosterSnapshot = {
   items: FeedItem[]
   /** How many conferences were in progress. Meaningful only when `conference` is null. */
   live: number
+}
+
+/** The wheel's roster: everyone in the conference who is a person. */
+function peopleOn(participants: Participant[]): FeedItem[] {
+  return itemsForPeople(participants.map(personOf).filter((person) => !isBot(person)))
 }
 
 /**
@@ -24,7 +35,7 @@ export async function fetchRoster(
     // A non-empty roster proves the conference is still live. An empty one is
     // indistinguishable from one that ended, so fall through and re-list.
     if (people.length > 0) {
-      return { conference: cached, items: itemsForPeople(people.map(personOf)), live: 0 }
+      return { conference: cached, items: peopleOn(people), live: 0 }
     }
   }
 
@@ -33,5 +44,5 @@ export async function fetchRoster(
   if (conference === null) return { conference: null, items: [], live: records.length }
 
   const people = await activeParticipants(conference.name, token)
-  return { conference: conference.name, items: itemsForPeople(people.map(personOf)), live: 0 }
+  return { conference: conference.name, items: peopleOn(people), live: 0 }
 }
