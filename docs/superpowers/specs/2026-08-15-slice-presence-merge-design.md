@@ -47,11 +47,16 @@ drawn.map(({ segment, arc: presenceArc, presence }, index) => {
 
   return (
     <g key={segment.id} className="wheel__wedge" data-segment-id={segment.id}
-       style={styleOf(presence, { angle: midDeg(presenceArc), radius, pivot: radius * 0.6 })}>
+       style={styleOf(presence, { angle: midDeg(layoutArc), radius, pivot: radius * 0.6 })}>
       <path className="wheel__segment" d={arcPath(presenceArc.start, presenceArc.end, radius)}
             fill={segment.color} />
-      <SliceElements elements={elements} arc={presenceArc} radius={radius} id={segment.id}
-                     levelRef={levelRef?.(segment.id, -midDeg(layoutArc))} />
+      <clipPath id={clipId}><path d={arcPath(presenceArc.start, presenceArc.end, radius)} /></clipPath>
+      <g className="wheel__slice" clipPath={`url(#${clipId})`}>
+        <g transform={`rotate(${midDeg(presenceArc) - midDeg(layoutArc)})`}>
+          <SliceElements elements={elements} arc={layoutArc} radius={radius} id={segment.id}
+                         levelRef={levelRef?.(segment.id, -midDeg(layoutArc))} />
+        </g>
+      </g>
     </g>
   )
 })
@@ -60,9 +65,16 @@ drawn.map(({ segment, arc: presenceArc, presence }, index) => {
 The sketch leaves out both existing guards — a non-positive width and an empty
 path still skip the wedge, as on either side today.
 
-`SliceElements` keeps taking the presence arc: it places what the layout produced,
-so the label travels with its wedge even though its size and orientation were
-settled elsewhere.
+`SliceElements` takes the layout arc, and the whole frame it draws in is turned
+onto the presence arc and clipped to the wedge. Placing content from the presence
+arc instead only carries the kinds `SliceElements` positions itself — a
+`glyphRun` and outline mode's warped `path` arrive with absolute coordinates the
+layout already baked, so they would stay on the layout arc's midline while the
+arc slid out from under them. Turning the frame carries every kind alike; the
+clip is what stops a label sized for the full arc painting over the neighbor as
+the arc closes. `styleOf` takes the layout angle for the same reason: the
+presence midpoint drifts while an arc closes, so a `fly` aimed at it would bend
+its own flight path.
 
 `ctx.index` and `ctx.count` both come from the draw list, so a wedge's index is
 always within its count. No registered layout reads either one; the pair being
@@ -134,12 +146,13 @@ orientation and travels with its wedge.
 
 ## What this leaves
 
-**A curved label can overrun its own path.** `SliceElements` builds `curvedText`
-as a `<textPath>` along the presence arc, so a label fit for the full arc has
-more text than the path can hold once the wedge closes. An overflowing `textPath`
-can drop out entirely rather than clip, which would read as the label blinking
-off partway through a departure. The wedge is nearly transparent by then; whether
-that is acceptable is a judgment for the browser pass, not an assertion.
+**A surviving wedge's label is trimmed while it grows.** A wedge is laid out for
+the arc it holds once a departure finishes, so for the length of the exit its
+label is wider than the arc it is drawn at and the wedge's own outline cuts the
+overhang. Most visible on `curved`, which sets a label along nearly the whole
+arc: a name can lose its last letter until the exit lands. Both alternatives cost
+more — refitting each frame shrinks the label every frame, and keeping the
+pre-departure fit pops it when the exit ends.
 
 **The editor preview animates nothing and shows the default layout.** Its
 `<Wheel>` takes neither `slice` nor `transitions`, so the operator arms both in

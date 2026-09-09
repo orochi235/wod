@@ -71,6 +71,21 @@ const labelSize = (container: HTMLElement, id: string) =>
 const spelled = (container: HTMLElement): string[] =>
   [...container.querySelectorAll('.wheel__wedge')].map((node) => node.textContent ?? '')
 
+/**
+ * How far a wedge's slice content is turned off the arc it was laid out in.
+ * Zero for a settled wedge; the drift between the two arcs while one moves.
+ */
+const carry = (container: HTMLElement, id: string): number => {
+  const group = container.querySelector(`[data-segment-id="${id}"] .wheel__slice > g`)
+  const match = /rotate\((-?[\d.]+)\)/.exec(group?.getAttribute('transform') ?? '')
+  return match ? Number(match[1]) : Number.NaN
+}
+
+/** The guide path a curved label is set along, which the layout shapes. */
+const guide = (container: HTMLElement, id: string): string | null =>
+  container.querySelector(`[data-segment-id="${id}"] .wheel__slice path[id]`)?.getAttribute('d') ??
+  null
+
 /** The layout that fits one run through `ctx.fit`, which the sizes below are of. */
 const AUTO: SliceInstance = { id: 'auto', params: {} }
 
@@ -254,6 +269,83 @@ describe('Wheel', () => {
     }
   })
 
+  it('carries a departing wedge label onto the arc it is drawn at', () => {
+    const clock = installClock()
+    try {
+      const { container, rerender } = render(
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
+          transitions={opening}
+          slice={AUTO}
+        />,
+      )
+      clock.advance(1000)
+      const settled = guide(container, 'cal')
+
+      rerender(
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
+          transitions={opening}
+          slice={AUTO}
+        />,
+      )
+      clock.advance(200)
+
+      // cal keeps the layout arc it had as a sixth of six, centered at 330°.
+      // Holding half its weight against five whole ones, it is drawn on the
+      // last 0.0909 of the wheel, centered at 343.64° — and the label baked
+      // against 330° has to turn the difference to stay on its own wedge.
+      expect(carry(container, 'cal')).toBeCloseTo(13.64, 1)
+      // The carry is the whole of the difference. Re-placing the label against
+      // the closing arc as well would move it twice, and shorten the path it
+      // is set along under a run already fit for the full one.
+      expect(guide(container, 'cal')).toBe(settled)
+    } finally {
+      clock.restore()
+    }
+  })
+
+  it('leaves a settled wedge label where the layout put it', () => {
+    const { container } = render(<Wheel segments={roster(['ana', 'ben'])} slice={AUTO} />)
+    expect(carry(container, 'ana')).toBe(0)
+  })
+
+  it('clips a wedge label to the arc the wedge is drawn at', () => {
+    const clock = installClock()
+    try {
+      const { container, rerender } = render(
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
+          transitions={opening}
+          slice={AUTO}
+        />,
+      )
+      clock.advance(1000)
+
+      rerender(
+        <Wheel
+          segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
+          transitions={opening}
+          slice={AUTO}
+        />,
+      )
+      clock.advance(200)
+
+      // A label fit for the full arc is wider than the closing one, so what
+      // stops it painting over the neighbor is the wedge's own outline.
+      const wedge = container.querySelector('[data-segment-id="cal"]')
+      const clip = wedge?.querySelector('clipPath')
+      expect(clip?.querySelector('path')?.getAttribute('d')).toBe(
+        wedge?.querySelector('path.wheel__segment')?.getAttribute('d'),
+      )
+      const slice = wedge?.querySelector('.wheel__slice')
+      expect(slice?.getAttribute('clip-path')).toBe(`url(#${clip?.id})`)
+      expect(slice?.querySelector('text.wheel__label')).not.toBeNull()
+    } finally {
+      clock.restore()
+    }
+  })
+
   it('registers a level element at its layout angle, not the one it is passing through', () => {
     const clock = installClock()
     try {
@@ -284,7 +376,7 @@ describe('Wheel', () => {
       )
       clock.advance(200)
 
-      // Sixth of six: the last sixth of the wheel, centred at 330°. Drawn at
+      // Sixth of six: the last sixth of the wheel, centered at 330°. Drawn at
       // half its arc it is centred near 344°, which is what it must not report.
       expect(seen.get('cal')).toBeCloseTo(-330)
     } finally {

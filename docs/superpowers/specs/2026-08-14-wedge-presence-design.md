@@ -141,10 +141,10 @@ to know about.
 
 ## Defaults
 
-A transition that declares no `hold` gets the behavior that already ships: an
-arriving wedge occupies its full arc from the first frame, and a departing one
-releases its arc at once and animates out over survivors that have already
-reflowed.
+A transition that declares no `hold` gets a ramp: an arriving wedge occupies its
+full arc from the first frame, and a departing one closes its arc across the
+transition. Releasing it at once — which is what shipped first — expanded the
+survivors under a wedge still painted at full width, on top of them.
 
 So `shrink` — a wedge collapsing into nothing while its neighbors grow into the
 space — is an ordinary transition that declares `hold` decaying to zero, and
@@ -166,8 +166,8 @@ a departing wedge still on screen cannot be won at all. Three rules:
   and a resting pose. This is the transitions spec's cancel rule, and settling
   is retargeting with a zero duration rather than new machinery.
 - Under `prefers-reduced-motion`, every transition is `fade` at
-  `REDUCED_MOTION_MS` with no stagger and `hold` released immediately, matching
-  how `useSpin` already shortens a rotation.
+  `REDUCED_MOTION_MS` with no stagger, matching how `useSpin` already shortens a
+  rotation. The arc still closes; it closes over that shorter duration.
 
 ## Shape
 
