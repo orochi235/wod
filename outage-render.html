@@ -1,0 +1,130 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Outage sound (scratch)</title>
+<style>
+  body { background: #2a2f3a; color: #eee; font: 16px -apple-system, sans-serif; margin: 32px; }
+  button { font: inherit; padding: 10px 24px; }
+  .clock { font: 600 48px ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; margin: 16px 0; }
+  .tl { position: relative; width: 100%; max-width: 1400px; border-top: 1px solid #333; }
+  .row { position: relative; height: 38px; border-bottom: 1px solid #333; }
+  .row > .name { position: absolute; left: 0; top: 10px; width: 90px; color: #888; font-size: 13px; }
+  .lane { position: absolute; left: 100px; right: 0; top: 0; bottom: 0; }
+  .ev { position: absolute; top: 6px; height: 26px; min-width: 22px; border-radius: 4px;
+        font: 600 12px ui-monospace, Menlo, monospace; line-height: 26px; text-align: center;
+        color: #111; overflow: hidden; white-space: nowrap; }
+  .ev.on { outline: 2px solid #fff; }
+  .ev { cursor: pointer; } .ev.off { opacity: 0.18; text-decoration: line-through; }
+  .row > .name { cursor: pointer; } .row > .name:hover { color: #eee; }
+  tr.off { opacity: 0.35; text-decoration: line-through; }
+  .fall { background: #6cf; } .rise { background: #fc6; } .low { background: #c86; }
+  .mid { background: #e66; } .high { background: #f9c; } .drone { background: #8a8; }
+  .chord { background: #b9f; } .flick { background: #fff; }
+  .head { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; left: 100px; }
+  .ticks { position: relative; height: 20px; margin-left: 100px; color: #777; font-size: 12px;
+           font-variant-numeric: tabular-nums; }
+  .ticks span { position: absolute; transform: translateX(-50%); }
+  table { margin-top: 20px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td { padding: 2px 14px 2px 0; } td.num { text-align: right; font-family: ui-monospace, Menlo, monospace; }
+</style>
+<button id="play">Play the outage</button> <button id="solo">Unmute all</button>
+<label style="margin-left:16px"><input type="checkbox" id="lights" checked /> Blackout</label>
+<label style="margin-left:12px"><input type="checkbox" id="editor" checked /> Editor depth (60%)</label>
+<span style="color:#888;margin-left:12px">Click a block, a legend row, or a row name to mute it. Changes apply on the next Play.</span>
+<div class="clock" id="clock">0.00 s · 4:07.20</div>
+<div class="tl" id="tl"><div class="head" id="head"></div></div>
+<div class="ticks" id="ticks"></div>
+<table id="legend"></table>
+<script type="module">
+  import { playOutage } from '/src/outage/sound.ts'
+  import { playBlackout } from '/src/outage/blackout.ts'
+  import { loadKit } from '/src/outage/kit.ts'
+  import { CHIME, CHORD, CLANKS, DEAD_HUM, DRONE, FLICKERS, HITS, SWOOPS } from '/src/outage/schedule.ts'
+
+  const END = CHORD.at + CHORD.holdMs + CHORD.fadeMs + 200
+  const pct = (ms) => `${(ms / END) * 100}%`
+  const song = (ms) => { const t = 247.2 + ms / 1000; return `${Math.floor(t / 60)}:${(t % 60).toFixed(2).padStart(5, '0')}` }
+
+  const falls = SWOOPS.filter((s) => s.to < s.from)
+  const rises = SWOOPS.filter((s) => s.to > s.from)
+  const events = [
+    ...falls.map((s, i) => ({ row: 'Falls', id: s.id, cls: 'fall', at: s.at, ms: s.ms, what: `fall ${s.from.toFixed(0)} → ${s.to.toFixed(0)} Hz` })),
+    ...rises.map((s, i) => ({ row: 'Rises', id: s.id, cls: 'rise', at: s.at, ms: s.ms, what: `rise ${s.from.toFixed(0)} → ${s.to.toFixed(0)} Hz` })),
+    ...HITS.map((h) => ({ row: h.sound === 'whack' ? 'Whack' : h.sound === 'piston' ? 'Piston' : h.sound === 'rimshot' ? 'Rimshot' : 'Clank', id: h.id, cls: h.sound === 'whack' ? 'low' : h.sound === 'piston' ? 'rise' : 'mid', at: h.at, ms: 60, what: h.sound === 'whack' ? 'whack' : h.sound === 'rimshot' ? 'rimshot' : h.sound === 'piston' ? `piston stroke ${h.stroke + 1} of ${h.of}` : `clank, ${h.hz} Hz metal` })),
+    ...CLANKS.map((c) => ({ row: 'Clank', id: c.id, cls: 'high', at: c.at, ms: 60, what: `clank, ${c.hz} Hz metal` })),
+    { row: 'Hum', id: DEAD_HUM.id, cls: 'drone', at: DEAD_HUM.from, ms: DEAD_HUM.to - DEAD_HUM.from, what: `mains hum ${DEAD_HUM.hz} Hz, through the dead air` },
+    { row: 'Drone', id: DRONE.id, cls: 'drone', at: DRONE.from, ms: DRONE.to - DRONE.from, what: `drone ${DRONE.hz} Hz` },
+    { row: 'Chord', id: CHORD.id, cls: 'chord', at: CHORD.at, ms: CHORD.holdMs + CHORD.fadeMs, what: 'E-major chord, hold then fade' },
+    { row: 'Chime', id: CHIME.id, cls: 'chord', at: CHIME.at, ms: CHIME.ringMs, what: 'startup chime (alternative to K)' },
+    ...FLICKERS.map((f, i) => ({ row: 'Flicker', id: `L${i + 1}`, cls: 'flick', at: f.at, ms: 70, what: `light flicker, lift ${f.lift.toFixed(2)}` })),
+  ]
+
+  // Flickers are light, not sound, so they cannot be muted.
+  const audible = (e) => e.row !== 'Flicker'
+  let muted = new Set([CHIME.id])
+  try { const kept = localStorage.getItem('outage.muted'); if (kept) muted = new Set(JSON.parse(kept)) } catch {}
+  const save = () => { try { localStorage.setItem('outage.muted', JSON.stringify([...muted])) } catch {} }
+  const paint = () => {
+    for (const e of events) {
+      e.el.classList.toggle('off', muted.has(e.id))
+      if (e.tr) e.tr.classList.toggle('off', muted.has(e.id))
+    }
+  }
+  const toggle = (ids) => {
+    const all = ids.every((id) => muted.has(id))
+    for (const id of ids) all ? muted.delete(id) : muted.add(id)
+    save(); paint()
+  }
+
+  const tl = document.getElementById('tl')
+  const rows = [...new Set(events.map((e) => e.row))]
+  for (const name of rows) {
+    const row = document.createElement('div'); row.className = 'row'
+    row.innerHTML = `<div class="name">${name}</div><div class="lane"></div>`
+    const lane = row.querySelector('.lane')
+    const inRow = events.filter((ev) => ev.row === name && audible(ev)).map((ev) => ev.id)
+    if (inRow.length) row.querySelector('.name').onclick = () => toggle(inRow)
+    for (const e of events.filter((ev) => ev.row === name)) {
+      const el = document.createElement('div'); el.className = `ev ${e.cls}`
+      el.style.left = pct(e.at); el.style.width = pct(e.ms); el.textContent = e.id; el.title = e.what
+      e.el = el; lane.appendChild(el)
+      if (audible(e)) el.onclick = () => toggle([e.id])
+    }
+    tl.insertBefore(row, document.getElementById('head'))
+  }
+  const ticks = document.getElementById('ticks')
+  for (let ms = 0; ms <= END; ms += 500) {
+    const t = document.createElement('span'); t.style.left = pct(ms); t.textContent = (ms / 1000).toFixed(1); ticks.appendChild(t)
+  }
+  const legend = document.getElementById('legend')
+  for (const e of events.slice().sort((a, b) => a.at - b.at)) {
+    const tr = document.createElement('tr')
+    tr.innerHTML = `<td><b>${e.id}</b></td><td class="num">${(e.at / 1000).toFixed(2)} s</td><td class="num">${song(e.at)}</td><td>${e.what}</td>`
+    if (audible(e)) { tr.style.cursor = 'pointer'; tr.onclick = () => toggle([e.id]) }
+    e.tr = tr; legend.appendChild(tr)
+  }
+  paint()
+
+  document.getElementById('solo').onclick = () => { muted.clear(); save(); paint() }
+  let ctx = null, t0 = 0, cover = null
+  document.getElementById('play').onclick = async () => {
+    ctx?.close(); cover?.stop(); ctx = new AudioContext(); await ctx.resume()
+    const kit = await loadKit(ctx, '/')
+    t0 = ctx.currentTime + 0.1; playOutage(ctx, t0, { skip: muted, kit })
+    if (document.getElementById('lights').checked) {
+      cover = playBlackout((t0 - ctx.currentTime) * 1000, document.getElementById('editor').checked ? 0.6 : 1)
+    }
+  }
+  const head = document.getElementById('head'), clock = document.getElementById('clock')
+  const tick = () => {
+    if (ctx) {
+      const ms = Math.min(END, Math.max(0, (ctx.currentTime - t0) * 1000))
+      clock.textContent = `${(ms / 1000).toFixed(2).padStart(5, ' ')} s · ${song(ms)}`
+      const lane = tl.querySelector('.lane').getBoundingClientRect(), box = tl.getBoundingClientRect()
+      head.style.left = `${lane.left - box.left + (Math.min(ms, END) / END) * lane.width}px`
+      for (const e of events) e.el.classList.toggle('on', ms >= e.at && ms < e.at + Math.max(e.ms, 120))
+      if (ms >= END) { ctx.close(); ctx = null }
+    }
+    requestAnimationFrame(tick)
+  }
+  tick()
+</script>

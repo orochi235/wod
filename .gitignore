@@ -5,3 +5,4 @@ dist
 .playwright-shots/
 .superpowers/
 .claude/worktrees/
+.playwright-mcp/
