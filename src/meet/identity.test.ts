@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Participant } from './api'
-import { itemsForPeople, personOf } from './identity'
+import { isBot, itemsForPeople, personOf } from './identity'
 
 const signedin = (name: string, user: string, displayName: string): Participant => ({
   name,
@@ -52,6 +52,23 @@ describe('personOf', () => {
       label: '(no display name)',
       kind: 'phone',
     })
+  })
+})
+
+describe('isBot', () => {
+  const named = (label: string) => personOf({ name: 'p/1', signedinUser: { displayName: label } })
+
+  it('spots a notetaker whatever it decorates its name with', () => {
+    expect(isBot(named('Zoom'))).toBe(true)
+    expect(isBot(named('AI Companion'))).toBe(true)
+    expect(isBot(named("Ana's AI companion"))).toBe(true)
+    expect(isBot(named('Zoom Workplace Notes'))).toBe(true)
+  })
+
+  it('leaves people alone', () => {
+    expect(isBot(named('Ana'))).toBe(false)
+    expect(isBot(named('Ben Companion'))).toBe(false)
+    expect(isBot(named('(no display name)'))).toBe(false)
   })
 })
 

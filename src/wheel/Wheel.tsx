@@ -87,6 +87,15 @@ const VIEWBOX_PAD = POINTER_BASE + 2
 const midDeg = (arc: { start: number; end: number }): number =>
   (arc.start + (arc.end - arc.start) / 2) * 360
 
+/**
+ * How far to turn a wedge's slice content to sit on the arc it is drawn at. The
+ * layout fits against the wedge's full arc and bakes absolute coordinates from
+ * it, so without this a `glyphRun` or a warped `path` stays on the arc's
+ * original midline while the arc itself closes and slides out from under it.
+ */
+const carryDeg = (presence: Arc, layout: Arc): number =>
+  Number((midDeg(presence) - midDeg(layout)).toFixed(3))
+
 /** Empty for a wedge the look's own ink already reads on. */
 const inkOf = (color: string | undefined): Record<string, string> =>
   wantsInverseInk(color) ? { '--label-ink': 'var(--wheel-label-inverse, #f7f3e8)' } : {}
@@ -109,6 +118,9 @@ export function Wheel({
   riderRef,
 }: WheelProps) {
   const emblemId = useId()
+  // Per wheel, not per wedge: two wheels on one page draw the same segment ids,
+  // and a clip path is resolved by id across the whole document.
+  const clipBase = `wedge-${useId()}`
   const drawn = usePresence(segments, transitions, held, retainedRef)
   const pegs = partOn(theme, 'peg')
     ? pegAngles(
@@ -250,7 +262,7 @@ export function Wheel({
                   data-segment-id={segment.id}
                   style={{
                     ...styleOf(presence, {
-                      angle: midDeg(presenceArc),
+                      angle: midDeg(layoutArc),
                       radius,
                       pivot: radius * 0.6,
                     }),
@@ -279,13 +291,22 @@ export function Wheel({
                       )
                       return panel === '' ? null : <path className="wheel__panel" d={panel} />
                     })()}
-                  <SliceElements
-                    elements={elements}
-                    arc={presenceArc}
-                    radius={radius}
-                    id={segment.id}
-                    levelRef={levelRef?.(segment.id, -midDeg(layoutArc))}
-                  />
+                  <clipPath id={`${clipBase}-${segment.id}`}>
+                    <path d={d} />
+                  </clipPath>
+                  {/* Clipped outside the carry, so the clip stays on the drawn
+                      arc rather than turning with the content it holds. */}
+                  <g className="wheel__slice" clipPath={`url(#${clipBase}-${segment.id})`}>
+                    <g transform={`rotate(${carryDeg(presenceArc, layoutArc)})`}>
+                      <SliceElements
+                        elements={elements}
+                        arc={layoutArc}
+                        radius={radius}
+                        id={segment.id}
+                        levelRef={levelRef?.(segment.id, -midDeg(layoutArc))}
+                      />
+                    </g>
+                  </g>
                 </g>
               )
             })}

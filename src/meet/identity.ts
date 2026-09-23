@@ -31,6 +31,22 @@ export function personOf(participant: Participant): Person {
   return { id: signedinUser?.user ?? slugify(label), label, kind }
 }
 
+/**
+ * Lowercased, and matched anywhere in the name: a notetaker joins under a name
+ * it decorates ("Zoom Workplace", "Ana's AI Companion"), not a fixed string.
+ */
+const BOT_NAMES = ['zoom', 'ai companion']
+
+/**
+ * Whether a participant is a bot rather than someone in the room. Nothing in
+ * the API marks one — a notetaker arrives as an ordinary participant — so the
+ * name is all there is to go on.
+ */
+export function isBot(person: Person): boolean {
+  const name = person.label.toLowerCase()
+  return BOT_NAMES.some((bot) => name.includes(bot))
+}
+
 export function itemsForPeople(people: Person[]): FeedItem[] {
   return withUniqueIds(people)
 }

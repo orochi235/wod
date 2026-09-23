@@ -88,6 +88,25 @@ describe('fetchRoster', () => {
     expect(calls[0]).toContain('conferenceRecords?')
   })
 
+  it('leaves notetakers off the wheel', async () => {
+    stubFetch([conferences('a'), participants('Ana', 'Zoom', 'Ben', 'AI Companion')])
+    const snapshot = await fetchRoster('tok', '', null)
+    expect(snapshot.items).toEqual([
+      { id: 'users/0', label: 'Ana' },
+      { id: 'users/2', label: 'Ben' },
+    ])
+  })
+
+  // Liveness is about the call, not the wheel: re-listing every tick because
+  // the only names in the room were bots would cost a request a tick forever.
+  it('keeps watching a conference holding nothing but notetakers', async () => {
+    const calls = stubFetch([conferences('a'), participants('Zoom')])
+    const snapshot = await fetchRoster('tok', '', 'conferenceRecords/a')
+    expect(calls).toHaveLength(1)
+    expect(snapshot.conference).toBe('conferenceRecords/a')
+    expect(snapshot.items).toEqual([])
+  })
+
   it('watches nothing when several are in progress and none is pinned', async () => {
     stubFetch([conferences('a', 'b')])
     const snapshot = await fetchRoster('tok', '', null)

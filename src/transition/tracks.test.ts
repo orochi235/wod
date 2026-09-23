@@ -144,14 +144,18 @@ describe('advance', () => {
     expect(ben && sampleTrack(ben, 150).opacity).toBeCloseTo(0.4375)
   })
 
-  it('defaults hold by phase when the transition declares none', () => {
+  it('ramps hold both ways when the transition declares none', () => {
     const entering = advance(input({ now: 0 }))
     const arriving = entering.get('ana')
     expect(arriving && sampleTrack(arriving, 100).hold).toBe(1)
 
     const exiting = advance(input({ tracks: entering, segments: [], now: 100 }))
     const leaving = exiting.get('ana')
-    expect(leaving && sampleTrack(leaving, 150).hold).toBe(0)
+    // Still holding a quarter of its arc halfway out. Releasing it at once
+    // would expand the survivors under a wedge still painted at full width,
+    // on top of them.
+    expect(leaving && sampleTrack(leaving, 300).hold).toBeCloseTo(0.25)
+    expect(leaving && sampleTrack(leaving, 1100).hold).toBe(0)
   })
 
   it('leaves the tracks it was given untouched', () => {
@@ -600,7 +604,7 @@ describe('advance through drawList', () => {
     expect(ben && sampleTrack(ben, 200).hold).toBeCloseTo(0.5)
   })
 
-  it('releases a shrinking wedge at once under reduced motion', () => {
+  it('still closes a shrinking wedge under reduced motion, over its shorter duration', () => {
     const start = advance(
       input({
         segments: [segment('ana'), segment('ben')],
@@ -621,7 +625,10 @@ describe('advance through drawList', () => {
     )
     const ben = leaving.get('ben')
     expect(ben?.durationMs).toBe(REDUCED_MOTION_MS)
-    expect(ben && sampleTrack(ben, 0).hold).toBe(0)
+    // Reduced motion substitutes fade, which declares no geometry of its own,
+    // so the arc closes on the default ramp rather than on shrink's keyframes.
+    expect(ben && sampleTrack(ben, 0).hold).toBe(1)
+    expect(ben && sampleTrack(ben, REDUCED_MOTION_MS).hold).toBe(0)
   })
 })
 

@@ -4,6 +4,7 @@ import { concentricPath } from './geometry'
 
 export type SliceElementsProps = {
   elements: SliceElement[]
+  /** The arc the layout was fit against, which is what it placed its content in. */
   arc: { start: number; end: number }
   radius: number
   /** Segment id, used to make emitted path ids unique. */
