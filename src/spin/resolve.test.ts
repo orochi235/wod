@@ -249,7 +249,13 @@ describe('resolveScriptedSpin', () => {
 
   it('carries an outage a branch switches on', () => {
     const tricks: Trick[] = [
-      { id: 'zap', name: 'zap', recipe: 'outage', params: { cruiseS: 10, sparkS: 5 }, enabled: false },
+      {
+        id: 'zap',
+        name: 'zap',
+        recipe: 'outage',
+        params: { cruiseS: 10, sparkS: 5 },
+        enabled: false,
+      },
     ]
     const branches: BranchNode[] = [
       {

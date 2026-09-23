@@ -5,10 +5,11 @@ import type { Outage } from './types'
 /** How long the wheel takes to stop dead once the fault blows. */
 export const BRAKE_MS = 400
 /**
- * Pop to chord in the passage the sound imitates. The show is cued to it, so it
- * is fixed rather than authored.
+ * Pop to chord in the show's sound: bar 115's downbeat plus the dead
+ * air (fourteen beats), pinned by the schedule test. The show is cued to it, so it is fixed
+ * rather than authored.
  */
-export const DARK_MS = 3390
+export const DARK_MS = 11198
 /** Chord to full speed. */
 export const RESTART_MS = 700
 
@@ -103,7 +104,11 @@ export function withOutage(
 
   const prologue: Keyframe[] = [
     { offset: 0, transform: rotate(start), easing: 'linear' },
-    { offset: at(brakeAtMs), transform: rotate(stopped - sign * speed * (BRAKE_MS / 2)), easing: BRAKE_EASING },
+    {
+      offset: at(brakeAtMs),
+      transform: rotate(stopped - sign * speed * (BRAKE_MS / 2)),
+      easing: BRAKE_EASING,
+    },
     { offset: at(popAtMs), transform: rotate(stopped), easing: 'linear' },
     { offset: at(lightsAtMs), transform: rotate(stopped), easing: RESTART_EASING },
   ]
@@ -120,7 +125,12 @@ export function withOutage(
   }))
 
   return {
-    track: { keyframes: [...prologue, ...authored], durationMs, easing: 'linear', to: track.to + turned },
+    track: {
+      keyframes: [...prologue, ...authored],
+      durationMs,
+      easing: 'linear',
+      to: track.to + turned,
+    },
     plan,
   }
 }
