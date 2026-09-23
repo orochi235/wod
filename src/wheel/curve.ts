@@ -57,3 +57,19 @@ export function isSettleCurve(curve: Curve): boolean {
 export function cssCurve([x1, y1, x2, y2]: Curve): string {
   return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`
 }
+
+/** Progress at time `x` along a CSS cubic-bezier, by bisection on the parametric x. */
+export function curveAt([x1, y1, x2, y2]: Curve, x: number): number {
+  if (x <= 0) return 0
+  if (x >= 1) return 1
+  const at = (a: number, b: number, t: number) =>
+    3 * (1 - t) ** 2 * t * a + 3 * (1 - t) * t ** 2 * b + t ** 3
+  let lo = 0
+  let hi = 1
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2
+    if (at(x1, x2, mid) < x) lo = mid
+    else hi = mid
+  }
+  return at(y1, y2, (lo + hi) / 2)
+}

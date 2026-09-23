@@ -92,4 +92,6 @@ export type Preset = {
   theme?: string
   /** Absent leaves the hub the bare cap the look paints. */
   hub?: Hub
+  /** The show page's background as a hex color. Absent uses the look's, or none. */
+  background?: string
 }

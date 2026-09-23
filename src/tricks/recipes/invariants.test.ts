@@ -4,6 +4,7 @@ import { applyMorphs, landingSegments } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import { RECIPE_LIST } from '../registry'
 import type { Recipe, RecipeContext, RecipeId, TrickParams } from '../types'
+import { outage } from './outage'
 import { recolor } from './recolor'
 import { relabel } from './relabel'
 import { swap } from './swap'
@@ -132,6 +133,7 @@ describe('no winner-keyed weight writes', () => {
     recolor: recolor.defaults,
     relabel: relabel.defaults,
     swap: { ...swap.defaults, otherWedgeId: 'ben' },
+    outage: outage.defaults,
   }
 
   const weightsOf = (segments: Segment[]) => segments.map((segment) => [segment.id, segment.weight])

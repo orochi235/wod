@@ -425,3 +425,17 @@
   text-overflow: ellipsis;
   opacity: 0.75;
 }
+
+/* A quiet link-weight action under the color, so clearing it is not a second control to parse. */
+.theme-panel__reset {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 0.2rem 0;
+  font: inherit;
+  font-size: 0.85em;
+  color: inherit;
+  opacity: 0.75;
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -1,0 +1,9 @@
+/* Under magicsmoke's overlay canvas, which sits at 2147483000, so embers glow on the black. */
+.outage-blackout {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2147482000;
+}

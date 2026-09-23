@@ -68,4 +68,12 @@ export type SpinConfig = {
   /** Absent: one curve for the whole rotation. Present: cruise, then break. */
   settle?: Settle
   morphs: Morph[]
+  /** Absent: the spin runs uninterrupted. */
+  outage?: Outage
 }
+
+/**
+ * The wheel shorts out before the spin proper. `cruiseMs` is how long it turns
+ * at full speed first; `sparkMs` is how long the sparks escalate before the pop.
+ */
+export type Outage = { cruiseMs: number; sparkMs: number }

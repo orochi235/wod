@@ -1,13 +1,15 @@
 import type { Composition, Origin } from '../compose/types'
 import { EMPTY_COLOR_STATE, assignColors } from '../wheel/colors'
 import type { ColorState } from '../wheel/colors'
-import type { Morph, Segment } from '../wheel/types'
+import type { Morph, Outage, Segment } from '../wheel/types'
 import { getRecipe } from './registry'
 import type { Trick } from './types'
 
 export type ResolvedTricks = Composition & {
   morphs: Morph[]
   colors: Map<string, string>
+  /** The first enabled outage in trick order. A spin runs one at most. */
+  outage?: Outage
 }
 
 /**
@@ -66,7 +68,25 @@ export function resolveTricks(
     )
   }
 
-  return { segments: colored, origins, names: base.names, morphs, colors }
+  let outage: Outage | undefined
+  for (const trick of active) {
+    const cue = getRecipe(trick.recipe)
+      ?.cues?.(trick.params)
+      .find((c) => c.kind === 'outage')
+    if (cue) {
+      outage = { cruiseMs: cue.cruiseMs, sparkMs: cue.sparkMs }
+      break
+    }
+  }
+
+  return {
+    segments: colored,
+    origins,
+    names: base.names,
+    morphs,
+    colors,
+    ...(outage ? { outage } : {}),
+  }
 }
 
 /**

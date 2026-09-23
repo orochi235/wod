@@ -1,6 +1,7 @@
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { applyMorphs, landingSegments } from './morph'
+import { type OutagePlan, spinTime, withOutage } from './outage'
 import type { PegMode } from './pegs'
 import { invertTrack, rotationTrack } from './rotation'
 import type { SelectionStrategy } from './selection'
@@ -32,6 +33,12 @@ export type SpinOverride = {
 /** A resolved spin. `id` is fresh per landing, so the same winner twice is two landings. */
 export type Landing = { id: number; winner: Segment }
 
+/**
+ * An outage in flight. `startedAt` is the `performance.now()` the spin began,
+ * which every moment in `plan` counts from; `id` is fresh per spin.
+ */
+export type OutageRun = { id: number; plan: OutagePlan; startedAt: number }
+
 export type UseSpinResult = {
   /** Segments as they currently appear, with any in-flight morph applied. */
   displaySegments: Segment[]
@@ -44,6 +51,8 @@ export type UseSpinResult = {
    */
   held: boolean
   landing: Landing | null
+  /** Set for the length of a spin that shorts out, for whatever plays its effects. */
+  outage: OutageRun | null
   spin: (override?: SpinOverride) => void
   /**
    * Hands the geometry back to the live segments without redrawing: the landed
@@ -85,6 +94,8 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
   // consumer can hand the wheel back to the roster while still announcing who
   // won.
   const [held, setHeld] = useState(false)
+  const [outage, setOutage] = useState<OutageRun | null>(null)
+  const outageCountRef = useRef(0)
 
   useEffect(() => {
     // Resync only when the caller actually swaps the array, and never while a
@@ -207,7 +218,22 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
       const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
 
       const from = rotationRef.current
-      const track = rotationTrack(from, plan.restingRotationDeg, spinConfig, durationMs)
+      const planned = rotationTrack(from, plan.restingRotationDeg, spinConfig, durationMs)
+      // Reduced motion gets the plain spin: a blackout and a stall are exactly
+      // the motion it asks to be spared.
+      const outaged =
+        spinConfig.outage && !reduceMotion && durationMs > 0
+          ? withOutage(planned, spinConfig.outage)
+          : null
+      const track = outaged?.track ?? planned
+      const outagePlan = outaged?.plan ?? null
+      const startedAt = performance.now()
+      if (outagePlan) {
+        outageCountRef.current += 1
+        setOutage({ id: outageCountRef.current, plan: outagePlan, startedAt })
+      } else {
+        setOutage(null)
+      }
 
       // Track 1: rotation. One transform on one element, left to the compositor.
       const animation = rotor.animate(track.keyframes, {
@@ -239,16 +265,16 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
 
       // Track 2: geometry. Independent of rotation; only regenerates paths.
       if (morphs.length > 0 && durationMs > 0) {
-        const startedAt = performance.now()
         const tick = (now: number) => {
-          const elapsed = Math.min(now - startedAt, durationMs)
+          const real = Math.min(now - startedAt, track.durationMs)
+          const elapsed = Math.min(spinTime(outagePlan, real), durationMs)
           // Morphs are authored against the spin's own durationMs, so the clock is scaled
           // to whatever duration actually ran. Without this, reduced motion lands
           // the rotation at 300ms while the morph keeps running for seconds, and
           // the wheel contradicts the announced winner the entire time.
           const morphElapsed = (elapsed / durationMs) * spinConfig.durationMs
           setDisplaySegments(applyMorphs(spinSegments, morphs, morphElapsed))
-          if (elapsed < durationMs) {
+          if (real < track.durationMs) {
             frameRef.current = requestAnimationFrame(tick)
           }
         }
@@ -269,6 +295,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
           spinningRef.current = false
           setDisplaySegments(landedFrame)
           setIsSpinning(false)
+          setOutage(null)
           const winner = landedFrame.find((segment) => segment.id === plan.winnerId)
           if (winner) {
             landingCountRef.current += 1
@@ -280,6 +307,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
           if (!mountedRef.current || animationRef.current !== animation) return
           spinningRef.current = false
           setIsSpinning(false)
+          setOutage(null)
           // No landing came of it, so nothing is worth holding the wheel for.
           setHeld(false)
         })
@@ -293,6 +321,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
     isSpinning,
     held,
     landing,
+    outage,
     spin,
     release,
     reset,

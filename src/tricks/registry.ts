@@ -1,3 +1,4 @@
+import { outage } from './recipes/outage'
 import { recolor } from './recipes/recolor'
 import { relabel } from './recipes/relabel'
 import { swap } from './recipes/swap'
@@ -11,9 +12,10 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   recolor,
   relabel,
   swap,
+  outage,
 }
 
-export const RECIPE_LIST: Recipe[] = [takeover, vanish, recolor, relabel, swap]
+export const RECIPE_LIST: Recipe[] = [takeover, vanish, recolor, relabel, swap, outage]
 
 /**
  * Returns null rather than throwing, so stored data can never crash a load.

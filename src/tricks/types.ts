@@ -1,9 +1,12 @@
 import type { Origin, WedgeIndex } from '../compose/types'
 import type { Field } from '../form/fields'
 import type { NameContext } from '../text/template'
-import type { EasingName, Morph, Segment } from '../wheel/types'
+import type { EasingName, Morph, Outage, Segment } from '../wheel/types'
 
-export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel' | 'swap'
+export type RecipeId = 'takeover' | 'vanish' | 'recolor' | 'relabel' | 'swap' | 'outage'
+
+/** A timed event that belongs to no wedge. */
+export type Cue = { kind: 'outage' } & Outage
 
 export type TrickParams = Record<string, unknown>
 
@@ -44,6 +47,8 @@ export type Recipe = {
   provides(params: TrickParams, trickId: string): Segment[]
   /** Pure. The only thing that affects what actually runs. */
   resolve(params: TrickParams, ctx: RecipeContext): Morph[]
+  /** Pure, like `resolve`. Absent means the recipe only ever morphs wedges. */
+  cues?(params: TrickParams): Cue[]
   /** Editor-facing only. Never consulted during resolution. */
   writes(params: TrickParams, ctx: RecipeContext): Write[]
   /**

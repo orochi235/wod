@@ -8,7 +8,7 @@ import type { ColorState } from '../wheel/colors'
 import { landingSegments } from '../wheel/morph'
 import type { Rng, SelectionStrategy } from '../wheel/selection'
 import { forced, weightedRandom } from '../wheel/selection'
-import type { Morph, Segment } from '../wheel/types'
+import type { Morph, Outage, Segment } from '../wheel/types'
 
 /**
  * Not a cycle guard — branches embed their replacements inline, so the walk is a
@@ -25,6 +25,7 @@ export type Resolution =
       segments: Segment[]
       morphs: Morph[]
       motion: Motion
+      outage?: Outage
       /**
        * Pass 2. Re-resolves with the winner the pointer actually landed on, over
        * the frozen rolls and the enabled set this walk finished with, so nothing
@@ -39,6 +40,7 @@ export type Resolution =
       segments: Segment[]
       morphs: Morph[]
       motion: Motion
+      outage?: Outage
       /**
        * Pass 2. Re-resolves with the winner the pointer actually landed on, over
        * the frozen rolls and the enabled set this walk finished with, so nothing
@@ -76,6 +78,7 @@ type WheelState = {
   origins: Map<string, Origin>
   morphs: Morph[]
   landing: Segment[]
+  outage?: Outage
 }
 
 function evaluateWheel(
@@ -98,9 +101,10 @@ function evaluateWheel(
     segments: withWedges,
     origins,
     morphs,
+    outage,
   } = resolveTricks(base, active, spin.motion.durationMs, selectorRoll, winnerId, colorState)
   const landing = landingSegments(withWedges, morphs, spin.motion.durationMs)
-  return { withWedges, origins, morphs, landing }
+  return { withWedges, origins, morphs, landing, ...(outage ? { outage } : {}) }
 }
 
 /**
@@ -186,6 +190,7 @@ export function resolveScriptedSpin(
         segments: withWedges,
         morphs,
         motion: current.motion,
+        ...(wheel.outage ? { outage: wheel.outage } : {}),
         resolveLate,
       }
     }
@@ -201,7 +206,7 @@ export function resolveScriptedSpin(
 
   // The cap was reached with a node still matching. Recompute once so the caller
   // sees the wheel as the last applied modifier left it.
-  const { withWedges, morphs, landing } = evaluateWheel(
+  const { withWedges, morphs, landing, outage } = evaluateWheel(
     base,
     tricks,
     enabled,
@@ -223,6 +228,7 @@ export function resolveScriptedSpin(
     segments: withWedges,
     morphs,
     motion: current.motion,
+    ...(outage ? { outage } : {}),
     resolveLate,
   }
 }

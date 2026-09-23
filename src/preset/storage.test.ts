@@ -1067,6 +1067,21 @@ describe('theme', () => {
   })
 })
 
+describe('background', () => {
+  const withBackground = (background: unknown) =>
+    parsePreset(JSON.stringify({ ...DEFAULT_PRESET, version: 5, background })).background
+
+  it('keeps a hex color', () => {
+    expect(withBackground('#12ab9F')).toBe('#12ab9F')
+  })
+
+  it('drops anything that is not a six-digit hex color', () => {
+    for (const value of ['red', '#fff', 'url(x)', '#12345g', 7, null]) {
+      expect(withBackground(value)).toBeUndefined()
+    }
+  })
+})
+
 describe('hub', () => {
   const withHub = (hub: unknown) =>
     parsePreset(JSON.stringify({ ...DEFAULT_PRESET, version: 5, hub }))

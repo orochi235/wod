@@ -872,3 +872,55 @@ describe('release and reset', () => {
     expect(degreesOf(level.keyframes[0])).toBe(-170 - degreesOf(rotor.keyframes[0]))
   })
 })
+
+describe('useSpin with an outage', () => {
+  let harness: Harness
+  const SHORTING: SpinConfig = { ...MORPHING, outage: { cruiseMs: 10000, sparkMs: 5000 } }
+
+  beforeEach(() => {
+    harness = installHarness()
+  })
+
+  afterEach(() => {
+    Reflect.deleteProperty(Element.prototype, 'animate')
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('runs the prologue ahead of the authored spin and lands where it would have', async () => {
+    const plain = renderSpin(MORPHING)
+    act(() => plain.result.current.spin())
+    const unshorted = harness.animateCalls[0]
+
+    const { result } = renderSpin(SHORTING)
+    act(() => result.current.spin())
+    const shorted = harness.animateCalls[harness.animateCalls.length - 1]
+    const run = result.current.outage
+    expect(run).not.toBeNull()
+    expect(shorted.options.duration).toBeCloseTo((run?.plan.resumedAtMs ?? 0) + DURATION_MS, 6)
+    expect(wrap360(degreesOf(shorted.keyframes[shorted.keyframes.length - 1]))).toBeCloseTo(
+      wrap360(degreesOf(unshorted.keyframes[unshorted.keyframes.length - 1])),
+      3,
+    )
+
+    await act(async () => shorted.finish())
+    expect(result.current.outage).toBeNull()
+  })
+
+  it('holds the morphs at their start until the prologue is over', () => {
+    harness.setNow(1000)
+    const { result } = renderSpin(SHORTING)
+    act(() => result.current.spin())
+    const run = result.current.outage
+    act(() => harness.flushFrames(1000 + (run?.plan.lightsAtMs ?? 0)))
+    expect(result.current.displaySegments).toEqual(applyMorphs(SEGMENTS, MORPHS, 0))
+  })
+
+  it('skips the outage under reduced motion', () => {
+    harness.setReducedMotion(true)
+    const { result } = renderSpin(SHORTING)
+    act(() => result.current.spin())
+    expect(result.current.outage).toBeNull()
+    expect(harness.animateCalls[0].options.duration).toBe(REDUCED_MOTION_MS)
+  })
+})
