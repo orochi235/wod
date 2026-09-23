@@ -37,6 +37,8 @@ function stage(options: { supported?: boolean; fails?: boolean; coldFont?: boole
     destroy() {
       destroyed += 1
     },
+    attach: () => () => undefined,
+    pointOn: () => null,
   })
   return {
     create: ((url: string) => {

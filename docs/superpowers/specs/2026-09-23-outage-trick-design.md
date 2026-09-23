@@ -29,7 +29,7 @@ outage in trick order runs; others are ignored.
 
 `withOutage` (`src/wheel/outage.ts`) puts a prologue in front of the authored
 rotation track: the wheel turns at the track's launch speed through the sparks
-and the pop, coasts down to a quarter of it as the lights dim (`SLOW_MS`), is
+and the pop, coasts down to a twentieth of it as the lights dim (`SLOW_MS`), is
 still coasting when they return at `DARK_MS` (pop to chord), and after
 `LULL_PAST_LIGHTS_MS` winds back up over `WIND_UP_MS` to full speed, where the
 authored track starts with no kick at the handover. The

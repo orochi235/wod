@@ -197,6 +197,11 @@ const SPECIMEN_COLORS: Record<LookName, string> = {
   tubing: '#4a90a4',
   piping: '#efe6d2',
   sequin: '#1fa89a',
+  ice: '#a8d8ea',
+  pave: '#ffc44d',
+  bezel: '#f2f5fa',
+  carved: '#b8bcc4',
+  tiara: '#f7d774',
 }
 
 /**
