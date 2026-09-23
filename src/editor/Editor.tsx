@@ -5,6 +5,7 @@ import { publishFeed, subscribeFeedRequests } from '../feed/bus'
 import { itemsFor } from '../feed/simulated'
 import type { FeedConfig, FeedItem } from '../feed/types'
 import { DEFAULT_POLL_INTERVAL_MS } from '../meet/poll'
+import { useOutageFx } from '../outage/useOutageFx'
 import { spinConfigOf } from '../preset/motion'
 import { loadPreset, savePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
@@ -139,8 +140,20 @@ export function Editor() {
     [preset.spin, resolved.morphs, resolved.outage],
   )
 
-  const { displaySegments, layoutSegments, isSpinning, spin, rotorRef, levelRef, riderRef } =
-    useSpin(resolved.segments, spinConfig)
+  const {
+    displaySegments,
+    layoutSegments,
+    isSpinning,
+    outage,
+    spin,
+    rotorRef,
+    levelRef,
+    riderRef,
+  } = useSpin(resolved.segments, spinConfig)
+  // The editor previews the sparks and a half-dark room, silently: the show
+  // window is the one that makes noise.
+  const wheelRef = useRef<HTMLElement | null>(null)
+  useOutageFx(outage, { targetRef: wheelRef, depth: 0.6, sound: false, muted: true })
   const [scrubbed, setScrubbed] = useState<Segment[] | null>(null)
   // Handing the wheel back to the scrubber the moment `isSpinning` goes false
   // would erase the landing — the one frame the whole trick exists to produce.
@@ -231,7 +244,7 @@ export function Editor() {
             </button>
           )}
         </section>
-        <section className="editor__column editor__column--center">
+        <section ref={wheelRef} className="editor__column editor__column--center">
           <Wheel
             segments={shown}
             layoutFrom={spinOwns ? layoutSegments : undefined}

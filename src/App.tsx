@@ -4,6 +4,8 @@ import { type CreateBanner, useBanner } from './banner/useBanner'
 import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
+import type { CreateFx } from './outage/fx'
+import { useOutageFx } from './outage/useOutageFx'
 import { spinConfigOf } from './preset/motion'
 import { getSample } from './preset/samples'
 import { loadPreset, subscribePreset } from './preset/storage'
@@ -30,6 +32,8 @@ export type AppProps = {
   chooseColor?: ChooseColor
   /** Opens the overlay the winner's name is drawn on. Undefined uses klieg. */
   createBanner?: CreateBanner
+  /** Plays a spin's outage. Undefined uses magicsmoke and Web Audio. */
+  createFx?: CreateFx
   /**
    * Show this sample instead of the stored wheel. The URL is the whole of it:
    * nothing is written, so the wheel someone was working on is still there when
@@ -38,7 +42,7 @@ export type AppProps = {
   sample?: string
 }
 
-export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
+export function App({ chooseColor, createBanner, createFx, sample }: AppProps = {}) {
   const [stored, setStored] = useState<Preset>(loadPreset)
   const fixed = sample === undefined ? null : (getSample(sample)?.preset ?? null)
   const preset = fixed ?? stored
@@ -108,6 +112,7 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     isSpinning,
     held,
     landing,
+    outage,
     spin,
     release,
     reset,
@@ -115,6 +120,10 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     levelRef,
     riderRef,
   } = useSpin(resolved.segments, config)
+
+  // The show window is the one that goes dark and makes the noise.
+  const stageRef = useRef<HTMLDivElement | null>(null)
+  useOutageFx(outage, { targetRef: stageRef, depth: 1, sound: true, muted, create: createFx })
 
   // Every letter on the wheel, so the face is extruded while the roster is
   // sitting there rather than inside the landing that needs it.
@@ -201,6 +210,7 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     <main className={staged ? 'app app--staged' : 'app'} style={styleOfTheme(theme)}>
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: the Spin button is this action's keyboard control; a second tab stop would announce the same spin twice. */}
       <div
+        ref={stageRef}
         className={canSpin ? 'app__stage app__stage--live' : 'app__stage'}
         onClick={canSpin ? onSpin : undefined}
       >

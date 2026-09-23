@@ -1,86 +1,68 @@
 # The outage trick
 
 For whoever works on tricks, the spin, or the show page's effects. It answers:
-what the `outage` trick does to a spin, and how its sound, blackout and stall
-stay in step.
+what the `outage` trick does to a spin, and how its sparks, blackout, sound and
+stall stay in step. Built; this describes the code as it stands.
 
 ## What it does
 
-Partway through a spin the wheel shorts out. Sparks build on it while it
-brakes, it pops and stops dead, and the window goes black. The dark stretch
-plays a synthesized imitation of the power-down/power-up passage in Eric
-Carmen's "Make Me Lose Control" (4:07.20–4:10.7): six falling swoops, two drum
-hits, a low drone, then one chord stab. The window flickers on the hits and
-comes fully back on the chord, and the wheel spins back up and lands where it
-was always going to land.
+Before the spin proper, the wheel turns at full speed while sparks, pops and
+arcs escalate on its rim. It blows, stops dead, and the room goes dark. The dark
+stretch plays a synthesized passage after the power-down in Eric Carmen's "Make
+Me Lose Control" (4:07.20–4:10.7), stretched with dead air: two falls, a drone
+the lights dim under, clanks, a bar and more of silence, a mains hum, an engine's
+pistons and two rimshots on the song's 110 bpm grid, then a chord. The lights
+flicker on the hits and come back on the chord, and the wheel spins up and plays
+its authored spin, landing where it always would have.
 
-## A trick with a cue, not a morph
+## A trick with a cue
 
-A recipe may return **cues** from an optional `cues(params, ctx)`: timed events
-that belong to no wedge. `outage` returns one:
-`{ kind: 'outage', at, sparkMs }` — `at` is where in the spin the wheel starts
-braking (0.1–0.9 of the authored duration), `sparkMs` how long sparks build
-before the pop. It writes nothing and provides nothing, so it never appears in
-a conflict badge. Cues ride `resolveTricks` → `Resolution` → `SpinConfig.outage`
-the same way morphs do, so branches enable and disable it like any trick. A
-spin runs at most one outage: the first enabled one in trick order.
+A recipe may return **cues** from an optional `cues(params)`: timed events that
+belong to no wedge. `outage` returns `{ kind: 'outage', cruiseMs, sparkMs }`,
+authored in seconds as "Full speed for" (3–30) and "Sparks build for" (1–10). It
+writes and provides nothing. Cues ride `resolveTricks` → `Resolution` →
+`SpinConfig.outage`, so branches switch it like any trick. The first enabled
+outage in trick order runs; others are ignored.
 
-The dark stretch is fixed by the sound, so it is not a parameter.
+## The prologue
 
-## The spin clock
+`withOutage` (`src/wheel/outage.ts`) puts a prologue in front of the authored
+rotation track: a cruise at the track's launch speed, a 400 ms brake to a dead
+stop, the dark (`DARK_MS`, pop to chord), and a 700 ms restart back to launch
+speed. The prologue covers a whole number of turns, so the authored track then
+plays unchanged from the same angle mod 360 and lands as planned; the rounding
+moves the cruise by at most half a turn's time. Morphs read `spinTime`, which
+holds at zero until the prologue ends. Reduced motion drops the outage.
 
-The rotation is planned exactly as before over the authored duration. An outage
-adds a **warp** from real time to spin time:
-
-| Phase   | Real length | Spin clock speed |
-|---------|-------------|------------------|
-| cruise  | until `at`  | 1                |
-| brake   | 400 ms      | 1 → 0, linear    |
-| dark    | 3390 ms     | 0                |
-| restart | 700 ms      | 0 → 1, linear    |
-| finish  | the rest    | 1                |
-
-The spin runs `400/2 + 3390 + 700/2` ms longer. The rotor's angle at real time
-`t` is the unwarped track's angle at `warp(t)`, sampled into linear keyframes at
-60 Hz; level elements and riders invert or copy that track as today, and the
-flapper reads the compositor as today. Morphs read `warp(t)` too, so they freeze
-while the room is dark. The landing angle is unchanged by construction.
-
-Reduced motion drops the outage before the track is built. The editor's scrub
-bar scrubs spin time, which the warp does not change.
+`useSpin` exposes the run (`OutageRun`: plan, start time, id) for the length of
+the spin.
 
 ## The show
 
-t = 0 is the pop, which is the silence at 4:07.20.
+`src/outage/schedule.ts` is the single timeline, in ms from the pop, and every
+drum-led event sits on the 110 bpm sixteenth grid (a test pins it, and pins the
+chord to `DARK_MS`). Each sound has an id — F falls, C drum notes, X clanks, R
+rises, D drone, H hum, K chord, M an alternative startup chime that is off by
+default — which `playOutage(ctx, when, { skip, kit })` honors.
 
-| t (ms) | Sound                  | Window                          |
-|-------:|------------------------|---------------------------------|
-|  −spark| magicsmoke crackle     | sparks build (`fault.blow`)     |
-|      0 | silence                | pop; black                      |
-|    100 | swoop 196 → 87 Hz      | black                           |
-|    360 | swoop 129 → 87 Hz      | black                           |
-|    970 | drum hit               | dim flicker                     |
-|   1080 | drum hit               | dim flicker                     |
-|   1800 | swoop 188 → 86 Hz      | flicker                         |
-|   2190 | swoop 124 → 81 Hz      | flicker                         |
-|   2640 | swoop 156 → 81 Hz      | flicker                         |
-|   3040 | swoop 145 → 86 Hz      | flicker                         |
-|   3390 | E-major chord stab     | fully on; wheel restarts        |
-|   3500 | chord faded            |                                 |
+**Sound** (`sound.ts`) is Web Audio. Percussion plays on recorded one-shots
+from the CC0 Virtuosity Drums kit (`public/outage/`, credited in `CREDITS.md`),
+loaded by `loadKit`, with synthesized layers on top; a hit whose sample fails to
+load falls back to its synth voice.
 
-A drone near 87 Hz sits under 100–1100 ms. The timings and pitches were
-measured from the recording with an STFT; the recording is not in the repo.
+**Blackout** (`blackout.ts`) is a fixed full-window layer animated from
+`blackoutKeyframes(depth)`: it sags at the pop and dims to black as the drone
+plays, flickers partway on its cues — never more than three in any second, for
+WCAG 2.3.1 — and lifts on the chord.
 
-**Flash safety.** No one-second window holds more than three flickers, and a
-flicker lifts the black only partway, so a full-window flash stays under the
-WCAG 2.3.1 threshold. A test pins the schedule.
+**Sparks** (`fx.ts`) are a magicsmoke overlay on the wheel's rim: a fault that
+builds through the spark phase, the escalating sputters, bursts, arcs and
+showers of `escalation()`, and `fault.blow()` climaxing on the pop. The overlay
+canvas sits above the blackout.
 
-**Layers.** magicsmoke's overlay canvas sits above everything (its own
-z-index), so the pop's embers glow over the black. The blackout is a fixed
-full-window element under it. The show page's blackout is opaque; the
-editor's is semitransparent and the editor is silent, as it already is.
+`useOutageFx` plays each run once from its start and lets it ring on past the
+landing. The show page plays everything at full depth with sound and follows its
+Mute; the editor previews sparks and a 60% blackout silently. Effects plug into
+`App` through `createFx`, as the banner does through `createBanner`.
 
-**Sound** is wod's own Web Audio voice, scheduled against the context clock at
-the spin's start, and follows the page's Mute. magicsmoke's own sound follows
-the same Mute. Effects plug into `App` through a `createFx` prop, as the banner
-does through `createBanner`, so tests spin an outage without WebGL.
+The sample at `#/outage` is the cash wheel with the trick on.

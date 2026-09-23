@@ -256,6 +256,21 @@ const materialSpecimen: Preset = {
   theme: 'flat',
 }
 
+/** The cash wheel with the power failing under it: the outage trick, to watch it run. */
+const outageWheel: Preset = {
+  ...cashWheel,
+  name: 'outage',
+  tricks: [
+    {
+      id: 'outage',
+      name: 'power cut',
+      recipe: 'outage',
+      params: { cruiseS: 8, sparkS: 6 },
+      enabled: true,
+    },
+  ],
+}
+
 export const SAMPLES: Sample[] = [
   {
     id: 'cash-wheel',
@@ -268,6 +283,12 @@ export const SAMPLES: Sample[] = [
     name: 'Material specimen',
     about: 'every metal a winner can be announced in',
     preset: materialSpecimen,
+  },
+  {
+    id: 'outage',
+    name: 'Outage',
+    about: 'the cash wheel, shorting out mid-spin',
+    preset: outageWheel,
   },
 ]
 
