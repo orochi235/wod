@@ -1,7 +1,7 @@
-import type { Morph, SpinConfig } from '../wheel/types'
+import type { Morph, Outage, SpinConfig } from '../wheel/types'
 import type { Motion } from './types'
 
-export function spinConfigOf(motion: Motion, morphs: Morph[]): SpinConfig {
+export function spinConfigOf(motion: Motion, morphs: Morph[], outage?: Outage): SpinConfig {
   return {
     durationMs: motion.durationMs,
     fullSpins: motion.turns,
@@ -9,5 +9,6 @@ export function spinConfigOf(motion: Motion, morphs: Morph[]): SpinConfig {
     easing: motion.easing,
     ...(motion.settle ? { settle: motion.settle } : {}),
     morphs,
+    ...(outage ? { outage } : {}),
   }
 }

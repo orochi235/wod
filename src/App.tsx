@@ -167,7 +167,7 @@ export function App({ chooseColor, createBanner, sample }: AppProps = {}) {
     if (!resolution) return
     spin({
       segments: resolution.segments,
-      config: spinConfigOf(resolution.motion, resolution.morphs),
+      config: spinConfigOf(resolution.motion, resolution.morphs, resolution.outage),
       // Resolution already decided who wins; planSpin still decides where in
       // the arc to stop. forced() degrades to a fair draw if that segment's arc
       // collapsed, which is the safety net for a branch that zeroes its winner.

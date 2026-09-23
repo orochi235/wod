@@ -247,6 +247,23 @@ describe('resolveScriptedSpin', () => {
     expect(result?.segments.map((segment) => segment.id)).toContain('beer:wedge')
   })
 
+  it('carries an outage a branch switches on', () => {
+    const tricks: Trick[] = [
+      { id: 'zap', name: 'zap', recipe: 'outage', params: { cruiseS: 10, sparkS: 5 }, enabled: false },
+    ]
+    const branches: BranchNode[] = [
+      {
+        id: 'zap-ana',
+        when: { kind: 'landsOn', segmentIds: ['ana'] },
+        do: { kind: 'modify', modifier: { enableTricks: ['zap'] } },
+      },
+    ]
+    const plain = resolveScriptedSpin(base, tricks, spin, [], fixed(0.1))
+    expect(plain?.outage).toBeUndefined()
+    const zapped = resolveScriptedSpin(base, tricks, spin, branches, fixed(0.1))
+    expect(zapped?.outage).toEqual({ cruiseMs: 10000, sparkMs: 5000 })
+  })
+
   it('disables a baseline-enabled trick through a modifier', () => {
     const tricks: Trick[] = [
       {

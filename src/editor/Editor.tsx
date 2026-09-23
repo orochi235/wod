@@ -135,8 +135,8 @@ export function Editor() {
   )
 
   const spinConfig = useMemo<SpinConfig>(
-    () => spinConfigOf(preset.spin.motion, resolved.morphs),
-    [preset.spin, resolved.morphs],
+    () => spinConfigOf(preset.spin.motion, resolved.morphs, resolved.outage),
+    [preset.spin, resolved.morphs, resolved.outage],
   )
 
   const { displaySegments, layoutSegments, isSpinning, spin, rotorRef, levelRef, riderRef } =
