@@ -13,13 +13,15 @@ export const DARK_MS = 11198
 export const COAST_SPEED = 0.25
 /** ...over this long from the pop, as the lights dim... */
 export const SLOW_MS = 2400
-/** ...and winds back up to full over this long, reaching it as the lights return. */
+/** ...keeps coasting this long after the lights come back... */
+export const LULL_PAST_LIGHTS_MS = 600
+/** ...then winds back up to full over this long, into the authored spin. */
 export const WIND_UP_MS = 2200
 
 /**
  * Every moment of one outage, in real milliseconds from the start of the spin.
  * The outage is a prologue: the authored spin starts, unchanged, at `resumedAtMs`,
- * which is the moment the lights come back.
+ * once the wheel has wound back up after the lights come back.
  */
 export type OutagePlan = {
   sparkAtMs: number
@@ -68,8 +70,9 @@ function ramp(from: number, to: number): string {
 
 /**
  * Prefixes a spin with an outage: the wheel turns on at the spin's own launch
- * speed through the sparks and the pop, coasts down as the lights dim, and winds
- * back up to full speed as they return, running straight into the authored track.
+ * speed through the sparks and the pop, coasts down as the lights dim, is still
+ * coasting when they return, then winds back up to full speed and runs straight
+ * into the authored track.
  *
  * The prologue covers a whole number of turns, so the authored track starts
  * from the same angle mod 360 and needs no replanning to land where it was
@@ -88,7 +91,7 @@ export function withOutage(
   const speed = Math.max(launch, average, 1e-6)
 
   const f = COAST_SPEED
-  const holdMs = DARK_MS - SLOW_MS - WIND_UP_MS
+  const holdMs = DARK_MS - SLOW_MS + LULL_PAST_LIGHTS_MS
   const slowing = speed * SLOW_MS * ((1 + f) / 2)
   const coasting = speed * f * holdMs
   const winding = speed * WIND_UP_MS * ((1 + f) / 2)
@@ -97,11 +100,12 @@ export function withOutage(
   let turns = Math.max(1, Math.round((speed * Math.max(0, outage.cruiseMs) + darkTurn) / 360))
   while (turns * 360 < darkTurn) turns += 1
   const popAtMs = (turns * 360 - darkTurn) / speed
-  const resumedAtMs = popAtMs + DARK_MS
+  const lightsAtMs = popAtMs + DARK_MS
+  const resumedAtMs = lightsAtMs + LULL_PAST_LIGHTS_MS + WIND_UP_MS
   const plan: OutagePlan = {
     sparkAtMs: Math.max(0, popAtMs - Math.max(0, outage.sparkMs)),
     popAtMs,
-    lightsAtMs: resumedAtMs,
+    lightsAtMs,
     resumedAtMs,
   }
 

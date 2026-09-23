@@ -8,7 +8,7 @@ stall stay in step. Built; this describes the code as it stands.
 
 Before the spin proper, the wheel turns at full speed while sparks, pops and
 arcs escalate on its rim. It blows and the room goes dark; the wheel coasts
-down, silent, and winds back up to full speed for the lights. The dark
+down, silent, and only winds back up to full speed after the lights return. The dark
 stretch plays a synthesized passage after the power-down in Eric Carmen's "Make
 Me Lose Control" (4:07.20–4:10.7), stretched with dead air: two falls, a drone
 the lights dim under, clanks, a bar and more of silence, a mains hum, an engine's
@@ -29,9 +29,10 @@ outage in trick order runs; others are ignored.
 
 `withOutage` (`src/wheel/outage.ts`) puts a prologue in front of the authored
 rotation track: the wheel turns at the track's launch speed through the sparks
-and the pop, coasts down to a quarter of it as the lights dim (`SLOW_MS`), and
-winds back up over `WIND_UP_MS` to full speed as they return at `DARK_MS` (pop to
-chord), where the authored track starts with no kick at the handover. The
+and the pop, coasts down to a quarter of it as the lights dim (`SLOW_MS`), is
+still coasting when they return at `DARK_MS` (pop to chord), and after
+`LULL_PAST_LIGHTS_MS` winds back up over `WIND_UP_MS` to full speed, where the
+authored track starts with no kick at the handover. The
 prologue covers a whole number of turns, so the authored track plays unchanged
 from the same angle mod 360 and lands as planned; the rounding moves the pop by
 at most half a turn's time. Morphs read `spinTime`, which holds at zero until the

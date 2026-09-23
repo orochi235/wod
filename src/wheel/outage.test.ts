@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTLE_CURVE } from './curve'
-import { COAST_SPEED, DARK_MS, SLOW_MS, angleAt, spinTime, withOutage } from './outage'
+import {
+  COAST_SPEED,
+  DARK_MS,
+  LULL_PAST_LIGHTS_MS,
+  SLOW_MS,
+  WIND_UP_MS,
+  angleAt,
+  spinTime,
+  withOutage,
+} from './outage'
 import { type RotationSpec, rotationTrack } from './rotation'
 
 const SPEC: RotationSpec = {
@@ -46,17 +55,18 @@ describe('withOutage', () => {
     const { plan } = withOutage(rotationTrack(0, 90, SPEC), OUTAGE)
     expect(Math.abs(plan.popAtMs - 10000)).toBeLessThan(1000)
     expect(plan.lightsAtMs).toBeCloseTo(plan.popAtMs + DARK_MS, 6)
-    expect(plan.resumedAtMs).toBe(plan.lightsAtMs)
+    expect(plan.resumedAtMs).toBeCloseTo(plan.lightsAtMs + LULL_PAST_LIGHTS_MS + WIND_UP_MS, 6)
     expect(plan.sparkAtMs).toBeCloseTo(plan.popAtMs - 4000, 6)
   })
 
-  it('coasts down as the lights dim and is back at full speed as they return', () => {
+  it('coasts down as the lights dim, is still coasting when they return, then winds back up', () => {
     const { track: out, plan } = withOutage(rotationTrack(0, 90, SPEC), OUTAGE)
     const rate = (ms: number) => (angleAt(out, ms + 50) - angleAt(out, ms - 50)) / 100
     const full = rate(1000)
     expect(rate(plan.popAtMs - 200)).toBeCloseTo(full, 3)
     expect(rate(plan.popAtMs + SLOW_MS + 1000) / full).toBeCloseTo(COAST_SPEED, 2)
-    expect(rate(plan.lightsAtMs - 60) / full).toBeGreaterThan(0.95)
+    expect(rate(plan.lightsAtMs + 100) / full).toBeCloseTo(COAST_SPEED, 2)
+    expect(rate(plan.resumedAtMs - 60) / full).toBeGreaterThan(0.95)
   })
 
   it('hands over into the authored spin at the speed it launches with', () => {
