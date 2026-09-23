@@ -123,7 +123,13 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
 
   // The show window is the one that goes dark and makes the noise.
   const stageRef = useRef<HTMLDivElement | null>(null)
-  useOutageFx(outage, { targetRef: stageRef, depth: 1, sound: true, muted, create: createFx })
+  const dark = useOutageFx(outage, {
+    targetRef: stageRef,
+    depth: 1,
+    sound: true,
+    muted,
+    create: createFx,
+  })
 
   // Every letter on the wheel, so the face is extruded while the roster is
   // sitting there rather than inside the landing that needs it.
@@ -227,7 +233,8 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
           retainedRef={retainedRef}
           held={held}
           theme={theme}
-          muted={muted}
+          // The flapper still turns in the dark, but the power that ticks it is out.
+          muted={muted || dark}
         />
       </div>
       <div className="app__controls">

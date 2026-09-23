@@ -7,13 +7,14 @@ stall stay in step. Built; this describes the code as it stands.
 ## What it does
 
 Before the spin proper, the wheel turns at full speed while sparks, pops and
-arcs escalate on its rim. It blows, stops dead, and the room goes dark. The dark
+arcs escalate on its rim. It blows and the room goes dark, the wheel still
+turning, silent. The dark
 stretch plays a synthesized passage after the power-down in Eric Carmen's "Make
 Me Lose Control" (4:07.20–4:10.7), stretched with dead air: two falls, a drone
 the lights dim under, clanks, a bar and more of silence, a mains hum, an engine's
 pistons and two rimshots on the song's 110 bpm grid, then a chord. The lights
-flicker on the hits and come back on the chord, and the wheel spins up and plays
-its authored spin, landing where it always would have.
+flicker on the hits and come back on the chord, and the wheel runs on into its
+authored spin, landing where it always would have.
 
 ## A trick with a cue
 
@@ -27,12 +28,14 @@ outage in trick order runs; others are ignored.
 ## The prologue
 
 `withOutage` (`src/wheel/outage.ts`) puts a prologue in front of the authored
-rotation track: a cruise at the track's launch speed, a 400 ms brake to a dead
-stop, the dark (`DARK_MS`, pop to chord), and a 700 ms restart back to launch
-speed. The prologue covers a whole number of turns, so the authored track then
-plays unchanged from the same angle mod 360 and lands as planned; the rounding
-moves the cruise by at most half a turn's time. Morphs read `spinTime`, which
-holds at zero until the prologue ends. Reduced motion drops the outage.
+rotation track: the wheel turns on at the track's launch speed through the
+sparks, the pop and the whole dark (`DARK_MS`, pop to chord), and the authored
+track starts when the lights come back, with no kick at the handover. The
+prologue covers a whole number of turns, so the authored track plays unchanged
+from the same angle mod 360 and lands as planned; the rounding moves the pop by
+at most half a turn's time. Morphs read `spinTime`, which holds at zero until the
+prologue ends. Reduced motion drops the outage. The flapper stays silent while
+the room is dark.
 
 `useSpin` exposes the run (`OutageRun`: plan, start time, id) for the length of
 the spin.

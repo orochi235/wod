@@ -1,10 +1,10 @@
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { OutageRun } from '../wheel/useSpin'
 import type { Fx } from './fx'
 import { useOutageFx } from './useOutageFx'
 
-const plan = { sparkAtMs: 0, brakeAtMs: 100, popAtMs: 500, lightsAtMs: 900, resumedAtMs: 1600 }
+const plan = { sparkAtMs: 0, popAtMs: 500, lightsAtMs: 900, resumedAtMs: 900 }
 const runOf = (id: number): OutageRun => ({ id, plan, startedAt: 0 })
 
 function fake() {
@@ -59,6 +59,19 @@ describe('useOutageFx', () => {
     view.unmount()
     expect(stops[1]).toHaveBeenCalled()
     expect(fx.dispose).toHaveBeenCalled()
+  })
+
+  it('reports the room dark from the pop until the lights come back', () => {
+    vi.useFakeTimers()
+    const { create } = fake()
+    vi.spyOn(performance, 'now').mockReturnValue(0)
+    const view = render(runOf(1), create)
+    expect(view.result.current).toBe(false)
+    act(() => vi.advanceTimersByTime(plan.popAtMs + 1))
+    expect(view.result.current).toBe(true)
+    act(() => vi.advanceTimersByTime(plan.lightsAtMs - plan.popAtMs))
+    expect(view.result.current).toBe(false)
+    vi.useRealTimers()
   })
 
   it('follows the page mute', () => {

@@ -2,24 +2,20 @@ import { curveAt, parseCurve } from './curve'
 import type { RotationTrack } from './rotation'
 import type { Outage } from './types'
 
-/** How long the wheel takes to stop dead once the fault blows. */
-export const BRAKE_MS = 400
 /**
  * Pop to chord in the show's sound: bar 115's downbeat plus the dead
- * air (fourteen beats), pinned by the schedule test. The show is cued to it, so it is fixed
- * rather than authored.
+ * air (fourteen beats), pinned by the schedule test. The show is cued to it, so
+ * it is fixed rather than authored.
  */
 export const DARK_MS = 11198
-/** Chord to full speed. */
-export const RESTART_MS = 700
 
 /**
  * Every moment of one outage, in real milliseconds from the start of the spin.
- * The outage is a prologue: the authored spin starts, unchanged, at `resumedAtMs`.
+ * The outage is a prologue: the authored spin starts, unchanged, at `resumedAtMs`,
+ * which is the moment the lights come back.
  */
 export type OutagePlan = {
   sparkAtMs: number
-  brakeAtMs: number
   popAtMs: number
   lightsAtMs: number
   resumedAtMs: number
@@ -49,21 +45,16 @@ export function angleAt(track: RotationTrack, ms: number): number {
   return from + (angleOf(frames[i + 1]) - from) * easeOf(frames[i].easing)(local)
 }
 
-/** Speed falling linearly to zero: position 2u − u², which is exactly this Bézier. */
-const BRAKE_EASING = 'cubic-bezier(0.333333, 0.666667, 0.666667, 1)'
-/** Speed rising linearly from zero: position u². */
-const RESTART_EASING = 'cubic-bezier(0.333333, 0, 0.666667, 0.333333)'
-
 const rotate = (deg: number): string => `rotate(${deg.toFixed(3)}deg)`
 
 /**
- * Prefixes a spin with an outage: a cruise at the spin's own launch speed, a
- * brake to a dead stop, the dark, and a restart back up to that speed, after
- * which the authored track plays as it would have.
+ * Prefixes a spin with an outage: the wheel turns on at the spin's own launch
+ * speed through the sparks, the pop and the whole dark, and runs straight into
+ * the authored track when the lights come back.
  *
  * The prologue covers a whole number of turns, so the authored track starts
  * from the same angle mod 360 and needs no replanning to land where it was
- * going to. That rounding moves the cruise by at most half a turn's time.
+ * going to. That rounding moves the pop by at most half a turn's time.
  */
 export function withOutage(
   track: RotationTrack,
@@ -77,41 +68,20 @@ export function withOutage(
   const launch = Math.abs(angleAt(track, 16) - start) / 16
   const speed = Math.max(launch, average, 1e-6)
 
-  const ramps = (BRAKE_MS + RESTART_MS) / 2
-  let turns = Math.max(1, Math.round((speed * (Math.max(0, outage.cruiseMs) + ramps)) / 360))
-  let cruiseMs = (turns * 360) / speed - ramps
-  if (cruiseMs < 0) {
-    turns += 1
-    cruiseMs = (turns * 360) / speed - ramps
-  }
-
-  const brakeAtMs = cruiseMs
-  const popAtMs = brakeAtMs + BRAKE_MS
-  const lightsAtMs = popAtMs + DARK_MS
-  const resumedAtMs = lightsAtMs + RESTART_MS
+  let turns = Math.max(1, Math.round((speed * (Math.max(0, outage.cruiseMs) + DARK_MS)) / 360))
+  while ((turns * 360) / speed < DARK_MS) turns += 1
+  const resumedAtMs = (turns * 360) / speed
+  const popAtMs = resumedAtMs - DARK_MS
   const plan: OutagePlan = {
     sparkAtMs: Math.max(0, popAtMs - Math.max(0, outage.sparkMs)),
-    brakeAtMs,
     popAtMs,
-    lightsAtMs,
+    lightsAtMs: resumedAtMs,
     resumedAtMs,
   }
 
   const turned = sign * turns * 360
-  const stopped = start + sign * speed * (cruiseMs + BRAKE_MS / 2)
   const durationMs = resumedAtMs + track.durationMs
   const at = (ms: number) => ms / durationMs
-
-  const prologue: Keyframe[] = [
-    { offset: 0, transform: rotate(start), easing: 'linear' },
-    {
-      offset: at(brakeAtMs),
-      transform: rotate(stopped - sign * speed * (BRAKE_MS / 2)),
-      easing: BRAKE_EASING,
-    },
-    { offset: at(popAtMs), transform: rotate(stopped), easing: 'linear' },
-    { offset: at(lightsAtMs), transform: rotate(stopped), easing: RESTART_EASING },
-  ]
   const frames = track.keyframes
   const offsetOf = (frame: Keyframe, i: number) =>
     typeof frame.offset === 'number' ? frame.offset : i / Math.max(1, frames.length - 1)
@@ -126,7 +96,7 @@ export function withOutage(
 
   return {
     track: {
-      keyframes: [...prologue, ...authored],
+      keyframes: [{ offset: 0, transform: rotate(start), easing: 'linear' }, ...authored],
       durationMs,
       easing: 'linear',
       to: track.to + turned,

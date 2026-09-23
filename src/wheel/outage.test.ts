@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTLE_CURVE } from './curve'
-import { BRAKE_MS, DARK_MS, RESTART_MS, angleAt, spinTime, withOutage } from './outage'
+import { DARK_MS, angleAt, spinTime, withOutage } from './outage'
 import { type RotationSpec, rotationTrack } from './rotation'
 
 const SPEC: RotationSpec = {
@@ -44,23 +44,19 @@ describe('withOutage', () => {
 
   it('lays the phases end to end, cruising close to what was asked', () => {
     const { plan } = withOutage(rotationTrack(0, 90, SPEC), OUTAGE)
-    expect(Math.abs(plan.brakeAtMs - 10000)).toBeLessThan(1000)
-    expect(plan.popAtMs).toBeCloseTo(plan.brakeAtMs + BRAKE_MS, 6)
+    expect(Math.abs(plan.popAtMs - 10000)).toBeLessThan(1000)
     expect(plan.lightsAtMs).toBeCloseTo(plan.popAtMs + DARK_MS, 6)
-    expect(plan.resumedAtMs).toBeCloseTo(plan.lightsAtMs + RESTART_MS, 6)
+    expect(plan.resumedAtMs).toBe(plan.lightsAtMs)
     expect(plan.sparkAtMs).toBeCloseTo(plan.popAtMs - 4000, 6)
   })
 
-  it('holds a constant speed through the cruise', () => {
+  it('keeps turning at full speed through the dark', () => {
     const { track: out, plan } = withOutage(rotationTrack(0, 90, SPEC), OUTAGE)
     const early = angleAt(out, 1000) - angleAt(out, 0)
-    const late = angleAt(out, plan.brakeAtMs) - angleAt(out, plan.brakeAtMs - 1000)
+    const dark = angleAt(out, plan.popAtMs + 2000) - angleAt(out, plan.popAtMs + 1000)
+    const late = angleAt(out, plan.lightsAtMs) - angleAt(out, plan.lightsAtMs - 1000)
+    expect(dark).toBeCloseTo(early, 3)
     expect(late).toBeCloseTo(early, 3)
-  })
-
-  it('stands still in the dark', () => {
-    const { track: out, plan } = withOutage(rotationTrack(0, 90, SPEC), OUTAGE)
-    expect(angleAt(out, plan.popAtMs + 10)).toBeCloseTo(angleAt(out, plan.lightsAtMs - 10), 6)
   })
 
   it('hands over into the authored spin at the speed it launches with', () => {
