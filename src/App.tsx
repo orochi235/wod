@@ -202,7 +202,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
   // A look with a stage owns the page it is shown on, not a square behind the
   // wheel: this is the screen everyone is looking at, and the white margin
   // around a dark wheel was the only thing on it that was not the show.
-  const staged = partOn(theme, 'stage')
+  const staged = partOn(theme, 'stage') || preset.background !== undefined
 
   // One condition, worn by the button and by the wheel alike. The wheel is the
   // obvious thing to hit in a room, so the host offers the click rather than the
@@ -213,7 +213,13 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
   const canSpin = !isSpinning && !isEmpty && shown === null && banner.shown === null
 
   return (
-    <main className={staged ? 'app app--staged' : 'app'} style={styleOfTheme(theme)}>
+    <main
+      className={staged ? 'app app--staged' : 'app'}
+      style={{
+        ...styleOfTheme(theme),
+        ...(preset.background ? { '--wheel-stage-fill': preset.background } : {}),
+      }}
+    >
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: the Spin button is this action's keyboard control; a second tab stop would announce the same spin twice. */}
       <div
         ref={stageRef}

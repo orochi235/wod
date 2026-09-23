@@ -534,6 +534,11 @@ function readTheme(value: unknown): string | undefined {
   return getTheme(value)?.id
 }
 
+/** Hex only: it lands in a style property, and anything else is a string the page did not ask for. */
+function readBackground(value: unknown): string | undefined {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : undefined
+}
+
 /**
  * Absent rather than empty, as `readTransitions` is: a hub with neither an
  * emblem nor a flag is the bare cap, which is what no hub at all already means.
@@ -594,6 +599,7 @@ export function parsePreset(raw: string | null): Preset {
     breakpoints: readBreakpoints(data.breakpoints),
     theme: readTheme(data.theme),
     hub: readHub(data.hub),
+    background: readBackground(data.background),
   }
 }
 

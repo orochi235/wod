@@ -279,7 +279,12 @@ export function Editor() {
             onChange={(transitions) => update({ ...preset, transitions })}
           />
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
-          <ThemePanel theme={preset.theme} onChange={(theme) => update({ ...preset, theme })} />
+          <ThemePanel
+            theme={preset.theme}
+            onChange={(theme) => update({ ...preset, theme })}
+            background={preset.background}
+            onBackground={(background) => update({ ...preset, background })}
+          />
           <HubPanel hub={preset.hub} onChange={(hub) => update({ ...preset, hub })} />
           <FitReport segments={shown} slice={preset.slice} breakpoints={preset.breakpoints} />
         </section>
