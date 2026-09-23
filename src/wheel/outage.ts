@@ -10,7 +10,7 @@ import type { Outage } from './types'
 export const DARK_MS = 11198
 
 /** Through the dark the wheel coasts down to this share of its speed... */
-export const COAST_SPEED = 0.25
+export const COAST_SPEED = 0.05
 /** ...over this long from the pop, as the lights dim... */
 export const SLOW_MS = 2400
 /** ...keeps coasting this long after the lights come back... */
