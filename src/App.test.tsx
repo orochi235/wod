@@ -775,6 +775,8 @@ describe('App banner', () => {
         warm: () => Promise.resolve(),
         preheat: () => Promise.resolve(),
         destroy: () => undefined,
+        attach: () => () => undefined,
+        pointOn: () => null,
       }
     }
     return { createBanner, fired, fonts }
@@ -923,6 +925,8 @@ describe('App banner tint', () => {
       warm: () => Promise.resolve(),
       preheat: () => Promise.resolve(),
       destroy: () => undefined,
+      attach: () => () => undefined,
+      pointOn: () => null,
     })
     return { createBanner, fires }
   }
