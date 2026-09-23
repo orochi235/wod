@@ -9,6 +9,13 @@ import type { Outage } from './types'
  */
 export const DARK_MS = 11198
 
+/** Through the dark the wheel coasts down to this share of its speed... */
+export const COAST_SPEED = 0.25
+/** ...over this long from the pop, as the lights dim... */
+export const SLOW_MS = 2400
+/** ...and winds back up to full over this long, reaching it as the lights return. */
+export const WIND_UP_MS = 2200
+
 /**
  * Every moment of one outage, in real milliseconds from the start of the spin.
  * The outage is a prologue: the authored spin starts, unchanged, at `resumedAtMs`,
@@ -48,9 +55,21 @@ export function angleAt(track: RotationTrack, ms: number): number {
 const rotate = (deg: number): string => `rotate(${deg.toFixed(3)}deg)`
 
 /**
+ * The cubic Bézier for a speed changing linearly from `from` to `to` (shares of
+ * full speed) across an interval. Position is then quadratic in time, which a
+ * cubic with its x handles at thirds draws exactly.
+ */
+function ramp(from: number, to: number): string {
+  const q = from / (from + to)
+  const y1 = (2 / 3) * q
+  const y2 = 1 + (2 / 3) * (q - 1)
+  return `cubic-bezier(0.333333, ${y1.toFixed(6)}, 0.666667, ${y2.toFixed(6)})`
+}
+
+/**
  * Prefixes a spin with an outage: the wheel turns on at the spin's own launch
- * speed through the sparks, the pop and the whole dark, and runs straight into
- * the authored track when the lights come back.
+ * speed through the sparks and the pop, coasts down as the lights dim, and winds
+ * back up to full speed as they return, running straight into the authored track.
  *
  * The prologue covers a whole number of turns, so the authored track starts
  * from the same angle mod 360 and needs no replanning to land where it was
@@ -68,10 +87,17 @@ export function withOutage(
   const launch = Math.abs(angleAt(track, 16) - start) / 16
   const speed = Math.max(launch, average, 1e-6)
 
-  let turns = Math.max(1, Math.round((speed * (Math.max(0, outage.cruiseMs) + DARK_MS)) / 360))
-  while ((turns * 360) / speed < DARK_MS) turns += 1
-  const resumedAtMs = (turns * 360) / speed
-  const popAtMs = resumedAtMs - DARK_MS
+  const f = COAST_SPEED
+  const holdMs = DARK_MS - SLOW_MS - WIND_UP_MS
+  const slowing = speed * SLOW_MS * ((1 + f) / 2)
+  const coasting = speed * f * holdMs
+  const winding = speed * WIND_UP_MS * ((1 + f) / 2)
+  const darkTurn = slowing + coasting + winding
+
+  let turns = Math.max(1, Math.round((speed * Math.max(0, outage.cruiseMs) + darkTurn) / 360))
+  while (turns * 360 < darkTurn) turns += 1
+  const popAtMs = (turns * 360 - darkTurn) / speed
+  const resumedAtMs = popAtMs + DARK_MS
   const plan: OutagePlan = {
     sparkAtMs: Math.max(0, popAtMs - Math.max(0, outage.sparkMs)),
     popAtMs,
@@ -82,6 +108,16 @@ export function withOutage(
   const turned = sign * turns * 360
   const durationMs = resumedAtMs + track.durationMs
   const at = (ms: number) => ms / durationMs
+  const pop = start + sign * speed * popAtMs
+  const slowed = pop + sign * slowing
+  const coasted = slowed + sign * coasting
+
+  const prologue: Keyframe[] = [
+    { offset: 0, transform: rotate(start), easing: 'linear' },
+    { offset: at(popAtMs), transform: rotate(pop), easing: ramp(1, f) },
+    { offset: at(popAtMs + SLOW_MS), transform: rotate(slowed), easing: 'linear' },
+    { offset: at(resumedAtMs - WIND_UP_MS), transform: rotate(coasted), easing: ramp(f, 1) },
+  ]
   const frames = track.keyframes
   const offsetOf = (frame: Keyframe, i: number) =>
     typeof frame.offset === 'number' ? frame.offset : i / Math.max(1, frames.length - 1)
@@ -96,7 +132,7 @@ export function withOutage(
 
   return {
     track: {
-      keyframes: [{ offset: 0, transform: rotate(start), easing: 'linear' }, ...authored],
+      keyframes: [...prologue, ...authored],
       durationMs,
       easing: 'linear',
       to: track.to + turned,
