@@ -1,5 +1,5 @@
 import type { WedgeIndex } from '../../compose/types'
-import { parseHex } from '../../wheel/morph'
+import { parseHex } from '../../wheel/hex'
 import type { Morph, MorphKeyframe, Segment } from '../../wheel/types'
 import { readEasing, readOptionalString, readString, readUnit } from '../params'
 import type { Recipe, RecipeContext, TrickParams, Write } from '../types'
@@ -158,8 +158,7 @@ export const takeover: Recipe = {
   },
 
   validate(params: TrickParams, wedges: WedgeIndex): string | null {
-    // lerpColor only understands hex; anything else holds the start color for
-    // the whole spin and cuts on the last frame instead of fading.
+    // The color channel reads hex only; a named color would hold its start color all spin.
     for (const key of ['endColor', 'wedgeColor']) {
       const color = readOptionalString(params, key)
       if (color && !parseHex(color)) return `not a hex color: ${color}`

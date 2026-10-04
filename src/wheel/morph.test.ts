@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyMorphs, landingSegments, lerpColor, morphProgress, parseHex } from './morph'
+import { applyMorphs, landingSegments, lerpColor, morphProgress } from './morph'
 import type { Morph, Segment } from './types'
 
 const base: Segment[] = [
@@ -24,20 +24,6 @@ const vanish: Morph = {
     { at: 1, weight: 0 },
   ],
 }
-
-describe('parseHex', () => {
-  it('expands shorthand hex', () => {
-    expect(parseHex('#f00')).toEqual([255, 0, 0])
-  })
-
-  it('parses full hex', () => {
-    expect(parseHex('#00ff80')).toEqual([0, 255, 128])
-  })
-
-  it('returns null for anything else', () => {
-    expect(parseHex('rebeccapurple')).toBeNull()
-  })
-})
 
 describe('lerpColor', () => {
   it('interpolates hex colors', () => {

@@ -1,23 +1,7 @@
 import { bracket } from '../keyframes/bracket'
 import { EASINGS } from '../keyframes/easing'
+import { parseHex } from './hex'
 import type { Media, Morph, MorphKeyframe, Reveal, Segment } from './types'
-
-export function parseHex(color: string): [number, number, number] | null {
-  const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim())
-  if (!match) return null
-  let hex = match[1]
-  if (hex.length === 3) {
-    hex = hex
-      .split('')
-      .map((c) => c + c)
-      .join('')
-  }
-  return [
-    Number.parseInt(hex.slice(0, 2), 16),
-    Number.parseInt(hex.slice(2, 4), 16),
-    Number.parseInt(hex.slice(4, 6), 16),
-  ]
-}
 
 export function lerpColor(from: string, to: string, t: number): string {
   const a = parseHex(from)
