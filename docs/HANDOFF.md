@@ -13,17 +13,18 @@ what's next, and the traps.
   Mike's call.
 - blits is pinned at exactly `0.3.0`. Phases 2, 4, 5 and 6 need blits 0.4.0,
   which must ship both `hold` (already merged on blits `main`, `2dd0e19`) and
-  `Mix.inert` (agreed, not built).
-- The blits session (`blits-17`) said it will build `inert` in a worktree off
-  blits `main` and send the commit hash here. The rules it will follow are in the
+  `Mix.inert`.
+- `inert` is committed on blits branch `inert` (`2c4e9f3`, in a worktree of the
+  blits session `blits-17`), not yet merged or published. The rules it will follow are in the
   spec's "Prerequisite" section.
 
 ## Next, in order
 
-1. **Plan phases 2, 4 and 5** (wheel angle and flapper, tricks, wedge
-   transitions) with superpowers:writing-plans, against blits `main`'s real
-   `hold` API (`git -C ~/src/blits show main:src/types.ts`). Build once 0.4.0
-   is published. Phase 6 (scrub) comes after them.
+1. **Build phases 2, 4 and 5** once blits 0.4.0 is published, in that order, from
+   `docs/superpowers/plans/2026-10-03-blits-wheel-angle.md`, `…-blits-tricks.md` and
+   `…-blits-transitions.md`. Each plan opens with the readings it took where the spec was
+   ambiguous or wrong; Mike has not reviewed those yet, so read them out to him before building.
+   Phase 2's Task 1 stops if 0.4.0 lacks `hold` or `inert`. Phase 6 (scrub) comes after, unplanned.
 2. **Enlist wod on the fleet** (onto-enlist), so the after-merge full suite can
    run. It has never run for the phase 1 and 3 merge.
 3. The `App.test` case "rolls a material for a wedge that names none" failed
