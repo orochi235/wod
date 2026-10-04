@@ -43,12 +43,15 @@ during their delay.
 blits 0.4.0 adds `hold?: 'before' | 'after' | 'both'` to `VoiceSpec`, WAAPI's
 `fill` under another name: the voice's phase clamps to 0 before `start` and/or
 to 1 after its end, instead of the voice being absent. Unset keeps today's
-behavior. wod depends on:
+behavior. This is on blits `main` (`2dd0e19`), unreleased. wod depends on:
 
-- A held voice never reaches `done` by itself; `fade()`, `mute()` or `drop()`
-  end it.
-- `mix.live` is false once every voice is only holding, and `probe` still
-  returns the held value, so wod's ticker sleeps after a spin lands.
+- A voice holding after enters state `held` and leaves only on `fade()`,
+  `mute()` or `drop()`; `probe` keeps returning the held value.
+- A mix flag `inert`: true when every voice is held or done (or there are none),
+  so another frame would change nothing. `live` stays true while anything is
+  held, so wod's ticker runs while `!inert` or a `stay()` hold is out, not while
+  `live`; otherwise it ticks every frame under a landed wheel. **`inert` is not in
+  blits yet.**
 
 wod pins blits to an exact version (`"0.4.0"`, not `"^0.4.0"`); every 0.x minor
 so far has broken something.
@@ -204,8 +207,9 @@ Time is injected everywhere: the ticker takes `now` and `raf`; mix tests call
 bookkeeping where those only existed to drive time.
 
 **blits 0.4.0 (in blits):** a one-pass voice with `hold: 'after'` reads its end
-value at `end + 5000` and its `state` stays `'live'` until `fade()`; `mix.live` is
-false while only holding; `hold: 'before'` reads the first stop before `start`.
+value at `end + 5000` and its `state` is `'held'` until `fade()`; `mix.inert` is
+true while every voice is held or done, and false while any plays, fades or is
+pending; `hold: 'before'` reads the first stop before `start`.
 
 **Tricks**
 
@@ -249,7 +253,7 @@ false while only holding; `hold: 'before'` reads the first stop before `start`.
 | Case | Expect |
 |---|---|
 | Angle matches the model | probe at 0, ¼, ½, ¾, 1 of a settle track and an outage track equals `angleAt` |
-| Angle holds | at `end + 5000`, angle is `restingRotationDeg` and `live` is false |
+| Angle holds | at `end + 5000`, angle is `restingRotationDeg` and the wheel mix is `inert` |
 | Hidden tab | a 4 s clock jump reads `angleAt(start + elapsed)` |
 | Peg kick | a crossing gives deflection > 0 next frame |
 | Settle ignores frame rate | the same crossing at 30 and 120 fps agrees within ε at +200 ms |
