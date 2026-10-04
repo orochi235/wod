@@ -3,8 +3,8 @@
 For whoever works on the spin, tricks, wedge transitions, the outage or the
 editor's transport. It answers: how wod's clocks and animated values move onto
 [`@msb235/blits`](https://www.npmjs.com/package/@msb235/blits), what changes for
-the viewer, and in what order it lands. **Phases 1 and 3 built** (clock, outage
-visuals); phases 2, 4, 5 and 6 unbuilt, blocked on blits 0.4.0 (see Prerequisite).
+the viewer, and in what order it lands. **Phases 1, 2 and 3 built** (clock,
+wheel angle and flapper, outage visuals); phases 4, 5 and 6 unbuilt.
 
 ## Why
 
@@ -53,7 +53,7 @@ behavior. This is on blits `main` (`2dd0e19`), unreleased. wod depends on:
   `live`; otherwise it ticks every frame under a landed wheel. A motion voice
   (the flapper's `spring`) counts as inert while every subject it has met is at
   rest, so the wheel mix sleeps once the flapper settles; a held voice with a
-  signal weight does not count. **`inert` is agreed with blits but not built yet.**
+  signal weight does not count. Both shipped in 0.4.0.
 
 wod pins blits to an exact version (`"0.4.0"`, not `"^0.4.0"`); every 0.x minor
 so far has broken something.
@@ -158,14 +158,18 @@ strings; a subscriber writes them. While `held`, every presence voice gets
 **Angle.** A custom `patch` whose `at(phase)` returns
 `angleAt(track, phase × total)`, built from the same `RotationTrack` and
 `OutagePlan` given to `rotor.animate()`, started at the same `startedAt`,
-`hold: 'after'`. `angleAt` moves into the patch. The angle is wrapped only
-where it is drawn.
+`hold: 'after'`. The patch also writes `speed`, the track's slope, 0 once the
+track ends. Each of the rotor's WAAPI animations is given `startTime =
+startedAt`, the motion clock's time, so the voice and the pixels share a start.
+The angle is wrapped only where it is drawn.
 
-**Flapper.** Each frame a subscriber reads `angle` now and at the previous
-frame, runs `pegCrossings`, and on a crossing retargets a `spring` voice on
-`deflection` with `.to('wheel', kick)`. The clicker's speed comes from the
-track's analytic slope. The flapper and its clicker carry on while `dark`: the clicker is mechanical,
-and pegs still strike it with the lights out.
+**Flapper.** `trackFlapper` aims a `spring` on `deflection` at `deflectionDeg`
+(the peg's push at the current angle) while the wheel turns, and at 0 once its
+speed is under `STILL_SPEED`, retargeting only when the target changes. A
+subscriber writes the arm's `rotate()` onto `.wheel__flapper-arm` and counts
+`pegCrossings` for the clicker, whose speed is the angle voice's `speed`
+channel. The arm and its clicker carry on while `dark`: the clicker is
+mechanical, and pegs still strike it with the lights out.
 
 **Outage visuals.**
 
@@ -258,7 +262,7 @@ pending; `hold: 'before'` reads the first stop before `start`.
 | Angle matches the model | probe at 0, ¼, ½, ¾, 1 of a settle track and an outage track equals `angleAt` |
 | Angle holds | at `end + 5000`, angle is `restingRotationDeg` and the wheel mix is `inert` |
 | Hidden tab | a 4 s clock jump reads `angleAt(start + elapsed)` |
-| Peg kick | a crossing gives deflection > 0 next frame |
+| Peg lift | a peg coming under the hinge lifts the arm past half of `MAX_DEFLECTION_DEG` |
 | Settle ignores frame rate | the same crossing at 30 and 120 fps agrees within ε at +200 ms |
 | Clicker speed | matches the analytic slope in cruise and in settle |
 | Blackout | matches `blackoutKeyframes` at each offset |

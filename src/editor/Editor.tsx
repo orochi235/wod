@@ -141,6 +141,7 @@ export function Editor() {
     [preset.spin, resolved.morphs, resolved.outage],
   )
 
+  const motion = useMotionRoot()
   const {
     displaySegments,
     layoutSegments,
@@ -150,11 +151,10 @@ export function Editor() {
     rotorRef,
     levelRef,
     riderRef,
-  } = useSpin(resolved.segments, spinConfig)
+  } = useSpin(resolved.segments, spinConfig, motion)
   // The editor previews the sparks and a half-dark room, silently: the show
   // window is the one that makes noise.
   const wheelRef = useRef<HTMLElement | null>(null)
-  const motion = useMotionRoot()
   useOutageFx(outage, { targetRef: wheelRef, depth: 0.6, sound: false, muted: true, motion })
   const [scrubbed, setScrubbed] = useState<Segment[] | null>(null)
   // Handing the wheel back to the scrubber the moment `isSpinning` goes false
@@ -248,6 +248,7 @@ export function Editor() {
         </section>
         <section ref={wheelRef} className="editor__column editor__column--center">
           <Wheel
+            motion={motion}
             segments={shown}
             layoutFrom={spinOwns ? layoutSegments : undefined}
             slice={preset.slice}

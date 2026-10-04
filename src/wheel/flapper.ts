@@ -34,23 +34,8 @@ export function deflectionDeg(rotationDeg: number, pegs: number[], turning = 1):
   return turning < 0 ? pushed : -pushed
 }
 
-/** Slow enough to read as falling, fast enough to be done before anyone looks away. */
-const FALL_PER_FRAME = 1.5
 /** Degrees of wheel per millisecond under which nothing is driving the arm. */
-const STILL_SPEED = 0.002
-
-/**
- * Where the arm actually sits. A stopped wheel holds whatever peg it stopped
- * over, and an arm propped on one with nothing moving reads as broken rather
- * than as contact — so once the wheel is still the arm falls upright.
- */
-export function settledDeflection(current: number, driven: number, speed: number): number {
-  if (Math.abs(speed) > STILL_SPEED) return driven
-  // Upright is zero from either side; a wheel that stopped turning the other way
-  // would otherwise fall away from it forever.
-  const size = Math.max(0, Math.abs(current) - FALL_PER_FRAME)
-  return current < 0 ? -size : size
-}
+export const STILL_SPEED = 0.002
 
 /**
  * How many pegs went under the hinge between two angles, travelling the way

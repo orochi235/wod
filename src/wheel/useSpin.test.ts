@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { WHEEL } from '../clock/motion'
+import { fakeMotion } from '../clock/testing'
 import { applyMorphs, landingSegments } from './morph'
 import { forced } from './selection'
 import type { Morph, Segment, SpinConfig } from './types'
@@ -55,6 +57,7 @@ type AnimateCall = {
   options: KeyframeAnimationOptions
   /** Settles the animation's `finished` promise, as a real one does when it ends. */
   finish: () => void
+  animation: Animation
 }
 
 type Harness = {
@@ -73,7 +76,10 @@ type Harness = {
  * frame loop, the reduced-motion query, the clock, and the CSPRNG behind
  * winner selection. Every one of them is driven by hand from the test body.
  */
+let fake: ReturnType<typeof fakeMotion>
+
 function installHarness(): Harness {
+  fake = fakeMotion()
   const frames = new Map<number, FrameRequestCallback>()
   let nextFrameId = 1
   let nowMs = 1000
@@ -108,6 +114,7 @@ function installHarness(): Harness {
     })
     const animation = {
       finished,
+      startTime: null as number | null,
       cancel: () => rejectFinished(new Error('animation cancelled')),
     } as unknown as Animation
 
@@ -115,6 +122,7 @@ function installHarness(): Harness {
       keyframes: (Array.isArray(keyframes) ? keyframes : []) as Keyframe[],
       options: typeof options === 'object' && options !== null ? options : {},
       finish: () => resolveFinished(animation),
+      animation,
     })
     return animation
   }
@@ -151,7 +159,7 @@ function installHarness(): Harness {
 }
 
 function renderSpin(config: SpinConfig, initial: Segment[] = SEGMENTS) {
-  const view = renderHook(({ segs }) => useSpin(segs, config), {
+  const view = renderHook(({ segs }) => useSpin(segs, config, fake.motion), {
     initialProps: { segs: initial },
   })
   // spin() bails without a rotor, so give it a real one.
@@ -490,6 +498,7 @@ describe('useSpin', () => {
     // an observable wrong answer.
     harness.setReducedMotion(true)
     harness.setNow(1000)
+    act(() => fake.step(1000))
     const unrelated: Segment[] = [
       { id: 'x', label: 'Xan', weight: 1 },
       { id: 'y', label: 'Yun', weight: 1 },
@@ -561,6 +570,7 @@ describe('useSpin', () => {
   it('runs the late morphs on the animation clock', () => {
     const { result } = renderSpin(PLAIN)
     harness.setNow(1000)
+    act(() => fake.step(1000))
     act(() => {
       result.current.spin({
         resolveLate: (winnerId) => [
@@ -594,6 +604,61 @@ describe('useSpin', () => {
       harness.animateCalls[0].finish()
     })
     expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
+  })
+  describe('the angle voice', () => {
+    it('starts the rotor on the motion clock, at the moment the voice starts', () => {
+      act(() => fake.step(5000))
+      const { result } = renderSpin(PLAIN)
+      act(() => result.current.spin({ strategy: forced('ana') }))
+      const { animation, keyframes, options } = harness.animateCalls[0]
+      expect(animation.startTime).toBe(5000)
+
+      act(() => fake.step(5000 + Number(options.duration) / 2))
+      const half = fake.motion.wheel.probe(WHEEL).angle ?? Number.NaN
+      const from = degreesOf(keyframes[0])
+      const to = degreesOf(keyframes[keyframes.length - 1])
+      expect(half).toBeGreaterThan(from)
+      expect(half).toBeLessThan(to)
+    })
+
+    it('holds the landed angle once the spin is over', async () => {
+      act(() => fake.step(1000))
+      const { result } = renderSpin(PLAIN)
+      act(() => result.current.spin({ strategy: forced('ana') }))
+      const { keyframes, options } = harness.animateCalls[0]
+      await act(async () => harness.animateCalls[0].finish())
+      fake.motion.ticker.wake()
+      act(() => fake.step(1000 + Number(options.duration) + 5000))
+      expect(fake.motion.wheel.probe(WHEEL).angle).toBeCloseTo(
+        degreesOf(keyframes[keyframes.length - 1]),
+        6,
+      )
+    })
+
+    it('replaces the last spin\u2019s angle rather than adding to it', async () => {
+      act(() => fake.step(1000))
+      const { result } = renderSpin(PLAIN)
+      act(() => result.current.spin({ strategy: forced('ana') }))
+      await act(async () => harness.animateCalls[0].finish())
+      fake.motion.ticker.wake()
+      act(() => fake.step(20000))
+      act(() => result.current.spin({ strategy: forced('ben') }))
+      act(() => fake.step(20000))
+      expect(fake.motion.wheel.probe(WHEEL).angle).toBeCloseTo(
+        degreesOf(harness.animateCalls[1].keyframes[0]),
+        6,
+      )
+    })
+
+    it('leaves the mix when the hook unmounts', () => {
+      act(() => fake.step(1000))
+      const { result, unmount } = renderSpin(PLAIN)
+      act(() => result.current.spin({ strategy: forced('ana') }))
+      unmount()
+      fake.motion.ticker.wake()
+      fake.step(1500)
+      expect(fake.motion.wheel.probe(WHEEL).angle ?? 0).toBe(0)
+    })
   })
 })
 
@@ -909,6 +974,7 @@ describe('useSpin with an outage', () => {
 
   it('holds the morphs at their start until the prologue is over', () => {
     harness.setNow(1000)
+    act(() => fake.step(1000))
     const { result } = renderSpin(SHORTING)
     act(() => result.current.spin())
     const run = result.current.outage

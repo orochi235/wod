@@ -1,10 +1,17 @@
 import { act, render, screen } from '@testing-library/react'
+import { Profiler } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { WHEEL } from '../clock/motion'
+import { fakeMotion } from '../clock/testing'
 import type { SliceInstance } from '../slice/types'
 import { Wheel } from './Wheel'
+import { anglePatch } from './anglePatch'
 import { flat } from './themes/flat'
 import { wof } from './themes/wof'
 import type { Segment } from './types'
+
+// Never stepped: these tests drive presence on their own rAF clock, not the motion's.
+const { motion } = fakeMotion()
 
 const segments: Segment[] = [
   { id: 'a', label: 'Ana', weight: 1, color: '#ff0000' },
@@ -91,17 +98,17 @@ const AUTO: SliceInstance = { id: 'auto', params: {} }
 
 describe('Wheel', () => {
   it('renders one path per weighted segment', () => {
-    const { container } = render(<Wheel segments={segments} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} />)
     expect(container.querySelectorAll('path.wheel__segment')).toHaveLength(2)
   })
 
   it('renders segment labels', () => {
-    const { container } = render(<Wheel segments={segments} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} />)
     expect(spelled(container)).toEqual(['Ana', 'Ben'])
   })
 
   it('applies segment color as a fill attribute rather than an inline style', () => {
-    const { container } = render(<Wheel segments={segments} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} />)
     const first = container.querySelector('path.wheel__segment')
     expect(first?.getAttribute('fill')).toBe('#ff0000')
     expect(first?.getAttribute('style')).toBeNull()
@@ -109,7 +116,7 @@ describe('Wheel', () => {
 
   it('omits zero-weight segments entirely', () => {
     const withGhost: Segment[] = [...segments, { id: 'ghost', label: 'hidden', weight: 0 }]
-    const { container } = render(<Wheel segments={withGhost} />)
+    const { container } = render(<Wheel motion={motion} segments={withGhost} />)
     expect(container.querySelectorAll('path.wheel__segment')).toHaveLength(2)
     expect(screen.queryByText('hidden')).not.toBeInTheDocument()
   })
@@ -119,19 +126,19 @@ describe('Wheel', () => {
       { id: 'beer', label: 'free beer', weight: 1 },
       { id: 'a', label: 'Ana', weight: 0 },
     ]
-    const { container } = render(<Wheel segments={solo} />)
+    const { container } = render(<Wheel motion={motion} segments={solo} />)
     const paths = container.querySelectorAll('path.wheel__segment')
     expect(paths).toHaveLength(1)
     expect(paths[0].getAttribute('d')).not.toBe('')
   })
 
   it('applies rotation to the wheel group', () => {
-    const { container } = render(<Wheel segments={segments} rotationDeg={90} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} rotationDeg={90} />)
     expect(container.querySelector('g.wheel__rotor')?.getAttribute('transform')).toBe('rotate(90)')
   })
 
   it('renders nothing spinnable when there are no segments', () => {
-    const { container } = render(<Wheel segments={[]} />)
+    const { container } = render(<Wheel motion={motion} segments={[]} />)
     expect(container.querySelectorAll('path.wheel__segment')).toHaveLength(0)
   })
 
@@ -142,7 +149,7 @@ describe('Wheel', () => {
       weight: 1,
       slice: { id: 'radial' as const, params: {} },
     }))
-    const { container } = render(<Wheel segments={four} />)
+    const { container } = render(<Wheel motion={motion} segments={four} />)
     const transforms = [...container.querySelectorAll('text.wheel__label')].map(
       (t) => t.getAttribute('transform') ?? '',
     )
@@ -154,7 +161,7 @@ describe('Wheel', () => {
 
   it('draws a label through the resolved layout', () => {
     const { container } = render(
-      <Wheel segments={[{ id: 'a', label: 'Willie Dustice', weight: 1 }]} />,
+      <Wheel motion={motion} segments={[{ id: 'a', label: 'Willie Dustice', weight: 1 }]} />,
     )
     // The name plate splits the label and capitalises the surname.
     expect(container.textContent).toContain('WillieDUSTICE')
@@ -163,6 +170,7 @@ describe('Wheel', () => {
   it('honors a per-segment layout override', () => {
     const { container } = render(
       <Wheel
+        motion={motion}
         segments={[
           { id: 'a', label: 'Todd Bonzalez', weight: 1, slice: { id: 'radial', params: {} } },
         ]}
@@ -180,13 +188,14 @@ describe('Wheel', () => {
       { id: 'a', label: 'Scott Dourque', weight: 1 },
       { id: 'b', label: 'Shown Furcotte', weight: 1 },
     ]
-    const { container } = render(<Wheel segments={drawn} layoutFrom={settled} />)
+    const { container } = render(<Wheel motion={motion} segments={drawn} layoutFrom={settled} />)
     expect(container.textContent).toContain('ScottDOURQUE')
   })
 
   it('tags each wedge with its segment id, so a transition can find it', () => {
     const { container } = render(
       <Wheel
+        motion={motion}
         segments={[
           { id: 'ana', label: 'Ana', weight: 1 },
           { id: 'ben', label: 'Ben', weight: 1 },
@@ -198,7 +207,9 @@ describe('Wheel', () => {
   })
 
   it('wraps the rotor in a stage, so a wheel-scope transform never fights the rotation', () => {
-    const { container } = render(<Wheel segments={[{ id: 'ana', label: 'Ana', weight: 1 }]} />)
+    const { container } = render(
+      <Wheel motion={motion} segments={[{ id: 'ana', label: 'Ana', weight: 1 }]} />,
+    )
     const stage = container.querySelector('.wheel__stage')
     expect(stage?.querySelector('.wheel__rotor')).not.toBeNull()
   })
@@ -212,6 +223,7 @@ describe('Wheel', () => {
       // disagree, and neither is near the size cap that would hide the gap.
       const { container, rerender } = render(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           transitions={opening}
           slice={AUTO}
@@ -221,6 +233,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
           slice={AUTO}
@@ -240,6 +253,7 @@ describe('Wheel', () => {
     try {
       const { container, rerender } = render(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
           slice={AUTO}
@@ -250,6 +264,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           transitions={opening}
           slice={AUTO}
@@ -274,6 +289,7 @@ describe('Wheel', () => {
     try {
       const { container, rerender } = render(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
           slice={AUTO}
@@ -284,6 +300,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           transitions={opening}
           slice={AUTO}
@@ -306,7 +323,9 @@ describe('Wheel', () => {
   })
 
   it('leaves a settled wedge label where the layout put it', () => {
-    const { container } = render(<Wheel segments={roster(['ana', 'ben'])} slice={AUTO} />)
+    const { container } = render(
+      <Wheel motion={motion} segments={roster(['ana', 'ben'])} slice={AUTO} />,
+    )
     expect(carry(container, 'ana')).toBe(0)
   })
 
@@ -315,6 +334,7 @@ describe('Wheel', () => {
     try {
       const { container, rerender } = render(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
           slice={AUTO}
@@ -324,6 +344,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           transitions={opening}
           slice={AUTO}
@@ -358,6 +379,7 @@ describe('Wheel', () => {
 
       const { rerender } = render(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           slice={level}
           levelRef={levelRef}
@@ -368,6 +390,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
+          motion={motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           slice={level}
           levelRef={levelRef}
@@ -387,35 +410,35 @@ describe('Wheel', () => {
 
 describe('parts', () => {
   it('draws no new part under the flat look', () => {
-    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={flat} />)
     expect(container.querySelector('.wheel__rim')).toBeNull()
     expect(container.querySelector('.wheel__hub')).toBeNull()
     expect(container.querySelector('.wheel__sheen')).toBeNull()
   })
 
   it('points at the winner with the notch under the flat look', () => {
-    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={flat} />)
     expect(container.querySelectorAll('.wheel__pointer')).toHaveLength(1)
     expect(container.querySelectorAll('.wheel__flapper')).toHaveLength(0)
   })
 
   // Both name the winner, so a look that hangs a flapper drops the notch.
   it('points at the winner with the flapper instead under a look that has one', () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     expect(container.querySelectorAll('.wheel__flapper')).toHaveLength(1)
     expect(container.querySelectorAll('.wheel__pointer')).toHaveLength(0)
   })
 
   it('casts a shadow only for a look that asks for one', () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     expect(container.querySelector('.wheel__body--shadow')).not.toBeNull()
 
-    const flatWheel = render(<Wheel segments={segments} theme={flat} />)
+    const flatWheel = render(<Wheel motion={motion} segments={segments} theme={flat} />)
     expect(flatWheel.container.querySelector('.wheel__body--shadow')).toBeNull()
   })
 
   it('draws the machinery under a look that asks for it', () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     expect(container.querySelector('.wheel__rim')).not.toBeNull()
     expect(container.querySelector('.wheel__face')).not.toBeNull()
     expect(container.querySelector('.wheel__hub')).not.toBeNull()
@@ -423,54 +446,56 @@ describe('parts', () => {
   })
 
   it("puts the rim outside the face by the look's own metric", () => {
-    const { container } = render(<Wheel segments={segments} radius={200} theme={wof} />)
+    const { container } = render(
+      <Wheel motion={motion} segments={segments} radius={200} theme={wof} />,
+    )
     const rim = container.querySelector('.wheel__rim')
     expect(rim?.getAttribute('r')).toBe(String(200 + wof.metrics.rimWidth))
   })
 
   it("sets the look's tokens on the wheel root", () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     const svg = container.querySelector('.wheel') as SVGElement
     expect(svg.style.getPropertyValue('--wheel-rim-fill')).toBe('url(#wheel-gold)')
   })
 
   it('defaults to the flat look with no theme at all', () => {
-    const { container } = render(<Wheel segments={segments} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} />)
     expect(container.querySelector('.wheel__rim')).toBeNull()
   })
 
   it('puts one peg on each wedge boundary', () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     expect(container.querySelectorAll('.wheel__peg')).toHaveLength(2)
   })
 
   it('follows the roster as it grows', () => {
     const three = [...segments, { id: 'cy', label: 'Cy', weight: 1 }]
-    const { container } = render(<Wheel segments={three} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={three} theme={wof} />)
     expect(container.querySelectorAll('.wheel__peg')).toHaveLength(3)
   })
 
   it('spaces a fixed count evenly instead, when a look asks for that', () => {
     const fixed = { ...wof, pegs: { kind: 'fixed' as const, count: 8 } }
-    const { container } = render(<Wheel segments={segments} theme={fixed} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={fixed} />)
     expect(container.querySelectorAll('.wheel__peg')).toHaveLength(8)
   })
 
   it('draws a divider inside each wedge', () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     const wedge = container.querySelector('.wheel__wedge')
     expect(wedge?.querySelector('.wheel__divider')).not.toBeNull()
   })
 
   it('draws a panel for a look that asks for one', () => {
     const panelled = { ...wof, parts: { ...wof.parts, panel: true } }
-    const { container } = render(<Wheel segments={segments} theme={panelled} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={panelled} />)
     expect(container.querySelector('.wheel__panel')).not.toBeNull()
   })
 
   it('strokes every seam after both of the wedges it separates', () => {
     const three = [...segments, { id: 'cy', label: 'Cy', weight: 1 }]
-    const { container } = render(<Wheel segments={three} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={three} theme={wof} />)
     const painted = [...container.querySelectorAll('.wheel__segment, .wheel__divider')]
     const lastIndexOf = (matches: (node: Element) => boolean): number =>
       painted.reduce((found, node, index) => (matches(node) ? index : found), -1)
@@ -488,13 +513,13 @@ describe('parts', () => {
   })
 
   it('draws neither under the flat look', () => {
-    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={flat} />)
     expect(container.querySelector('.wheel__panel')).toBeNull()
     expect(container.querySelector('.wheel__divider')).toBeNull()
   })
 
   it('keeps every filter off the wedge, which is rewritten every frame', () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     for (const node of container.querySelectorAll('.wheel__wedge *')) {
       expect(node.getAttribute('filter')).toBeNull()
     }
@@ -502,7 +527,7 @@ describe('parts', () => {
 
   it('takes a mute it can be told about', () => {
     // The clicker is silent under a mute regardless of what the look asks for.
-    const { container } = render(<Wheel segments={segments} theme={wof} muted />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} muted />)
     expect(container.querySelector('.wheel')).not.toBeNull()
   })
 
@@ -522,13 +547,44 @@ describe('parts', () => {
 
     render(
       <StrictMode>
-        <Wheel segments={segments} theme={wof} />
+        <Wheel motion={motion} segments={segments} theme={wof} />
       </StrictMode>,
     )
     window.dispatchEvent(new Event('pointerdown'))
 
     expect(unlock).toHaveBeenCalled()
     vi.restoreAllMocks()
+  })
+
+  it('moves the flapper arm without re-rendering the wheel', () => {
+    const fake = fakeMotion()
+    let renders = 0
+    // A Profiler commits whenever the Wheel re-renders itself, not only when its parent does.
+    const { container } = render(
+      <Profiler id="wheel" onRender={() => renders++}>
+        <Wheel motion={fake.motion} segments={segments} theme={wof} />
+      </Profiler>,
+    )
+    const before = renders
+    fake.motion.wheel.cue({
+      patch: anglePatch({
+        keyframes: [{ transform: 'rotate(0deg)' }, { transform: 'rotate(720deg)' }],
+        durationMs: 2000,
+        easing: 'linear',
+        to: 720,
+      }),
+      subjects: [WHEEL],
+      start: 0,
+      loop: false,
+      hold: 'after',
+    })
+    fake.motion.ticker.wake()
+    act(() => {
+      for (let t = 0; t <= 1000; t += 16) fake.step(t)
+    })
+    const arm = container.querySelector('.wheel__flapper-arm')
+    expect(arm?.getAttribute('transform')).toMatch(/^rotate\(-?[\d.]+\)$/)
+    expect(renders).toBe(before)
   })
 
   it('measures again once the label face has loaded', async () => {
@@ -547,7 +603,7 @@ describe('parts', () => {
     const module = await import('../slice/measure')
     const made = vi.spyOn(module, 'createMeasure')
 
-    render(<Wheel segments={segments} />)
+    render(<Wheel motion={motion} segments={segments} />)
     const before = made.mock.calls.length
 
     await act(async () => {
@@ -561,17 +617,17 @@ describe('parts', () => {
   })
 
   it('hangs a flapper above the rim when a look asks for one', () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     expect(container.querySelector('.wheel__flapper')).not.toBeNull()
   })
 
   it('leaves it off under the flat look', () => {
-    const { container } = render(<Wheel segments={segments} theme={flat} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={flat} />)
     expect(container.querySelector('.wheel__flapper')).toBeNull()
   })
 
   it('keeps the flapper outside the rotor, which turns underneath it', () => {
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     const flapper = container.querySelector('.wheel__flapper')
     expect(flapper?.closest('.wheel__rotor')).toBeNull()
   })
@@ -579,7 +635,7 @@ describe('parts', () => {
   it('turns the pegs with the wheel, not with a wedge', () => {
     // A peg belongs to the rim. A wedge flying in from off-screen must not drag
     // one across the screen with it.
-    const { container } = render(<Wheel segments={segments} theme={wof} />)
+    const { container } = render(<Wheel motion={motion} segments={segments} theme={wof} />)
     const peg = container.querySelector('.wheel__peg')
     expect(peg?.closest('.wheel__wedge')).toBeNull()
     expect(peg?.closest('.wheel__rotor')).not.toBeNull()
@@ -592,6 +648,7 @@ describe('hub emblem', () => {
   it('sets an emoji emblem on the cap', () => {
     const { container } = render(
       <Wheel
+        motion={motion}
         segments={segments}
         theme={hubTheme}
         hub={{ emblem: { kind: 'emoji', value: '🎡' } }}
@@ -605,6 +662,7 @@ describe('hub emblem', () => {
   it('clips a picture emblem back to the cap', () => {
     const { container } = render(
       <Wheel
+        motion={motion}
         segments={segments}
         theme={hubTheme}
         hub={{ emblem: { kind: 'image', value: '/logo.png' } }}
@@ -620,7 +678,7 @@ describe('hub emblem', () => {
 
   it('draws no emblem when none is named', () => {
     const { container } = render(
-      <Wheel segments={segments} theme={hubTheme} hub={{ spins: true }} />,
+      <Wheel motion={motion} segments={segments} theme={hubTheme} hub={{ spins: true }} />,
     )
     expect(container.querySelector('.wheel__emblem')).toBeNull()
   })
@@ -630,19 +688,39 @@ describe('hub emblem', () => {
   it('registers a rider only when the hub turns with the wheel', () => {
     const riderRef = vi.fn()
     const { unmount } = render(
-      <Wheel segments={segments} theme={hubTheme} hub={{ spins: true }} riderRef={riderRef} />,
+      <Wheel
+        motion={motion}
+        segments={segments}
+        theme={hubTheme}
+        hub={{ spins: true }}
+        riderRef={riderRef}
+      />,
     )
     expect(riderRef).toHaveBeenCalledWith(expect.anything())
     unmount()
 
     const fixed = vi.fn()
-    render(<Wheel segments={segments} theme={hubTheme} hub={{ spins: false }} riderRef={fixed} />)
+    render(
+      <Wheel
+        motion={motion}
+        segments={segments}
+        theme={hubTheme}
+        hub={{ spins: false }}
+        riderRef={fixed}
+      />,
+    )
     expect(fixed).not.toHaveBeenCalled()
   })
 
   it('turns a spinning hub to the same angle as the rotor at rest', () => {
     const { container } = render(
-      <Wheel segments={segments} theme={hubTheme} rotationDeg={40} hub={{ spins: true }} />,
+      <Wheel
+        motion={motion}
+        segments={segments}
+        theme={hubTheme}
+        rotationDeg={40}
+        hub={{ spins: true }}
+      />,
     )
     expect(container.querySelector('.wheel__hub-group')?.getAttribute('transform')).toBe(
       'rotate(40)',
@@ -652,6 +730,7 @@ describe('hub emblem', () => {
   it('leaves a fixed hub untransformed however far the rotor has turned', () => {
     const { container } = render(
       <Wheel
+        motion={motion}
         segments={segments}
         theme={hubTheme}
         rotationDeg={40}
@@ -680,7 +759,7 @@ describe('breakpoints', () => {
   it('takes the breakpoint a wedge is wide enough for', () => {
     // Two wedges is half a turn each, well over a quarter-turn floor.
     const { container } = render(
-      <Wheel segments={evenly(2)} slice={RADIAL} breakpoints={curvedAt(0.25)} />,
+      <Wheel motion={motion} segments={evenly(2)} slice={RADIAL} breakpoints={curvedAt(0.25)} />,
     )
     expect(container.querySelector('textPath')).not.toBeNull()
   })
@@ -688,7 +767,7 @@ describe('breakpoints', () => {
   it('leaves a wedge below every floor exactly as it was', () => {
     // Eight wedges is an eighth of a turn each, under the floor.
     const { container } = render(
-      <Wheel segments={evenly(8)} slice={RADIAL} breakpoints={curvedAt(0.25)} />,
+      <Wheel motion={motion} segments={evenly(8)} slice={RADIAL} breakpoints={curvedAt(0.25)} />,
     )
     expect(container.querySelector('textPath')).toBeNull()
   })
@@ -706,7 +785,13 @@ describe('breakpoints', () => {
       { id: 'b', label: 'Cal Whitmore', weight: 1 },
     ]
     const { container } = render(
-      <Wheel segments={drawn} layoutFrom={layout} slice={RADIAL} breakpoints={curvedAt(0.25)} />,
+      <Wheel
+        motion={motion}
+        segments={drawn}
+        layoutFrom={layout}
+        slice={RADIAL}
+        breakpoints={curvedAt(0.25)}
+      />,
     )
 
     expect(container.querySelector('[data-segment-id="a"] textPath')).not.toBeNull()

@@ -1,4 +1,4 @@
-export type Syncable = { sync(timestamp: number): void; readonly live: boolean }
+export type Syncable = { sync(timestamp: number): void; readonly inert: boolean }
 export type Frame = (t: number) => void
 export type TickerTiming = {
   now?: () => number
@@ -8,7 +8,7 @@ export type TickerTiming = {
 export type Ticker = {
   now(): number
   subscribe(fn: Frame): () => void
-  /** Keeps frames coming, live mixes or not, until the returned release is called. */
+  /** Keeps frames coming, whatever the mixes say, until the returned release is called. */
   stay(): () => void
   wake(): void
 }
@@ -17,7 +17,7 @@ export type Ticker = {
 const timelineNow = () =>
   (globalThis.document?.timeline?.currentTime as number | null | undefined) ?? performance.now()
 
-/** The app's one animation loop. Runs while any mix is live or anyone holds it; sleeps otherwise. */
+/** The app's one animation loop. Runs while any mix would still change or anyone holds it; sleeps otherwise. */
 export function createTicker(mixes: readonly Syncable[], timing: TickerTiming = {}): Ticker {
   const now = timing.now ?? timelineNow
   const raf = timing.raf ?? ((callback) => requestAnimationFrame(callback))
@@ -35,7 +35,7 @@ export function createTicker(mixes: readonly Syncable[], timing: TickerTiming = 
       for (const mix of mixes) mix.sync(t)
       for (const fn of [...subscribers]) fn(t)
     } finally {
-      if (holds > 0 || mixes.some((mix) => mix.live)) schedule()
+      if (holds > 0 || mixes.some((mix) => !mix.inert)) schedule()
     }
   }
 

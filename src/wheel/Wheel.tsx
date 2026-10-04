@@ -1,5 +1,6 @@
 import type { Ref } from 'react'
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef } from 'react'
+import type { Motion } from '../clock/motion'
 import type { Hub } from '../preset/types'
 import type { Breakpoint } from '../slice/breakpoints'
 import { createFit } from '../slice/fit'
@@ -14,7 +15,6 @@ import { usePresence } from '../transition/usePresence'
 import { HubEmblem } from './HubEmblem'
 import { SliceElements } from './SliceElements'
 import type { RetainedIds } from './colors'
-import { deflectionDeg, pegCrossings, settledDeflection } from './flapper'
 import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
 import { wantsInverseInk } from './ink'
@@ -24,12 +24,14 @@ import { partOn } from './theme'
 import type { Theme } from './theme'
 import { styleOfTheme } from './themeStyle'
 import { flat } from './themes/flat'
+import { trackFlapper } from './trackFlapper'
 import type { Segment } from './types'
 import { useFaces } from './useFaces'
-import { useWheelAngle } from './useWheelAngle'
 import './Wheel.css'
 
 export type WheelProps = {
+  /** The page's clock and mixes. The flapper reads the wheel's angle from it. */
+  motion: Motion
   segments: Segment[]
   radius?: number
   rotationDeg?: number
@@ -101,6 +103,7 @@ const inkOf = (color: string | undefined): Record<string, string> =>
   wantsInverseInk(color) ? { '--label-ink': 'var(--wheel-label-inverse, #f7f3e8)' } : {}
 
 export function Wheel({
+  motion,
   segments,
   radius = 200,
   rotationDeg = 0,
@@ -132,9 +135,8 @@ export function Wheel({
   const half = radius + rim + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
 
-  const ownRotorRef = useRef<SVGGElement>(null)
-  const [deflection, setDeflection] = useState(0)
   const hasFlapper = partOn(theme, 'flapper')
+  const armRef = useRef<SVGGElement>(null)
 
   const clickerRef = useRef<ReturnType<typeof createClicker> | null>(null)
   // On demand and never during render, so a caller after a cleanup gets a live
@@ -144,16 +146,22 @@ export function Wheel({
     return clickerRef.current
   }, [])
 
-  const lastAngleRef = useRef<number | null>(null)
+  // Read each frame, so a roster change or a look change reaches a running arm.
+  const pegsRef = useRef(pegs)
+  pegsRef.current = pegs
+  const silentRef = useRef(theme.flapper === 'silent')
+  silentRef.current = theme.flapper === 'silent'
 
-  useWheelAngle(ownRotorRef, hasFlapper, (angle, speed) => {
-    setDeflection((current) => settledDeflection(current, deflectionDeg(angle, pegs, speed), speed))
-    const previous = lastAngleRef.current
-    lastAngleRef.current = angle
-    if (previous === null || theme.flapper === 'silent') return
-    // The clicker rates its own volume off how fast, never which way.
-    clicker().click(pegCrossings(previous, angle, pegs, speed), Math.abs(speed))
-  })
+  useEffect(() => {
+    if (!hasFlapper) return
+    return trackFlapper(motion, {
+      pegs: () => pegsRef.current,
+      write: (deg) => armRef.current?.setAttribute('transform', `rotate(${deg.toFixed(3)})`),
+      click: (count, speed) => {
+        if (!silentRef.current) clicker().click(count, speed)
+      },
+    })
+  }, [motion, hasFlapper, clicker])
 
   useEffect(() => {
     const unlock = () => clicker().unlock()
@@ -221,7 +229,6 @@ export function Wheel({
             className="wheel__rotor"
             transform={`rotate(${rotationDeg})`}
             ref={(node) => {
-              ownRotorRef.current = node
               if (typeof rotorRef === 'function') rotorRef(node)
               else if (rotorRef) rotorRef.current = node
             }}
@@ -354,12 +361,14 @@ export function Wheel({
       {hasFlapper && (
         <g
           className="wheel__flapper"
-          transform={`translate(0 ${-(radius + theme.metrics.rimWidth + 20)}) rotate(${deflection})`}
+          transform={`translate(0 ${-(radius + theme.metrics.rimWidth + 20)})`}
         >
-          <rect x={-6} y={-10} width={12} height={11} rx={2.5} />
-          <path
-            d={`M -6.5 -1 L 6.5 -1 L 2.6 ${theme.metrics.rimWidth + 26} L -2.6 ${theme.metrics.rimWidth + 26} Z`}
-          />
+          <g className="wheel__flapper-arm" ref={armRef}>
+            <rect x={-6} y={-10} width={12} height={11} rx={2.5} />
+            <path
+              d={`M -6.5 -1 L 6.5 -1 L 2.6 ${theme.metrics.rimWidth + 26} L -2.6 ${theme.metrics.rimWidth + 26} Z`}
+            />
+          </g>
         </g>
       )}
     </svg>

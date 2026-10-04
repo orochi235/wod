@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_DEFLECTION_DEG, deflectionDeg, pegCrossings, settledDeflection } from './flapper'
+import { MAX_DEFLECTION_DEG, deflectionDeg, pegCrossings } from './flapper'
 
 // Four pegs, at 12, 3, 6 and 9 o'clock in wheel-local turns.
 const pegs = [0, 0.25, 0.5, 0.75]
@@ -42,42 +42,6 @@ describe('deflectionDeg', () => {
 
   it('treats the wheel as circular', () => {
     expect(deflectionDeg(360, pegs, 0.4)).toBeCloseTo(deflectionDeg(0, pegs, 0.4))
-  })
-})
-
-describe('settledDeflection', () => {
-  it('follows the pegs while the wheel is turning', () => {
-    expect(settledDeflection(0, 18, 0.4)).toBe(18)
-  })
-
-  it('falls back toward upright once the wheel is still', () => {
-    const stopped = settledDeflection(18, 18, 0)
-    expect(stopped).toBeLessThan(18)
-    expect(stopped).toBeGreaterThan(0)
-  })
-
-  it('reaches upright rather than creeping toward it', () => {
-    let deflection = MAX_DEFLECTION_DEG
-    // A second of frames: an arm still propped after that reads as stuck, which
-    // is the whole thing this exists to stop.
-    for (let frame = 0; frame < 60; frame++) deflection = settledDeflection(deflection, 22, 0)
-    expect(deflection).toBe(0)
-  })
-
-  it('stays upright once it gets there', () => {
-    expect(settledDeflection(0, 22, 0)).toBe(0)
-  })
-
-  it('falls back to upright from the other side too', () => {
-    // An arm bent by a counter-clockwise wheel sits at a negative angle, and a
-    // fall that only subtracts would drive it further from upright forever.
-    let deflection = -MAX_DEFLECTION_DEG
-    for (let frame = 0; frame < 60; frame++) deflection = settledDeflection(deflection, -22, 0)
-    expect(deflection).toBe(0)
-  })
-
-  it('follows the pegs on a wheel turning the other way', () => {
-    expect(settledDeflection(0, -18, -0.4)).toBe(-18)
   })
 })
 
