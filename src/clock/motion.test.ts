@@ -53,4 +53,24 @@ describe('the wheel mix', () => {
     step(100)
     expect(waiting()).toBe(false)
   })
+
+  it('sleeps under a voice holding its last frame, and still reads that frame', () => {
+    const { motion, step, waiting } = fakeMotion()
+    motion.wheel.cue({
+      patch: keys<string, WheelPose>(100, [
+        { at: 0, delta: { blackout: 0 } },
+        { at: 1, delta: { blackout: 0.5 } },
+      ]),
+      subjects: [WHEEL],
+      start: 0,
+      loop: false,
+      hold: 'after',
+    })
+    motion.ticker.wake()
+    step(50)
+    step(100)
+    step(116)
+    expect(waiting()).toBe(false)
+    expect(motion.wheel.probe(WHEEL).blackout).toBe(0.5)
+  })
 })

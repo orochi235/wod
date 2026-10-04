@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createTicker } from './ticker'
 
-function harness(live = false) {
+function harness(inert = true) {
   let t = 0
   const frames = new Map<number, FrameRequestCallback>()
   let id = 0
-  const mix = { sync: vi.fn(), live }
+  const mix = { sync: vi.fn(), inert }
   const ticker = createTicker([mix], {
     now: () => t,
     raf: (cb) => {
@@ -41,18 +41,18 @@ describe('createTicker', () => {
     expect(order).toEqual(['sync', 'frame 16'])
   })
 
-  it('keeps going while a mix is live, and sleeps once none is', () => {
-    const { mix, ticker, step, waiting } = harness(true)
+  it('keeps going while a mix would still change, and sleeps once none would', () => {
+    const { mix, ticker, step, waiting } = harness(false)
     ticker.wake()
     step(16)
     expect(waiting()).toBe(1)
-    mix.live = false
+    mix.inert = true
     step(32)
     expect(waiting()).toBe(0)
   })
 
   it('keeps going while held, whatever the mixes say', () => {
-    const { ticker, step, waiting } = harness(false)
+    const { ticker, step, waiting } = harness(true)
     const release = ticker.stay()
     step(16)
     step(32)
@@ -81,7 +81,7 @@ describe('createTicker', () => {
   })
 
   it('keeps the clock running when a subscriber throws', () => {
-    const { ticker, step, waiting } = harness(true)
+    const { ticker, step, waiting } = harness(false)
     ticker.subscribe(() => {
       throw new Error('boom')
     })
