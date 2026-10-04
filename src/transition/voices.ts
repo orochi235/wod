@@ -92,9 +92,9 @@ export function presenceVoice(
     subjects: [id],
     start: now + plan.delayMs,
     loop: false,
-    // An entrance shows its first frame through its stagger; both show their last
-    // until wod takes the voice out.
-    hold: moment === 'enter' ? 'both' : 'after',
+    // An entrance, or any voice taking over a wedge mid-flight, shows its first frame
+    // through its stagger; every one shows its last until wod takes the voice out.
+    hold: moment === 'enter' || from ? 'both' : 'after',
     locus: `presence:${id}`,
   }
   if (from) spec.from = 'current'

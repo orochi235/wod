@@ -122,6 +122,10 @@ describe('presenceVoice', () => {
     expect(presenceVoice('ana', plan, 'exit', 0, null)?.hold).toBe('after')
   })
 
+  it('holds an interrupting exit both ways, so it waits out its stagger where it stands', () => {
+    expect(presenceVoice('ana', plan, 'exit', 0, RESTING)?.hold).toBe('both')
+  })
+
   it('starts after its stagger, in the wedge own locus', () => {
     const spec = presenceVoice('ana', plan, 'enter', 1000, null)
     expect(spec).toMatchObject({ start: 1200, subjects: ['ana'], locus: 'presence:ana' })
