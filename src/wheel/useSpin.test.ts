@@ -1,8 +1,9 @@
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { WHEEL } from '../clock/motion'
+import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { segmentsAt } from '../clock/compose'
+import { type Motion, WHEEL } from '../clock/motion'
 import { fakeMotion } from '../clock/testing'
-import { applyMorphs, landingSegments } from './morph'
+import { landingSegments } from './morph'
 import { forced } from './selection'
 import type { Morph, Segment, SpinConfig } from './types'
 import { useSpin } from './useSpin'
@@ -62,10 +63,6 @@ type AnimateCall = {
 
 type Harness = {
   animateCalls: AnimateCall[]
-  rafStarts: number
-  rafCancels: number
-  /** Runs every queued frame callback with `timestamp`; cancelled frames never run. */
-  flushFrames: (timestamp: number) => void
   setNow: (ms: number) => void
   setReducedMotion: (reduce: boolean) => void
 }
@@ -80,20 +77,11 @@ let fake: ReturnType<typeof fakeMotion>
 
 function installHarness(): Harness {
   fake = fakeMotion()
-  const frames = new Map<number, FrameRequestCallback>()
-  let nextFrameId = 1
   let nowMs = 1000
   let reducedMotion = false
 
   const harness: Harness = {
     animateCalls: [],
-    rafStarts: 0,
-    rafCancels: 0,
-    flushFrames(timestamp) {
-      const due = [...frames.values()]
-      frames.clear()
-      for (const cb of due) cb(timestamp)
-    },
     setNow(ms) {
       nowMs = ms
     },
@@ -129,16 +117,6 @@ function installHarness(): Harness {
 
   Element.prototype.animate = animate as unknown as Element['animate']
 
-  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
-    harness.rafStarts += 1
-    const id = nextFrameId++
-    frames.set(id, cb)
-    return id
-  })
-  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
-    harness.rafCancels += 1
-    frames.delete(id)
-  })
   vi.stubGlobal(
     'matchMedia',
     (query: string) =>
@@ -174,9 +152,13 @@ const wrap360 = (deg: number): number => ((deg % 360) + 360) % 360
 
 describe('useSpin', () => {
   let harness: Harness
+  let cues: MockInstance<Motion['wedges']['cue']>
+  /** Voices MORPHS makes: beer's weight and color, then ana's and ben's weight. */
+  const MORPH_VOICES = 4
 
   beforeEach(() => {
     harness = installHarness()
+    cues = vi.spyOn(fake.motion.wedges, 'cue')
   })
 
   afterEach(() => {
@@ -188,6 +170,7 @@ describe('useSpin', () => {
   it('keeps the landed distribution under reduced motion', async () => {
     harness.setReducedMotion(true)
     harness.setNow(1000)
+    act(() => fake.step(1000))
     const { result } = renderSpin(MORPHING)
 
     act(() => {
@@ -195,23 +178,23 @@ describe('useSpin', () => {
     })
     expect(harness.animateCalls).toHaveLength(1)
     expect(harness.animateCalls[0].options.duration).toBe(REDUCED_MOTION_MS)
-    // A morph loop really is running, so the assertion below cannot pass vacuously.
-    expect(harness.rafStarts).toBe(1)
+    // Morph voices really are cued, so the assertion below cannot pass vacuously.
+    expect(cues).toHaveBeenCalledTimes(MORPH_VOICES)
+    expect(fake.motion.wedges.inert).toBe(false)
 
     await act(async () => {
       harness.animateCalls[0].finish()
     })
 
-    // Landing tears the morph loop down rather than leaving it to keep drawing.
-    expect(harness.rafCancels).toBeGreaterThan(0)
-
     // Any frame still in flight arrives past the shortened rotation but long
     // before the authored morph duration would have run out — the window in
-    // which a stale loop used to redraw the pre-morph wheel.
+    // which a stale morph used to redraw the pre-morph wheel.
     act(() => {
-      harness.flushFrames(1000 + REDUCED_MOTION_MS + 100)
-      harness.flushFrames(1000 + DURATION_MS / 2)
+      fake.step(1000 + REDUCED_MOTION_MS + 100)
+      fake.step(1000 + DURATION_MS / 2)
     })
+    // Landing tears the morph voices down rather than leaving them to keep drawing.
+    expect(fake.motion.wedges.inert).toBe(true)
 
     const landed = landingSegments(SEGMENTS, MORPHS, DURATION_MS)
     expect(result.current.displaySegments).toEqual(landed)
@@ -373,7 +356,7 @@ describe('useSpin', () => {
     })
 
     expect(harness.animateCalls).toHaveLength(1)
-    expect(harness.rafStarts).toBe(1)
+    expect(cues).toHaveBeenCalledTimes(MORPH_VOICES)
     expect(result.current.isSpinning).toBe(true)
   })
 
@@ -488,7 +471,7 @@ describe('useSpin', () => {
 
     // The prop config carries no morphs, so a running morph track can only mean
     // the override's list was the one consulted.
-    expect(harness.rafStarts).toBe(1)
+    expect(cues).toHaveBeenCalledTimes(MORPH_VOICES)
   })
 
   it('morphs the override segments on the override clock', async () => {
@@ -509,26 +492,21 @@ describe('useSpin', () => {
       result.current.spin({ segments: SEGMENTS, config: MORPHING })
     })
 
-    act(() => {
-      harness.flushFrames(1000 + 240)
-    })
+    act(() => fake.step(1000 + 240))
 
     // 240ms into a 300ms rotation is 80% of the way through, which on the
     // override's 4500ms morph lands inside the steep final stretch.
     const elapsedFraction = 240 / 300
     expect(result.current.displaySegments).toEqual(
-      applyMorphs(SEGMENTS, MORPHS, elapsedFraction * DURATION_MS),
+      segmentsAt(SEGMENTS, MORPHS, elapsedFraction * DURATION_MS),
     )
-    // Scaling against the prop duration instead would still be mid-plateau, so
-    // the assertion above genuinely separates the two clocks.
     expect(result.current.displaySegments).not.toEqual(
-      applyMorphs(SEGMENTS, MORPHS, elapsedFraction * 900),
+      segmentsAt(SEGMENTS, MORPHS, elapsedFraction * 900),
     )
 
     await act(async () => {
       harness.animateCalls[0].finish()
     })
-    // The landing was planned from the override's segments and morphs too.
     expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
   })
 
@@ -586,11 +564,11 @@ describe('useSpin', () => {
       })
     })
 
-    // A config with no morphs of its own still has to start the geometry loop
+    // A config with no morphs of its own still has to cue the geometry voices
     // once a late morph exists, or the swap would only appear at the landing.
-    expect(harness.rafStarts).toBe(1)
+    expect(cues).toHaveBeenCalledTimes(1)
     act(() => {
-      harness.flushFrames(1000 + DURATION_MS * 0.6)
+      fake.step(1000 + DURATION_MS * 0.6)
     })
     expect(result.current.displaySegments.some((s) => s.label === 'late')).toBe(true)
   })
@@ -936,6 +914,38 @@ describe('release and reset', () => {
     const [rotor, level] = harness.animateCalls
     expect(degreesOf(level.keyframes[0])).toBe(-170 - degreesOf(rotor.keyframes[0]))
   })
+
+  it('reaches the landing frame through the live mix', () => {
+    act(() => fake.step(1000))
+    const { result } = renderSpin(MORPHING)
+    act(() => result.current.spin())
+    act(() => fake.step(1000 + DURATION_MS))
+    expect(result.current.displaySegments).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
+  })
+
+  it('stops drawing the morphs once the wheel lands', async () => {
+    act(() => fake.step(1000))
+    const { result } = renderSpin(MORPHING)
+    act(() => result.current.spin())
+    await act(async () => harness.animateCalls[0].finish())
+    act(() => result.current.reset())
+    // Something else waking the clock must not repaint the old landing over the roster.
+    act(() => {
+      fake.motion.ticker.wake()
+      fake.step(1000 + DURATION_MS + 50)
+    })
+    expect(result.current.displaySegments).toEqual(SEGMENTS)
+    expect(fake.motion.wedges.inert).toBe(true)
+  })
+
+  it('drops the morphs of a spin that is canceled', () => {
+    act(() => fake.step(1000))
+    const { result, unmount } = renderSpin(MORPHING)
+    act(() => result.current.spin())
+    unmount()
+    act(() => fake.step(1100))
+    expect(fake.motion.wedges.inert).toBe(true)
+  })
 })
 
 describe('useSpin with an outage', () => {
@@ -972,14 +982,13 @@ describe('useSpin with an outage', () => {
     expect(result.current.outage).toBeNull()
   })
 
-  it('holds the morphs at their start until the prologue is over', () => {
-    harness.setNow(1000)
+  it('shows the roster untouched until the prologue is over', () => {
     act(() => fake.step(1000))
     const { result } = renderSpin(SHORTING)
     act(() => result.current.spin())
     const run = result.current.outage
-    act(() => harness.flushFrames(1000 + (run?.plan.lightsAtMs ?? 0)))
-    expect(result.current.displaySegments).toEqual(applyMorphs(SEGMENTS, MORPHS, 0))
+    act(() => fake.step(1000 + (run?.plan.lightsAtMs ?? 0)))
+    expect(result.current.displaySegments).toEqual(SEGMENTS)
   })
 
   it('skips the outage under reduced motion', () => {
