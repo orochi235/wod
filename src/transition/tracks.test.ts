@@ -144,18 +144,18 @@ describe('advance', () => {
     expect(ben && sampleTrack(ben, 150).opacity).toBeCloseTo(0.4375)
   })
 
-  it('ramps hold both ways when the transition declares none', () => {
+  it('ramps share both ways when the transition declares none', () => {
     const entering = advance(input({ now: 0 }))
     const arriving = entering.get('ana')
-    expect(arriving && sampleTrack(arriving, 100).hold).toBe(1)
+    expect(arriving && sampleTrack(arriving, 100).share).toBe(1)
 
     const exiting = advance(input({ tracks: entering, segments: [], now: 100 }))
     const leaving = exiting.get('ana')
     // Still holding a quarter of its arc halfway out. Releasing it at once
     // would expand the survivors under a wedge still painted at full width,
     // on top of them.
-    expect(leaving && sampleTrack(leaving, 300).hold).toBeCloseTo(0.25)
-    expect(leaving && sampleTrack(leaving, 1100).hold).toBe(0)
+    expect(leaving && sampleTrack(leaving, 300).share).toBeCloseTo(0.25)
+    expect(leaving && sampleTrack(leaving, 1100).share).toBe(0)
   })
 
   it('leaves the tracks it was given untouched', () => {
@@ -239,10 +239,10 @@ describe('advance', () => {
       ...restingFor('ben'),
       phase: 'exiting',
       frames: [
-        { at: 0, hold: 1 },
-        { at: 0.5, hold: 0 },
+        { at: 0, share: 1 },
+        { at: 0.5, share: 0 },
       ],
-      declaresHold: true,
+      declaresShare: true,
       durationMs: 400,
       ghostArc: { id: 'ben', start: 0, end: 1 },
     }
@@ -266,36 +266,36 @@ const restingFor = (id: string): Track => ({
   startedAt: 0,
   delayMs: 0,
   durationMs: 0,
-  declaresHold: false,
+  declaresShare: false,
   ghostArc: null,
 })
 
 describe('drawList', () => {
-  const holding = (id: string, hold: number): Track => ({
+  const holding = (id: string, share: number): Track => ({
     id,
     phase: 'exiting',
     segment: segment(id),
-    frames: [{ at: 1, hold }],
-    base: { ...RESTING, hold: 1 },
+    frames: [{ at: 1, share }],
+    base: { ...RESTING, share: 1 },
     startedAt: 0,
     delayMs: 0,
     durationMs: 100,
-    declaresHold: true,
+    declaresShare: true,
     ghostArc: null,
   })
 
   it('leaves a wedge that has released its arc out of the layout', () => {
     const tracks = new Map<string, Track>([
-      ['ana', { ...holding('ana', 1), phase: 'present', frames: [], declaresHold: false }],
+      ['ana', { ...holding('ana', 1), phase: 'present', frames: [], declaresShare: false }],
       ['ben', holding('ben', 0)],
     ])
     const { drawn } = drawList(tracks, 100)
-    // ben has decayed to hold 0 at p=1, so ana takes the whole circle.
+    // ben has decayed to share 0 at p=1, so ana takes the whole circle.
     const ana = drawn.find((item) => item.segment.id === 'ana')
     expect(ana && ana.arc.end - ana.arc.start).toBeCloseTo(1)
   })
 
-  it('lays out a holding wedge by its weight as well as its hold', () => {
+  it('lays out a holding wedge by its weight as well as its share', () => {
     const tracks = new Map<string, Track>([
       ['ana', { ...restingFor('ana'), segment: segment('ana', 3) }],
       ['ben', { ...holding('ben', 0), durationMs: 200, segment: segment('ben', 1) }],
@@ -321,10 +321,10 @@ describe('drawList', () => {
     const reversing: Track = {
       ...restingFor('ben'),
       phase: 'entering',
-      frames: [{ at: 1, hold: 1 }],
-      base: { ...RESTING, hold: 0 },
+      frames: [{ at: 1, share: 1 }],
+      base: { ...RESTING, share: 0 },
       durationMs: 200,
-      declaresHold: true,
+      declaresShare: true,
       ghostArc: { id: 'ben', start: 0.5, end: 1 },
     }
     const tracks = new Map<string, Track>([
@@ -333,7 +333,7 @@ describe('drawList', () => {
     ])
     const bens = drawList(tracks, 100).drawn.filter((item) => item.segment.id === 'ben')
     expect(bens).toHaveLength(1)
-    expect(bens[0].presence.hold).toBeCloseTo(0.75)
+    expect(bens[0].presence.share).toBeCloseTo(0.75)
   })
 
   it('leaves a released wedge out of the arcs it reports', () => {
@@ -356,12 +356,12 @@ describe('drawList', () => {
     expect(ben && ben.arc.end - ben.arc.start).toBeCloseTo(0.25 / 1.25)
   })
 
-  it('draws a wedge at zero hold on its frozen arc', () => {
+  it('draws a wedge at zero share on its frozen arc', () => {
     const ghost = { ...holding('ben', 0), ghostArc: { id: 'ben', start: 0.5, end: 1 } }
     const tracks = new Map<string, Track>([['ben', ghost]])
     const { drawn } = drawList(tracks, 100)
     expect(drawn[0].arc).toEqual({ id: 'ben', start: 0.5, end: 1 })
-    expect(drawn[0].presence.hold).toBe(0)
+    expect(drawn[0].presence.share).toBe(0)
   })
 
   it('moves no other wedge when a ghost is present', () => {
@@ -434,14 +434,14 @@ describe('sampleTrack', () => {
   it('carries that curve from the transition onto an arriving track', () => {
     const start = advance(input({ transitions: arriving, now: 0 }))
     const ana = start.get('ana')
-    expect(ana && sampleTrack(ana, 200).hold).toBeCloseTo(0.5)
+    expect(ana && sampleTrack(ana, 200).share).toBeCloseTo(0.5)
   })
 
   it('keeps an arriving wedge on its curve once a frame re-advances it', () => {
     const start = advance(input({ transitions: arriving, now: 0 }))
     const again = advance(input({ tracks: start, transitions: arriving, now: 100 }))
     const ana = again.get('ana')
-    expect(ana && sampleTrack(ana, 200).hold).toBeCloseTo(0.5)
+    expect(ana && sampleTrack(ana, 200).share).toBeCloseTo(0.5)
   })
 
   it('finishes a zero-duration transition on the frame it starts', () => {
@@ -450,11 +450,11 @@ describe('sampleTrack', () => {
     const instant: Transitions = { enter: { id: 'shrink', params: { durationMs: 0 } } }
     const start = advance(input({ transitions: instant, now: 0 }))
     const ana = start.get('ana')
-    expect(ana && sampleTrack(ana, 0).hold).toBe(1)
+    expect(ana && sampleTrack(ana, 0).share).toBe(1)
   })
 
   it('ramps the arc back from where a reversal caught it', () => {
-    // A transition that declares no hold still has to return the geometry the
+    // A transition that declares no share still has to return the geometry the
     // one it interrupted was holding, or a half-closed wedge reopens whole on
     // the first frame of its reversal while its opacity is still turning around.
     const closing: Transitions = {
@@ -473,7 +473,7 @@ describe('sampleTrack', () => {
       }),
     )
     const ben = leaving.get('ben')
-    expect(ben && sampleTrack(ben, 1200).hold).toBeCloseTo(0.5)
+    expect(ben && sampleTrack(ben, 1200).share).toBeCloseTo(0.5)
 
     const back = advance(
       input({
@@ -485,9 +485,9 @@ describe('sampleTrack', () => {
       }),
     )
     const returning = back.get('ben')
-    expect(returning && sampleTrack(returning, 1200).hold).toBeCloseTo(0.5)
-    expect(returning && sampleTrack(returning, 1400).hold).toBeGreaterThan(0.5)
-    expect(returning && sampleTrack(returning, 1600).hold).toBe(1)
+    expect(returning && sampleTrack(returning, 1200).share).toBeCloseTo(0.5)
+    expect(returning && sampleTrack(returning, 1400).share).toBeGreaterThan(0.5)
+    expect(returning && sampleTrack(returning, 1600).share).toBe(1)
   })
 
   it('hands back the shared resting presence for a settled wedge', () => {
@@ -537,17 +537,17 @@ describe('advance through drawList', () => {
         now: 0,
       }),
     )
-    // A hold-declaring exit, standing in for Task 8's shrink. Everything else
+    // A share-declaring exit, standing in for Task 8's shrink. Everything else
     // about the track is what advance built.
     const ben = leaving.get('ben') as Track
     const held = new Map(leaving)
     held.set('ben', {
       ...ben,
       frames: [
-        { at: 0, hold: 1 },
-        { at: 1, hold: 0 },
+        { at: 0, share: 1 },
+        { at: 1, share: 0 },
       ],
-      declaresHold: true,
+      declaresShare: true,
     })
 
     const after = drawList(held, 0)
@@ -573,7 +573,7 @@ describe('advance through drawList', () => {
     const midway = drawList(leaving, 200)
     const ana = midway.drawn.find((item) => item.segment.id === 'ana')
     const ben = midway.drawn.find((item) => item.segment.id === 'ben')
-    expect(ben?.presence.hold).toBeCloseTo(0.5)
+    expect(ben?.presence.share).toBeCloseTo(0.5)
     // ana is 1, ben is 0.5, so ana takes two thirds of the circle.
     expect(ana && ana.arc.end - ana.arc.start).toBeCloseTo(2 / 3)
   })
@@ -601,7 +601,7 @@ describe('advance through drawList', () => {
       }),
     )
     const ben = again.get('ben')
-    expect(ben && sampleTrack(ben, 200).hold).toBeCloseTo(0.5)
+    expect(ben && sampleTrack(ben, 200).share).toBeCloseTo(0.5)
   })
 
   it('still closes a shrinking wedge under reduced motion, over its shorter duration', () => {
@@ -627,8 +627,8 @@ describe('advance through drawList', () => {
     expect(ben?.durationMs).toBe(REDUCED_MOTION_MS)
     // Reduced motion substitutes fade, which declares no geometry of its own,
     // so the arc closes on the default ramp rather than on shrink's keyframes.
-    expect(ben && sampleTrack(ben, 0).hold).toBe(1)
-    expect(ben && sampleTrack(ben, REDUCED_MOTION_MS).hold).toBe(0)
+    expect(ben && sampleTrack(ben, 0).share).toBe(1)
+    expect(ben && sampleTrack(ben, REDUCED_MOTION_MS).share).toBe(0)
   })
 })
 

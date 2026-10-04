@@ -16,14 +16,14 @@ describe('shrink', () => {
 
   it('gives up its arc over the whole exit', () => {
     const { keyframes } = shrink.frames({}, ctx('exit'))
-    expect(keyframes[0].hold).toBe(1)
-    expect(keyframes[keyframes.length - 1].hold).toBe(0)
+    expect(keyframes[0].share).toBe(1)
+    expect(keyframes[keyframes.length - 1].share).toBe(0)
   })
 
   it('takes its arc up over the whole entrance', () => {
     const { keyframes } = shrink.frames({}, ctx('enter'))
-    expect(keyframes[0].hold).toBe(0)
-    expect(keyframes[keyframes.length - 1].hold).toBe(1)
+    expect(keyframes[0].share).toBe(0)
+    expect(keyframes[keyframes.length - 1].share).toBe(1)
   })
 
   it('takes its paint up over that same entrance', () => {

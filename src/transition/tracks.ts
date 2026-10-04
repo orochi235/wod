@@ -4,7 +4,7 @@ import { type Arc, arcs as layoutArcs } from '../wheel/geometry'
 import type { EasingName, Segment } from '../wheel/types'
 import { REDUCED_MOTION_MS } from '../wheel/useSpin'
 import { getTransition } from './registry'
-import { RESTING, declaresHold, samplePresence } from './sample'
+import { RESTING, declaresShare, samplePresence } from './sample'
 import { fade } from './transitions/fade'
 import type { Moment, Presence, PresentationKeyframe, Transitions } from './types'
 
@@ -23,7 +23,7 @@ export type Track = {
   durationMs: number
   /** Absent means `easeOut`, as it does on the frames the transition returned. */
   easing?: EasingName
-  declaresHold: boolean
+  declaresShare: boolean
   /** Where it sat when it left the layout, for drawing it once it holds no arc. */
   ghostArc: Arc | null
 }
@@ -65,9 +65,9 @@ export function sampleTrack(track: Track, now: number): Presence {
   // Ramped from the arc the track was left holding, in both directions: a
   // departure that released its arc at once would let its neighbors expand
   // under it while it is still painted, at full width, over the top of them.
-  if (!track.declaresHold) {
-    const { hold } = track.base
-    presence.hold = track.phase === 'exiting' ? hold * (1 - p) : hold + (1 - hold) * p
+  if (!track.declaresShare) {
+    const { share } = track.base
+    presence.share = track.phase === 'exiting' ? share * (1 - p) : share + (1 - share) * p
   }
   return presence
 }
@@ -131,7 +131,7 @@ function restingTrack(segment: Segment): Track {
     startedAt: 0,
     delayMs: 0,
     durationMs: 0,
-    declaresHold: false,
+    declaresShare: false,
     ghostArc: null,
   }
 }
@@ -224,8 +224,8 @@ export function advance(input: AdvanceInput): Map<string, Track> {
       delayMs: plan.delayMs,
       durationMs: plan.durationMs,
       easing: plan.easing,
-      declaresHold: declaresHold(frames),
-      // A reversal keeps the arc its exit froze: it may still be at hold 0, and
+      declaresShare: declaresShare(frames),
+      // A reversal keeps the arc its exit froze: it may still be at share 0, and
       // a wedge holding no arc has nowhere to be drawn without one.
       ghostArc: interrupting ? existing.ghostArc : null,
     })
@@ -236,7 +236,7 @@ export function advance(input: AdvanceInput): Map<string, Track> {
     if (next.has(id)) continue
     if (track.phase === 'exiting') {
       // `arcs` is last frame's layout, so it still names the arc a wedge held
-      // right up to the frame its hold reaches zero, and drops it after.
+      // right up to the frame its share reaches zero, and drops it after.
       if (!isDone(track, now)) next.set(id, { ...track, ghostArc: arcs.get(id) ?? track.ghostArc })
       continue
     }
@@ -265,7 +265,7 @@ export function advance(input: AdvanceInput): Map<string, Track> {
       delayMs: plan.delayMs,
       durationMs: plan.durationMs,
       easing: plan.easing,
-      declaresHold: declaresHold(frames),
+      declaresShare: declaresShare(frames),
       ghostArc: arcs.get(id) ?? null,
     })
   })
@@ -292,11 +292,11 @@ export function drawList(
     presence: sampleTrack(track, now),
   }))
 
-  const holding = sampled.filter((item) => item.presence.hold > 0)
+  const holding = sampled.filter((item) => item.presence.share > 0)
   const laid = layoutArcs(
     holding.map((item) => ({
       id: item.track.id,
-      weight: item.track.segment.weight * item.presence.hold,
+      weight: item.track.segment.weight * item.presence.share,
     })),
   )
 
@@ -309,7 +309,7 @@ export function drawList(
   })
 
   for (const item of sampled) {
-    if (item.presence.hold > 0) continue
+    if (item.presence.share > 0) continue
     // A wedge that released its arc before it was ever laid out has nowhere to
     // be drawn, which is the same as not being on the wheel.
     if (!item.track.ghostArc) continue

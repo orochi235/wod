@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RESTING, declaresHold, samplePresence } from './sample'
+import { RESTING, declaresShare, samplePresence } from './sample'
 import type { PresentationKeyframe } from './types'
 
 const fadeIn: PresentationKeyframe[] = [
@@ -49,9 +49,9 @@ describe('samplePresence', () => {
     expect(samplePresence(frames, 0.25, RESTING).opacity).toBeCloseTo(0.25)
   })
 
-  it('reports whether a list declares hold', () => {
-    expect(declaresHold(fadeIn)).toBe(false)
-    expect(declaresHold([{ at: 1, hold: 0 }])).toBe(true)
+  it('reports whether a list declares share', () => {
+    expect(declaresShare(fadeIn)).toBe(false)
+    expect(declaresShare([{ at: 1, share: 0 }])).toBe(true)
   })
 
   it('carries a property through an interrupt via base', () => {
@@ -76,20 +76,20 @@ describe('samplePresence', () => {
     expect(base).toEqual(snapshot)
   })
 
-  it('clamps hold to 0…1 at both ends', () => {
+  it('clamps share to 0…1 at both ends', () => {
     const frames: PresentationKeyframe[] = [
-      { at: 0, hold: -0.5 },
-      { at: 1, hold: 1.5 },
+      { at: 0, share: -0.5 },
+      { at: 1, share: 1.5 },
     ]
-    expect(samplePresence(frames, 0, RESTING).hold).toBe(0)
-    expect(samplePresence(frames, 1, RESTING).hold).toBe(1)
+    expect(samplePresence(frames, 0, RESTING).share).toBe(0)
+    expect(samplePresence(frames, 1, RESTING).share).toBe(1)
   })
 
   it('refuses a write to RESTING', () => {
     expect(() => {
-      const writable = RESTING as { hold: number }
-      writable.hold = 0
+      const writable = RESTING as { share: number }
+      writable.share = 0
     }).toThrow()
-    expect(RESTING.hold).toBe(1)
+    expect(RESTING.share).toBe(1)
   })
 })

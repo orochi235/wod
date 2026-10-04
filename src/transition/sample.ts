@@ -5,7 +5,7 @@ import type { Presence, PresentationKeyframe } from './types'
 // Handed out by identity to every resting wedge, so a consumer writing into one
 // sample would move them all.
 export const RESTING: Presence = Object.freeze({
-  hold: 1,
+  share: 1,
   opacity: 1,
   scale: 1,
   offset: 0,
@@ -13,10 +13,10 @@ export const RESTING: Presence = Object.freeze({
   aperture: 1,
 })
 
-const KEYS = ['hold', 'opacity', 'scale', 'offset', 'offsetAngle', 'rotate', 'aperture'] as const
+const KEYS = ['share', 'opacity', 'scale', 'offset', 'offsetAngle', 'rotate', 'aperture'] as const
 
-/** hold and aperture are documented as 0…1; base is chain-fed across interrupts, so an out-of-range sample would otherwise ride forward indefinitely. */
-const UNIT_KEYS = new Set(['hold', 'aperture'])
+/** share and aperture are documented as 0…1; base is chain-fed across interrupts, so an out-of-range sample would otherwise ride forward indefinitely. */
+const UNIT_KEYS = new Set(['share', 'aperture'])
 
 function clampUnit(key: (typeof KEYS)[number], value: number): number {
   return UNIT_KEYS.has(key) ? Math.min(1, Math.max(0, value)) : value
@@ -31,8 +31,8 @@ function pointsFor(frames: PresentationKeyframe[], key: (typeof KEYS)[number]): 
     .sort((a, b) => a.at - b.at)
 }
 
-export function declaresHold(frames: PresentationKeyframe[]): boolean {
-  return frames.some((frame) => frame.hold !== undefined)
+export function declaresShare(frames: PresentationKeyframe[]): boolean {
+  return frames.some((frame) => frame.share !== undefined)
 }
 
 /**

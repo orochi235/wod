@@ -215,7 +215,7 @@ describe('the presence clock', () => {
   })
 
   it('freezes a departing wedge on the arc it last held', () => {
-    // fade releases its hold at once, so ben leaves the layout immediately and
+    // fade releases its share at once, so ben leaves the layout immediately and
     // is drawn on its frozen arc — the same path it had while on the roster.
     const roster = [segment('ana'), segment('ben'), segment('cy')]
     const path = (container: HTMLElement) =>
