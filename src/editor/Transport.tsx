@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { applyMorphs } from '../wheel/morph'
+import { segmentsAt } from '../clock/compose'
 import type { Morph, Segment } from '../wheel/types'
 
 export type TransportProps = {
@@ -25,10 +25,10 @@ export function Transport({
 }: TransportProps) {
   const [t, setT] = useState(0)
 
-  // `applyMorphs` is already pure, so scrubbing needs no animation machinery —
-  // it samples exactly the function a real spin runs, at a fixed instant.
+  // `segmentsAt` is pure, so scrubbing needs no animation machinery — it plays the
+  // voices a real spin cues, at a fixed instant.
   useEffect(() => {
-    onScrub?.(applyMorphs(segments, morphs, t * durationMs))
+    onScrub?.(segmentsAt(segments, morphs, t * durationMs))
   }, [t, segments, morphs, durationMs, onScrub])
 
   return (

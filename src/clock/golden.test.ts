@@ -33,7 +33,7 @@ function oklab(color: string): [number, number, number] {
 // Measured worst case over these fixtures' colors: 0.097, red to navy.
 const OKLAB_TOLERANCE = 0.12
 
-describe('a single trick, against the old applyMorphs', () => {
+describe('a single trick, against the captured golden frames', () => {
   for (const [name, c] of Object.entries(golden as Record<string, Case>)) {
     for (const frame of c.frames) {
       it(`${name} at ${frame.at}`, () => {

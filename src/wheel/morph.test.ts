@@ -1,198 +1,57 @@
 import { describe, expect, it } from 'vitest'
-import { applyMorphs, landingSegments, lerpColor, morphProgress } from './morph'
-import type { Morph, Segment } from './types'
+import { segmentsAt } from '../clock/compose'
+import { landingSegments } from './morph'
+import { weightedRandom } from './selection'
+import { planSpin } from './spin'
+import type { Morph, Segment, SpinConfig } from './types'
 
-const base: Segment[] = [
-  { id: 'beer', label: 'free beer', weight: 1 },
-  { id: 'dave', label: 'Dave', weight: 99 },
+const D = 1000
+const roster: Segment[] = [
+  { id: 'a', label: 'Ana', weight: 1 },
+  { id: 'b', label: 'Ben', weight: 1 },
+  { id: 'x', label: 'Xan', weight: 1 },
 ]
-
-const swell: Morph = {
-  segmentId: 'beer',
-  durationMs: 1000,
+const grow: Morph = {
+  segmentId: 'x',
+  durationMs: D,
   keyframes: [
     { at: 0, weight: 1 },
-    { at: 1, weight: 99 },
+    { at: 1, weight: 3 },
   ],
 }
-
 const vanish: Morph = {
-  segmentId: 'dave',
-  durationMs: 1000,
+  segmentId: 'x',
+  durationMs: D,
   keyframes: [
-    { at: 0, weight: 99 },
+    { at: 0, weight: 1 },
     { at: 1, weight: 0 },
   ],
 }
 
-describe('lerpColor', () => {
-  it('interpolates hex colors', () => {
-    expect(lerpColor('#000000', '#ffffff', 0.5)).toBe('#808080')
-  })
-
-  it('steps rather than blending when a color is not hex', () => {
-    expect(lerpColor('red', 'blue', 0.4)).toBe('red')
-    expect(lerpColor('red', 'blue', 1)).toBe('blue')
-  })
-})
-
-describe('morphProgress', () => {
-  it('clamps below zero and above one', () => {
-    expect(morphProgress(swell, -100)).toBe(0)
-    expect(morphProgress(swell, 999999)).toBe(1)
-  })
-
-  it('is linear by default', () => {
-    expect(morphProgress(swell, 500)).toBeCloseTo(0.5)
-  })
-
-  it('applies a named easing', () => {
-    const eased: Morph = { ...swell, easing: 'easeIn' }
-    expect(morphProgress(eased, 500)).toBeCloseTo(0.25)
-  })
-
-  it('completes immediately for a zero duration', () => {
-    expect(morphProgress({ ...swell, durationMs: 0 }, 0)).toBe(1)
-  })
-})
-
-describe('applyMorphs', () => {
-  it('returns the input untouched when there are no morphs', () => {
-    expect(applyMorphs(base, [], 500)).toBe(base)
-  })
-
-  it('interpolates weight at the midpoint', () => {
-    const result = applyMorphs(base, [swell], 500)
-    expect(result[0].weight).toBeCloseTo(50)
-  })
-
-  it('leaves unmorphed segments alone', () => {
-    const result = applyMorphs(base, [swell], 500)
-    expect(result[1].weight).toBe(99)
-  })
-
-  it('holds the final value past the morph duration', () => {
-    const result = applyMorphs(base, [swell], 5000)
-    expect(result[0].weight).toBe(99)
-  })
-
-  it('steps labels instead of interpolating them', () => {
-    const relabel: Morph = {
-      segmentId: 'dave',
-      durationMs: 1000,
-      keyframes: [
-        { at: 0, label: 'Dave' },
-        { at: 0.5, label: 'Dave (sorry)' },
-      ],
-    }
-    expect(applyMorphs(base, [relabel], 200)[1].label).toBe('Dave')
-    expect(applyMorphs(base, [relabel], 800)[1].label).toBe('Dave (sorry)')
-  })
-
-  it('uses the segment base value when a morph does not mention a property', () => {
-    const result = applyMorphs(base, [swell], 500)
-    expect(result[0].label).toBe('free beer')
-  })
-
-  it('holds the base label until a late keyframe rather than applying it from the start', () => {
-    const lateReveal: Morph = {
-      segmentId: 'dave',
-      durationMs: 1000,
-      keyframes: [{ at: 1, label: 'LOSER' }],
-    }
-    expect(applyMorphs(base, [lateReveal], 0)[1].label).toBe('Dave')
-    expect(applyMorphs(base, [lateReveal], 400)[1].label).toBe('Dave')
-    expect(applyMorphs(base, [lateReveal], 1000)[1].label).toBe('LOSER')
-  })
-
-  it('interpolates weight from the segment base when the first keyframe is late', () => {
-    const lateSwell: Morph = {
-      segmentId: 'beer',
-      durationMs: 1000,
-      keyframes: [{ at: 1, weight: 3 }],
-    }
-    expect(applyMorphs(base, [lateSwell], 0)[0].weight).toBeCloseTo(1)
-    expect(applyMorphs(base, [lateSwell], 500)[0].weight).toBeCloseTo(2)
-    expect(applyMorphs(base, [lateSwell], 1000)[0].weight).toBeCloseTo(3)
-  })
-
-  it('resolves a same-offset pair to the later keyframe at the exact offset', () => {
-    // `beer` has no color base, so `withImplicitBase` does not prepend and the
-    // duplicate pair stays as `first === last`. At `p === at` that must not
-    // fall into the `p <= first.at` branch and return the pre-swap value.
-    const snap: Morph = {
-      segmentId: 'beer',
-      durationMs: 1000,
-      keyframes: [
-        { at: 1, color: '#111111' },
-        { at: 1, color: '#222222' },
-      ],
-    }
-    expect(applyMorphs(base, [snap], 1000)[0].color).toBe('#222222')
-  })
-
-  it('keeps two keyframes on one offset in authored order', () => {
-    // The swap puts both of a wedge's identities on the same offset and relies
-    // on the sort in `pointsFor` being stable. The language guarantees it; the
-    // failure mode if it ever stopped holding is a swap that fires backwards,
-    // which looks like a trick misfiring rather than a sort changing.
-    const morph: Morph = {
-      segmentId: 'dave',
-      durationMs: 1000,
-      keyframes: [
-        { at: 0.5, label: 'first' },
-        { at: 0.5, label: 'second' },
-      ],
-    }
-    expect(applyMorphs(base, [morph], 0).find((s) => s.id === 'dave')?.label).toBe('Dave')
-    expect(applyMorphs(base, [morph], 500).find((s) => s.id === 'dave')?.label).toBe('second')
-  })
-})
-
 describe('landingSegments', () => {
-  it('resolves the distribution the pointer will actually meet', () => {
-    const landing = landingSegments(base, [swell, vanish], 1000)
-    expect(landing.find((s) => s.id === 'beer')?.weight).toBe(99)
-    expect(landing.find((s) => s.id === 'dave')?.weight).toBe(0)
-  })
-})
-
-describe('reveal morphs', () => {
-  const withReveal: Segment[] = [{ id: 'a', label: 'A', weight: 1, reveal: { headline: 'before' } }]
-
-  it('picks a reveal discretely at its keyframe rather than interpolating', () => {
-    const morphs: Morph[] = [
-      { segmentId: 'a', durationMs: 100, keyframes: [{ at: 0.5, reveal: { headline: 'after' } }] },
-    ]
-    expect(applyMorphs(withReveal, morphs, 40)[0].reveal).toEqual({ headline: 'before' })
-    expect(applyMorphs(withReveal, morphs, 60)[0].reveal).toEqual({ headline: 'after' })
+  it('is the live frame at the end of the spin', () => {
+    expect(landingSegments(roster, [grow, vanish], D)).toEqual(
+      segmentsAt(roster, [grow, vanish], D),
+    )
   })
 
-  it('clears the reveal when a keyframe holds null', () => {
-    const morphs: Morph[] = [
-      { segmentId: 'a', durationMs: 100, keyframes: [{ at: 0.5, reveal: null }] },
-    ]
-    expect(applyMorphs(withReveal, morphs, 40)[0].reveal).toEqual({ headline: 'before' })
-    expect(applyMorphs(withReveal, morphs, 60)[0].reveal).toBeUndefined()
+  it('returns the roster itself when nothing morphs', () => {
+    expect(landingSegments(roster, [], D)).toBe(roster)
   })
 
-  it('gives a reveal to a segment that started without one', () => {
-    const bare: Segment[] = [{ id: 'a', label: 'A', weight: 1 }]
-    const morphs: Morph[] = [
-      {
-        segmentId: 'a',
-        durationMs: 100,
-        keyframes: [{ at: 0.5, reveal: { headline: 'surprise' } }],
-      },
-    ]
-    expect(applyMorphs(bare, morphs, 40)[0].reveal).toBeUndefined()
-    expect(applyMorphs(bare, morphs, 60)[0].reveal).toEqual({ headline: 'surprise' })
-  })
+  it('lets a winner come from the blend', () => {
+    // Later-wins would vanish x; blended, it grows by 2 and shrinks by 1.
+    const landed = landingSegments(roster, [grow, vanish], D)
+    expect(landed.find((s) => s.id === 'x')?.weight).toBe(2)
 
-  it('leaves reveal alone when no keyframe mentions it', () => {
-    const morphs: Morph[] = [
-      { segmentId: 'a', durationMs: 100, keyframes: [{ at: 1, label: 'Z' }] },
-    ]
-    expect(applyMorphs(withReveal, morphs, 100)[0].reveal).toEqual({ headline: 'before' })
+    const config: SpinConfig = {
+      durationMs: D,
+      fullSpins: 3,
+      direction: 'cw',
+      easing: [0, 0, 1, 1],
+      morphs: [grow, vanish],
+    }
+    // Shares a 0.25, b 0.25, x 0.5: a roll of 0.9 falls in x.
+    expect(planSpin(roster, config, weightedRandom, () => 0.9)?.winnerId).toBe('x')
   })
 })

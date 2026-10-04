@@ -144,8 +144,3 @@ export function withOutage(
     plan,
   }
 }
-
-/** Where in the authored spin real time `ms` falls. Morphs wait out the prologue. */
-export function spinTime(plan: OutagePlan | null, ms: number): number {
-  return plan ? Math.max(0, ms - plan.resumedAtMs) : ms
-}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyMorphs } from '../../wheel/morph'
+import { segmentsAt } from '../../clock/compose'
 import type { Segment } from '../../wheel/types'
 import type { RecipeContext } from '../types'
 import { swap } from './swap'
@@ -35,8 +35,8 @@ describe('swap', () => {
 
   it('holds each wedge as itself until the trade, then snaps', () => {
     const morphs = swap.resolve(params, ctx('ana'))
-    const before = applyMorphs(SEGMENTS, morphs, DURATION_MS * 0.9)
-    const after = applyMorphs(SEGMENTS, morphs, DURATION_MS)
+    const before = segmentsAt(SEGMENTS, morphs, DURATION_MS * 0.9)
+    const after = segmentsAt(SEGMENTS, morphs, DURATION_MS)
 
     expect(before.find((s) => s.id === 'ana')?.label).toBe('Ana')
     expect(before.find((s) => s.id === 'ben')?.label).toBe('Ben')
@@ -45,11 +45,11 @@ describe('swap', () => {
   })
 
   it('snaps the color rather than fading it', () => {
-    // Both keyframes share one offset, so `bracket` returns t = 1 for the pair
-    // and the color jumps. A fade would telegraph the switch to the audience.
+    // Both keyframes share one offset, so the color jumps at it. A fade would
+    // telegraph the switch to the audience.
     const morphs = swap.resolve(params, ctx('ana'))
-    const justBefore = applyMorphs(SEGMENTS, morphs, DURATION_MS * 0.949)
-    const justAfter = applyMorphs(SEGMENTS, morphs, DURATION_MS * 0.951)
+    const justBefore = segmentsAt(SEGMENTS, morphs, DURATION_MS * 0.949)
+    const justAfter = segmentsAt(SEGMENTS, morphs, DURATION_MS * 0.951)
     expect(justBefore.find((s) => s.id === 'ana')?.color).toBe('#ff0000')
     expect(justAfter.find((s) => s.id === 'ana')?.color).toBe('#00ff00')
   })
@@ -57,10 +57,10 @@ describe('swap', () => {
   it('fires at the authored offset, not before', () => {
     const morphs = swap.resolve({ otherWedgeId: 'ben', at: 0.5 }, ctx('ana'))
     expect(
-      applyMorphs(SEGMENTS, morphs, DURATION_MS * 0.49).find((s) => s.id === 'ana')?.label,
+      segmentsAt(SEGMENTS, morphs, DURATION_MS * 0.49).find((s) => s.id === 'ana')?.label,
     ).toBe('Ana')
     expect(
-      applyMorphs(SEGMENTS, morphs, DURATION_MS * 0.51).find((s) => s.id === 'ana')?.label,
+      segmentsAt(SEGMENTS, morphs, DURATION_MS * 0.51).find((s) => s.id === 'ana')?.label,
     ).toBe('Ben')
   })
 
@@ -68,7 +68,7 @@ describe('swap', () => {
     // The landing frame samples at `p === at` exactly, where both keyframes of
     // the duplicate-offset pair are in range.
     const morphs = swap.resolve({ otherWedgeId: 'cal', at: 1 }, ctx('ana'))
-    const landing = applyMorphs(SEGMENTS, morphs, DURATION_MS)
+    const landing = segmentsAt(SEGMENTS, morphs, DURATION_MS)
     const ana = landing.find((s) => s.id === 'ana')
     const cal = landing.find((s) => s.id === 'cal')
     expect(ana?.label).toBe('Cal')
@@ -186,7 +186,7 @@ describe('swap reveal', () => {
 
   it('trades the reveal along with the label', () => {
     const morphs = swap.resolve(params, ctxFor(withReveals, 'ana'))
-    const landed = applyMorphs(withReveals, morphs, DURATION_MS)
+    const landed = segmentsAt(withReveals, morphs, DURATION_MS)
     expect(landed.find((s) => s.id === 'ana')?.reveal).toEqual({ headline: 'theirs' })
     expect(landed.find((s) => s.id === 'ben')?.reveal).toEqual({ headline: 'mine' })
   })
@@ -197,7 +197,7 @@ describe('swap reveal', () => {
       { id: 'ben', label: 'Ben', weight: 1, color: '#00ff00' },
     ]
     const morphs = swap.resolve(params, ctxFor(oneSided, 'ana'))
-    const landed = applyMorphs(oneSided, morphs, DURATION_MS)
+    const landed = segmentsAt(oneSided, morphs, DURATION_MS)
     // Wearing another identity while still firing your own punchline is the bug
     // this trade exists to prevent.
     expect(landed.find((s) => s.id === 'ana')?.reveal).toBeUndefined()
@@ -206,7 +206,7 @@ describe('swap reveal', () => {
 
   it('holds each reveal until the trade fires', () => {
     const morphs = swap.resolve(params, ctxFor(withReveals, 'ana'))
-    const before = applyMorphs(withReveals, morphs, DURATION_MS * 0.9)
+    const before = segmentsAt(withReveals, morphs, DURATION_MS * 0.9)
     expect(before.find((s) => s.id === 'ana')?.reveal).toEqual({ headline: 'mine' })
   })
 

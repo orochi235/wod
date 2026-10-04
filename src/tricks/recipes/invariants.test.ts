@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { segmentsAt } from '../../clock/compose'
 import { wedgeIndexOf } from '../../compose/compose'
-import { applyMorphs, landingSegments } from '../../wheel/morph'
+import { landingSegments } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import { RECIPE_LIST } from '../registry'
 import type { Recipe, RecipeContext, RecipeId, TrickParams } from '../types'
@@ -56,9 +57,8 @@ describe('a recipe honors its own declared easing default', () => {
 })
 
 describe('a color a recipe cannot actually fade is refused', () => {
-  // lerpColor only parses hex. A named CSS color would hold the start color for
-  // the whole spin then cut on the last frame, so validate rejects it rather
-  // than letting the editor promise a fade that never happens.
+  // The color voices drop any stop that is not hex, so a named CSS color would never
+  // show; validate rejects it rather than letting the editor promise a fade.
   const cases = [
     { recipe: recolor, key: 'toColor' },
     { recipe: takeover, key: 'endColor' },
@@ -80,7 +80,7 @@ describe('a color a recipe cannot actually fade is refused', () => {
 
 describe('timing parameters at their extremes stay well formed', () => {
   // At 0 and 1 the recipes emit duplicate `at` offsets. That resolves correctly
-  // today, but only because of how morph.ts brackets keyframes — these lock the
+  // today, but only because of where the morph voices put each stop — these lock the
   // behavior in so a change there fails loudly rather than corrupting geometry.
   const cases = [
     { recipe: vanish, key: 'startAt' },
@@ -110,7 +110,7 @@ describe('timing parameters at their extremes stay well formed', () => {
         // Sampling must never hand the wheel a non-finite weight, which would
         // survive normalization as NaN and blank the whole render.
         for (const progress of [0, 0.5, 1]) {
-          for (const segment of applyMorphs(ctx.segments, morphs, progress * ctx.durationMs)) {
+          for (const segment of segmentsAt(ctx.segments, morphs, progress * ctx.durationMs)) {
             expect(Number.isFinite(segment.weight)).toBe(true)
           }
         }

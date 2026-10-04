@@ -7,7 +7,6 @@ import {
   SLOW_MS,
   WIND_UP_MS,
   angleAt,
-  spinTime,
   withOutage,
 } from './outage'
 import { type RotationSpec, rotationTrack } from './rotation'
@@ -80,14 +79,5 @@ describe('withOutage', () => {
   it('never starts sparks before the spin does', () => {
     const { plan } = withOutage(rotationTrack(0, 90, SPEC), { cruiseMs: 500, sparkMs: 9000 })
     expect(plan.sparkAtMs).toBe(0)
-  })
-})
-
-describe('spinTime', () => {
-  it('holds the authored clock at zero until the prologue ends', () => {
-    const { plan } = withOutage(rotationTrack(0, 90, SPEC), OUTAGE)
-    expect(spinTime(plan, 5000)).toBe(0)
-    expect(spinTime(plan, plan.resumedAtMs + 250)).toBeCloseTo(250, 6)
-    expect(spinTime(null, 250)).toBe(250)
   })
 })
