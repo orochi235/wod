@@ -1,0 +1,1245 @@
+{
+  "takeover-share": {
+    "segments": [
+      {
+        "id": "ana",
+        "label": "Ana",
+        "weight": 1,
+        "color": "#e63946",
+        "reveal": {
+          "headline": "Ana!"
+        }
+      },
+      {
+        "id": "ben",
+        "label": "Ben",
+        "weight": 2,
+        "color": "#457b9d"
+      },
+      {
+        "id": "cal",
+        "label": "Cal",
+        "weight": 1,
+        "color": "#2a9d8f",
+        "reveal": {
+          "headline": "Cal!"
+        }
+      }
+    ],
+    "morphs": [
+      {
+        "segmentId": "cal",
+        "durationMs": 1000,
+        "easing": "easeIn",
+        "keyframes": [
+          {
+            "at": 0,
+            "weight": 1,
+            "color": "#2a9d8f"
+          },
+          {
+            "at": 0.6,
+            "weight": 1,
+            "color": "#2a9d8f"
+          },
+          {
+            "at": 1,
+            "weight": 3,
+            "color": "#ffd166"
+          }
+        ]
+      }
+    ],
+    "durationMs": 1000,
+    "frames": [
+      {
+        "at": 0,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.25,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.5,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.75,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 1,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 3,
+            "color": "#ffd166",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "takeover-all": {
+    "segments": [
+      {
+        "id": "ana",
+        "label": "Ana",
+        "weight": 1,
+        "color": "#e63946",
+        "reveal": {
+          "headline": "Ana!"
+        }
+      },
+      {
+        "id": "ben",
+        "label": "Ben",
+        "weight": 2,
+        "color": "#457b9d"
+      },
+      {
+        "id": "cal",
+        "label": "Cal",
+        "weight": 1,
+        "color": "#2a9d8f",
+        "reveal": {
+          "headline": "Cal!"
+        }
+      }
+    ],
+    "morphs": [
+      {
+        "segmentId": "cal",
+        "durationMs": 1000,
+        "easing": "easeIn",
+        "keyframes": [
+          {
+            "at": 0,
+            "weight": 1
+          },
+          {
+            "at": 0.6,
+            "weight": 1
+          },
+          {
+            "at": 1,
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "segmentId": "ana",
+        "durationMs": 1000,
+        "easing": "easeIn",
+        "keyframes": [
+          {
+            "at": 0,
+            "weight": 1
+          },
+          {
+            "at": 0.6,
+            "weight": 1
+          },
+          {
+            "at": 1,
+            "weight": 0
+          }
+        ]
+      },
+      {
+        "segmentId": "ben",
+        "durationMs": 1000,
+        "easing": "easeIn",
+        "keyframes": [
+          {
+            "at": 0,
+            "weight": 2
+          },
+          {
+            "at": 0.6,
+            "weight": 2
+          },
+          {
+            "at": 1,
+            "weight": 0
+          }
+        ]
+      }
+    ],
+    "durationMs": 1000,
+    "frames": [
+      {
+        "at": 0,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.25,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.5,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.75,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 1,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 0,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 0,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "vanish": {
+    "segments": [
+      {
+        "id": "ana",
+        "label": "Ana",
+        "weight": 1,
+        "color": "#e63946",
+        "reveal": {
+          "headline": "Ana!"
+        }
+      },
+      {
+        "id": "ben",
+        "label": "Ben",
+        "weight": 2,
+        "color": "#457b9d"
+      },
+      {
+        "id": "cal",
+        "label": "Cal",
+        "weight": 1,
+        "color": "#2a9d8f",
+        "reveal": {
+          "headline": "Cal!"
+        }
+      }
+    ],
+    "morphs": [
+      {
+        "segmentId": "ben",
+        "durationMs": 1000,
+        "easing": "easeIn",
+        "keyframes": [
+          {
+            "at": 0,
+            "weight": 2
+          },
+          {
+            "at": 0.5,
+            "weight": 2
+          },
+          {
+            "at": 1,
+            "weight": 0
+          }
+        ]
+      }
+    ],
+    "durationMs": 1000,
+    "frames": [
+      {
+        "at": 0,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.25,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.5,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.75,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 1.75,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 1,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 0,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "recolor": {
+    "segments": [
+      {
+        "id": "ana",
+        "label": "Ana",
+        "weight": 1,
+        "color": "#e63946",
+        "reveal": {
+          "headline": "Ana!"
+        }
+      },
+      {
+        "id": "ben",
+        "label": "Ben",
+        "weight": 2,
+        "color": "#457b9d"
+      },
+      {
+        "id": "cal",
+        "label": "Cal",
+        "weight": 1,
+        "color": "#2a9d8f",
+        "reveal": {
+          "headline": "Cal!"
+        }
+      }
+    ],
+    "morphs": [
+      {
+        "segmentId": "ana",
+        "durationMs": 1000,
+        "easing": "easeInOut",
+        "keyframes": [
+          {
+            "at": 0,
+            "color": "#e63946"
+          },
+          {
+            "at": 0.5,
+            "color": "#e63946"
+          },
+          {
+            "at": 1,
+            "color": "#1d3557"
+          }
+        ]
+      }
+    ],
+    "durationMs": 1000,
+    "frames": [
+      {
+        "at": 0,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.25,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.5,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.75,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#4f3653",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 1,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#1d3557",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "relabel": {
+    "segments": [
+      {
+        "id": "ana",
+        "label": "Ana",
+        "weight": 1,
+        "color": "#e63946",
+        "reveal": {
+          "headline": "Ana!"
+        }
+      },
+      {
+        "id": "ben",
+        "label": "Ben",
+        "weight": 2,
+        "color": "#457b9d"
+      },
+      {
+        "id": "cal",
+        "label": "Cal",
+        "weight": 1,
+        "color": "#2a9d8f",
+        "reveal": {
+          "headline": "Cal!"
+        }
+      }
+    ],
+    "morphs": [
+      {
+        "segmentId": "ben",
+        "durationMs": 1000,
+        "keyframes": [
+          {
+            "at": 0,
+            "label": "Ben"
+          },
+          {
+            "at": 0.8,
+            "label": "LOSER"
+          }
+        ]
+      }
+    ],
+    "durationMs": 1000,
+    "frames": [
+      {
+        "at": 0,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.25,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.5,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.75,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 1,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "LOSER",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "swap": {
+    "segments": [
+      {
+        "id": "ana",
+        "label": "Ana",
+        "weight": 1,
+        "color": "#e63946",
+        "reveal": {
+          "headline": "Ana!"
+        }
+      },
+      {
+        "id": "ben",
+        "label": "Ben",
+        "weight": 2,
+        "color": "#457b9d"
+      },
+      {
+        "id": "cal",
+        "label": "Cal",
+        "weight": 1,
+        "color": "#2a9d8f",
+        "reveal": {
+          "headline": "Cal!"
+        }
+      }
+    ],
+    "morphs": [
+      {
+        "segmentId": "ana",
+        "durationMs": 1000,
+        "keyframes": [
+          {
+            "at": 0.95,
+            "label": "Ana",
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "at": 0.95,
+            "label": "Cal",
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "segmentId": "cal",
+        "durationMs": 1000,
+        "keyframes": [
+          {
+            "at": 0.95,
+            "label": "Cal",
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          },
+          {
+            "at": 0.95,
+            "label": "Ana",
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          }
+        ]
+      }
+    ],
+    "durationMs": 1000,
+    "frames": [
+      {
+        "at": 0,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.25,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.5,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 0.75,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          }
+        ]
+      },
+      {
+        "at": 1,
+        "segments": [
+          {
+            "id": "ana",
+            "label": "Cal",
+            "weight": 1,
+            "color": "#2a9d8f",
+            "reveal": {
+              "headline": "Cal!"
+            }
+          },
+          {
+            "id": "ben",
+            "label": "Ben",
+            "weight": 2,
+            "color": "#457b9d"
+          },
+          {
+            "id": "cal",
+            "label": "Ana",
+            "weight": 1,
+            "color": "#e63946",
+            "reveal": {
+              "headline": "Ana!"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
