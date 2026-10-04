@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import type { Motion } from '../clock/motion'
+import { fakeMotion } from '../clock/testing'
 import type { OutageRun } from '../wheel/useSpin'
 import type { Fx } from './fx'
 import { useOutageFx } from './useOutageFx'
@@ -21,10 +23,11 @@ function fake() {
   return { fx, stops, create: vi.fn(() => fx) }
 }
 
-function render(initial: OutageRun | null, create: () => Fx) {
+function render(initial: OutageRun | null, create: () => Fx, motion: Motion = fakeMotion().motion) {
   const targetRef = { current: document.createElement('div') }
   return renderHook(
-    ({ run, muted }) => useOutageFx(run, { targetRef, depth: 1, sound: true, muted, create }),
+    ({ run, muted }) =>
+      useOutageFx(run, { targetRef, depth: 1, sound: true, muted, create, motion }),
     { initialProps: { run: initial, muted: false } },
   )
 }
@@ -62,16 +65,26 @@ describe('useOutageFx', () => {
   })
 
   it('reports the room dark from the pop until the lights come back', () => {
-    vi.useFakeTimers()
     const { create } = fake()
-    vi.spyOn(performance, 'now').mockReturnValue(0)
-    const view = render(runOf(1), create)
+    const clock = fakeMotion()
+    const view = render(runOf(1), create, clock.motion)
+    act(() => clock.step(plan.popAtMs - 1))
     expect(view.result.current).toBe(false)
-    act(() => vi.advanceTimersByTime(plan.popAtMs + 1))
+    act(() => clock.step(plan.popAtMs))
     expect(view.result.current).toBe(true)
-    act(() => vi.advanceTimersByTime(plan.lightsAtMs - plan.popAtMs))
+    act(() => clock.step(plan.lightsAtMs))
     expect(view.result.current).toBe(false)
-    vi.useRealTimers()
+  })
+
+  it('stays lit once the run is over, and lets the clock sleep', () => {
+    const { create } = fake()
+    const clock = fakeMotion()
+    const view = render(runOf(1), create, clock.motion)
+    act(() => clock.step(plan.popAtMs))
+    act(() => clock.step(plan.lightsAtMs + 1000))
+    expect(view.result.current).toBe(false)
+    view.unmount()
+    expect(clock.waiting()).toBe(false)
   })
 
   it('follows the page mute', () => {

@@ -1,4 +1,5 @@
 import { type Overlay, createOverlay } from 'magicsmoke'
+import type { Motion } from '../clock/motion'
 import type { OutageRun } from '../wheel/useSpin'
 import { playBlackout } from './blackout'
 import { type Kit, loadKit } from './kit'
@@ -13,6 +14,7 @@ export type FxOptions = {
   /** Whether this page makes the outage's noise at all. */
   sound: boolean
   muted: boolean
+  motion: Motion
 }
 
 export type Fx = {
