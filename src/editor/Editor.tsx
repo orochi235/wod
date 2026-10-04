@@ -1,5 +1,6 @@
 import { LabShell } from '@weasel-js/labkit'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMotionRoot } from '../clock/motion'
 import { composeBase } from '../compose/compose'
 import { publishFeed, subscribeFeedRequests } from '../feed/bus'
 import { itemsFor } from '../feed/simulated'
@@ -153,7 +154,8 @@ export function Editor() {
   // The editor previews the sparks and a half-dark room, silently: the show
   // window is the one that makes noise.
   const wheelRef = useRef<HTMLElement | null>(null)
-  useOutageFx(outage, { targetRef: wheelRef, depth: 0.6, sound: false, muted: true })
+  const motion = useMotionRoot()
+  useOutageFx(outage, { targetRef: wheelRef, depth: 0.6, sound: false, muted: true, motion })
   const [scrubbed, setScrubbed] = useState<Segment[] | null>(null)
   // Handing the wheel back to the scrubber the moment `isSpinning` goes false
   // would erase the landing — the one frame the whole trick exists to produce.

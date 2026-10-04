@@ -1,8 +1,10 @@
 import { type Overlay, createOverlay } from 'magicsmoke'
+import type { Motion } from '../clock/motion'
 import type { OutageRun } from '../wheel/useSpin'
-import { playBlackout } from './blackout'
+import { cueBlackout } from './blackout'
+import { STALE_MS, type SparkCue, sparkCues, takeDue } from './cues'
 import { type Kit, loadKit } from './kit'
-import { BLOW_MS, escalation } from './schedule'
+import { BLOW_MS } from './schedule'
 import { playOutage } from './sound'
 
 export type FxOptions = {
@@ -13,6 +15,7 @@ export type FxOptions = {
   /** Whether this page makes the outage's noise at all. */
   sound: boolean
   muted: boolean
+  motion: Motion
 }
 
 export type Fx = {
@@ -57,9 +60,6 @@ export function createFx(): Fx {
   return {
     play(run, options) {
       muted = options.muted
-      const timers: number[] = []
-      const at = (ms: number, fn: () => void) =>
-        timers.push(window.setTimeout(fn, Math.max(0, run.startedAt + ms - performance.now())))
       const { plan } = run
       const rim = rimOf(options.target)
 
@@ -74,22 +74,32 @@ export function createFx(): Fx {
       }
 
       let fault: ReturnType<Overlay['fault']> | null = null
-      const sparkMs = plan.popAtMs - plan.sparkAtMs
-      at(plan.sparkAtMs, () => {
-        fault = sparks.fault({ at: next(), to: next(), intensity: 0.1 })
-      })
-      for (const shot of escalation(sparkMs)) {
-        at(plan.sparkAtMs + shot.at, () => {
+      const fire = (cue: SparkCue) => {
+        if (cue.kind === 'fault') fault = sparks.fault({ at: next(), to: next(), intensity: 0.1 })
+        else if (cue.kind === 'blow')
+          fault?.blow({ peak: Math.min(BLOW_MS, cue.sparkMs), after: 400 })
+        else {
+          const { shot, sparkMs } = cue
           if (fault) fault.intensity = Math.min(0.9, 0.1 + (0.8 * shot.at) / sparkMs)
           if (shot.kind === 'arc') sparks.arc(next(), next(), shot.energy)
           else sparks[shot.kind](next(), shot.energy)
-        })
+        }
       }
-      at(Math.max(plan.sparkAtMs, plan.popAtMs - BLOW_MS), () => {
-        fault?.blow({ peak: Math.min(BLOW_MS, sparkMs), after: 400 })
+      const cues = sparkCues(plan)
+      let cursor = 0
+      const { ticker } = options.motion
+      const release = ticker.stay()
+      const off = ticker.subscribe((t) => {
+        const due = takeDue(cues, cursor, t - run.startedAt, STALE_MS)
+        cursor = due.cursor
+        for (const cue of due.fire) fire(cue)
+        if (cursor === cues.length) {
+          off()
+          release()
+        }
       })
 
-      const blackout = playBlackout(run.startedAt + plan.popAtMs - performance.now(), options.depth)
+      const blackout = cueBlackout(options.motion, run.startedAt + plan.popAtMs, options.depth)
 
       let voice: GainNode | null = null
       let stopped = false
@@ -109,7 +119,8 @@ export function createFx(): Fx {
 
       return () => {
         stopped = true
-        for (const timer of timers) window.clearTimeout(timer)
+        off()
+        release()
         fault?.stop()
         blackout.stop()
         voice?.disconnect()

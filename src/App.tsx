@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Banner } from './banner/Banner'
 import { type CreateBanner, useBanner } from './banner/useBanner'
+import { useMotionRoot } from './clock/motion'
 import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
@@ -123,11 +124,13 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
 
   // The show window is the one that goes dark and makes the noise.
   const stageRef = useRef<HTMLDivElement | null>(null)
+  const motion = useMotionRoot()
   const dark = useOutageFx(outage, {
     targetRef: stageRef,
     depth: 1,
     sound: true,
     muted,
+    motion,
     create: createFx,
   })
 

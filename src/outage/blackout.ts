@@ -1,26 +1,45 @@
-import { blackoutKeyframes, blackoutMs } from './schedule'
+import { type Motion, WHEEL } from '../clock/motion'
+import { blackoutPatch } from './voices'
 import './blackout.css'
 
 export type Blackout = { stop(): void }
 
 /**
- * Blacks out the window `delayMs` from now, flickers it on the schedule, and
- * lifts it on the chord. `depth` is how dark it gets: 1 on the show page.
+ * Blacks out the window from `startAt` on the motion's clock, flickers it on the
+ * schedule, and lifts it on the chord. `depth` is how dark it gets: 1 on the show page.
  */
-export function playBlackout(delayMs: number, depth: number, doc: Document = document): Blackout {
+export function cueBlackout(
+  motion: Motion,
+  startAt: number,
+  depth: number,
+  doc: Document = document,
+): Blackout {
+  const { ticker, wheel } = motion
   const cover = doc.createElement('div')
   cover.className = 'outage-blackout'
   cover.setAttribute('aria-hidden', 'true')
   doc.body.appendChild(cover)
-  const animation = cover.animate(blackoutKeyframes(depth), {
-    duration: blackoutMs(),
-    delay: Math.max(0, delayMs),
-    easing: 'linear',
+
+  const voice = wheel.cue({
+    patch: blackoutPatch(depth),
+    subjects: [WHEEL],
+    start: startAt,
+    loop: false,
   })
+  const release = ticker.stay()
+  const off = ticker.subscribe(() => {
+    cover.style.setProperty('--blackout', String(wheel.probe(WHEEL).blackout ?? 0))
+  })
+
+  let stopped = false
   const stop = () => {
-    animation.cancel()
+    if (stopped) return
+    stopped = true
+    off()
+    release()
+    voice.fade({ over: 0 })
     cover.remove()
   }
-  animation.finished.then(stop, stop)
+  void voice.done.then(stop)
   return { stop }
 }
