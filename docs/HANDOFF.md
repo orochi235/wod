@@ -25,12 +25,10 @@ what's next, and the traps.
    `…-blits-transitions.md`. Each plan opens with the readings it took where the spec was
    ambiguous or wrong; Mike has not reviewed those yet, so read them out to him before building.
    Phase 2's Task 1 stops if 0.4.0 lacks `hold` or `inert`. Phase 6 (scrub) comes after, unplanned.
-2. **Enlist wod on the fleet** (onto-enlist), so the after-merge full suite can
-   run. It has never run for the phase 1 and 3 merge.
-3. The `App.test` case "rolls a material for a wedge that names none" failed
+2. The `App.test` case "rolls a material for a wedge that names none" failed
    once in a combined run and then passed 3 of 3 runs alone and the next
    combined run. The failure text was not captured. Unexplained.
-4. Deferred from review: `TickerTiming.caf` is never called by the ticker;
+3. Deferred from review: `TickerTiming.caf` is never called by the ticker;
    `useOutageFx` calls `setDark` every awake frame.
 
 ## Decisions made in conversation
