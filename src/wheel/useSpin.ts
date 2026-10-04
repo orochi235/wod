@@ -1,5 +1,8 @@
+import type { Handle } from '@msb235/blits'
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { type Motion, WHEEL } from '../clock/motion'
+import { anglePatch } from './anglePatch'
 import { applyMorphs, landingSegments } from './morph'
 import { type OutagePlan, spinTime, withOutage } from './outage'
 import type { PegMode } from './pegs'
@@ -34,7 +37,7 @@ export type SpinOverride = {
 export type Landing = { id: number; winner: Segment }
 
 /**
- * An outage in flight. `startedAt` is the `performance.now()` the spin began,
+ * An outage in flight. `startedAt` is the motion clock's time the spin began,
  * which every moment in `plan` counts from; `id` is fresh per spin.
  */
 export type OutageRun = { id: number; plan: OutagePlan; startedAt: number }
@@ -70,10 +73,11 @@ export type UseSpinResult = {
   riderRef: (element: SVGGElement | null) => void
 }
 
-export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult {
+export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion): UseSpinResult {
   const rotorRef = useRef<SVGGElement | null>(null)
   const frameRef = useRef<number | null>(null)
   const animationRef = useRef<Animation | null>(null)
+  const angleVoiceRef = useRef<Handle<string> | null>(null)
   const lastSegmentsRef = useRef(segments)
   const mountedRef = useRef(true)
   // A mutex. isSpinning is state read through a closure, so two spin() calls in
@@ -169,6 +173,8 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
     animationRef.current = null
     riderAnimation.current?.cancel()
     riderAnimation.current = null
+    angleVoiceRef.current?.fade({ over: 0 })
+    angleVoiceRef.current = null
   }, [])
 
   useEffect(() => {
@@ -227,7 +233,9 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
           : null
       const track = outaged?.track ?? planned
       const outagePlan = outaged?.plan ?? null
-      const startedAt = performance.now()
+      // The rotor and the wheel mix both read the document timeline; pinning
+      // WAAPI's start to this same instant keeps the angle voice on the pixels.
+      const startedAt = motion.ticker.now()
       if (outagePlan) {
         outageCountRef.current += 1
         setOutage({ id: outageCountRef.current, plan: outagePlan, startedAt })
@@ -241,16 +249,19 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
         easing: track.easing,
         fill: 'forwards',
       })
+      animation.startTime = startedAt
       animationRef.current = animation
 
       // Same track, same timeline: a rider turns with the wheel without being
       // inside it.
-      riderAnimation.current =
+      const riding =
         rider.current?.animate(track.keyframes, {
           duration: track.durationMs,
           easing: track.easing,
           fill: 'forwards',
         }) ?? null
+      if (riding) riding.startTime = startedAt
+      riderAnimation.current = riding
 
       // Level elements hold their orientation by running the rotor's rotation
       // backwards on the same timeline. No per-frame work, and no drift: both
@@ -260,8 +271,17 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
           duration: track.durationMs,
           easing: track.easing,
           fill: 'forwards',
-        })
+        }).startTime = startedAt
       }
+
+      angleVoiceRef.current = motion.wheel.cue({
+        patch: anglePatch(track),
+        subjects: [WHEEL],
+        start: startedAt,
+        loop: false,
+        hold: 'after',
+      })
+      motion.ticker.wake()
 
       // Track 2: geometry. Independent of rotation; only regenerates paths.
       if (morphs.length > 0 && durationMs > 0) {
@@ -312,7 +332,7 @@ export function useSpin(segments: Segment[], config: SpinConfig): UseSpinResult 
           setHeld(false)
         })
     },
-    [segments, config, stopTracks, levels, restingDegs],
+    [segments, config, stopTracks, levels, restingDegs, motion],
   )
 
   return {

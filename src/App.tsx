@@ -107,6 +107,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
     [preset.spin, resolved.morphs],
   )
 
+  const motion = useMotionRoot()
   const {
     displaySegments,
     layoutSegments,
@@ -120,11 +121,10 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
     rotorRef,
     levelRef,
     riderRef,
-  } = useSpin(resolved.segments, config)
+  } = useSpin(resolved.segments, config, motion)
 
   // The show window is the one that goes dark and makes the noise.
   const stageRef = useRef<HTMLDivElement | null>(null)
-  const motion = useMotionRoot()
   useOutageFx(outage, {
     targetRef: stageRef,
     depth: 1,
