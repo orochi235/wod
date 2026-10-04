@@ -1,8 +1,12 @@
 import { act, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fakeMotion } from '../clock/testing'
 import { Wheel } from '../wheel/Wheel'
 import type { Segment } from '../wheel/types'
 import { REDUCED_MOTION_MS } from '../wheel/useSpin'
+
+// Never stepped: these tests drive presence on their own rAF clock, not the motion's.
+const { motion } = fakeMotion()
 
 /** A hand-pumped rAF clock, so a test can watch the loop rather than one frame. */
 function installClock() {
@@ -74,45 +78,61 @@ afterEach(() => {
 
 describe('wedge presence', () => {
   it('draws an arriving wedge from its transition start', () => {
-    const { container } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    const { container } = render(
+      <Wheel motion={motion} segments={[segment('ana')]} transitions={transitions} />,
+    )
     expect(opacityOf(container, 'ana')).toBe('0')
   })
 
   it('keeps drawing a wedge that leaves the roster', () => {
     const { container, rerender } = render(
-      <Wheel segments={[segment('ana'), segment('ben')]} transitions={transitions} />,
+      <Wheel
+        motion={motion}
+        segments={[segment('ana'), segment('ben')]}
+        transitions={transitions}
+      />,
     )
-    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    rerender(<Wheel motion={motion} segments={[segment('ana')]} transitions={transitions} />)
     expect(wedges(container)).toContain('ben')
   })
 
   it('drops a departing wedge when no exit is armed', () => {
     const enterOnly = { enter: transitions.enter }
     const { container, rerender } = render(
-      <Wheel segments={[segment('ana'), segment('ben')]} transitions={enterOnly} />,
+      <Wheel motion={motion} segments={[segment('ana'), segment('ben')]} transitions={enterOnly} />,
     )
-    rerender(<Wheel segments={[segment('ana')]} transitions={enterOnly} />)
+    rerender(<Wheel motion={motion} segments={[segment('ana')]} transitions={enterOnly} />)
     expect(wedges(container)).not.toContain('ben')
   })
 
   it('draws nothing extra when no transitions are armed', () => {
-    const { container, rerender } = render(<Wheel segments={[segment('ana'), segment('ben')]} />)
-    rerender(<Wheel segments={[segment('ana')]} />)
+    const { container, rerender } = render(
+      <Wheel motion={motion} segments={[segment('ana'), segment('ben')]} />,
+    )
+    rerender(<Wheel motion={motion} segments={[segment('ana')]} />)
     expect(wedges(container)).toEqual(['ana'])
   })
 
   it('settles everything while something else owns the wheel', () => {
     const { container, rerender } = render(
-      <Wheel segments={[segment('ana'), segment('ben')]} transitions={transitions} />,
+      <Wheel
+        motion={motion}
+        segments={[segment('ana'), segment('ben')]}
+        transitions={transitions}
+      />,
     )
-    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} held={true} />)
+    rerender(
+      <Wheel motion={motion} segments={[segment('ana')]} transitions={transitions} held={true} />,
+    )
     expect(wedges(container)).toEqual(['ana'])
     expect(opacityOf(container, 'ana')).toBe('1')
   })
 
   it('rests every wedge under reduced motion once the short fade is done', () => {
     matchMedia(true)
-    const { container } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    const { container } = render(
+      <Wheel motion={motion} segments={[segment('ana')]} transitions={transitions} />,
+    )
     expect(wedges(container)).toEqual(['ana'])
   })
 })
@@ -131,7 +151,9 @@ describe('the presence clock', () => {
   })
 
   it('carries a wedge from its start frame to rest', () => {
-    const { container } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    const { container } = render(
+      <Wheel motion={motion} segments={[segment('ana')]} transitions={transitions} />,
+    )
     expect(opacityOf(container, 'ana')).toBe('0')
 
     // Half of a 400ms fade, which ease-out has already carried to 0.75.
@@ -143,7 +165,7 @@ describe('the presence clock', () => {
   })
 
   it('stops asking for frames once everything has settled', () => {
-    render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    render(<Wheel motion={motion} segments={[segment('ana')]} transitions={transitions} />)
     expect(clock.pending()).toBeGreaterThan(0)
 
     clock.advance(401)
@@ -152,17 +174,27 @@ describe('the presence clock', () => {
   })
 
   it('starts asking again when a wedge arrives after the wheel settled', () => {
-    const { rerender } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    const { rerender } = render(
+      <Wheel motion={motion} segments={[segment('ana')]} transitions={transitions} />,
+    )
     clock.advance(401)
     clock.advance(1)
     expect(clock.pending()).toBe(0)
 
-    rerender(<Wheel segments={[segment('ana'), segment('ben')]} transitions={transitions} />)
+    rerender(
+      <Wheel
+        motion={motion}
+        segments={[segment('ana'), segment('ben')]}
+        transitions={transitions}
+      />,
+    )
     expect(clock.pending()).toBeGreaterThan(0)
   })
 
   it('asks for no further frames once unmounted', () => {
-    const { unmount } = render(<Wheel segments={[segment('ana')]} transitions={transitions} />)
+    const { unmount } = render(
+      <Wheel motion={motion} segments={[segment('ana')]} transitions={transitions} />,
+    )
     clock.advance(100)
     expect(clock.pending()).toBeGreaterThan(0)
 
@@ -173,7 +205,9 @@ describe('the presence clock', () => {
   it('settles inside the reduced-motion duration, not the authored one', () => {
     matchMedia(true)
     const slow = { enter: { id: 'fade' as const, params: { staggerMs: 0, durationMs: 4000 } } }
-    const { container } = render(<Wheel segments={[segment('ana')]} transitions={slow} />)
+    const { container } = render(
+      <Wheel motion={motion} segments={[segment('ana')]} transitions={slow} />,
+    )
 
     clock.advance(REDUCED_MOTION_MS + 1)
     expect(Number(opacityOf(container, 'ana'))).toBeCloseTo(1, 3)
@@ -187,9 +221,17 @@ describe('the presence clock', () => {
     const path = (container: HTMLElement) =>
       container.querySelector('[data-segment-id="ben"] .wheel__segment')?.getAttribute('d')
 
-    const { container, rerender } = render(<Wheel segments={roster} transitions={transitions} />)
+    const { container, rerender } = render(
+      <Wheel motion={motion} segments={roster} transitions={transitions} />,
+    )
     const before = path(container)
-    rerender(<Wheel segments={[segment('ana'), segment('cy')]} transitions={transitions} />)
+    rerender(
+      <Wheel
+        motion={motion}
+        segments={[segment('ana'), segment('cy')]}
+        transitions={transitions}
+      />,
+    )
     expect(path(container)).toBe(before)
     expect(before).toBeTruthy()
   })
@@ -197,11 +239,19 @@ describe('the presence clock', () => {
   it('keeps every wedge painted while something else owns the wheel', () => {
     const { container, rerender } = render(
       <Wheel
+        motion={motion}
         segments={[segment('ana', '#f4a261'), segment('ben', '#2a9d8f')]}
         transitions={transitions}
       />,
     )
-    rerender(<Wheel segments={[segment('ana', '#f4a261')]} transitions={transitions} held={true} />)
+    rerender(
+      <Wheel
+        motion={motion}
+        segments={[segment('ana', '#f4a261')]}
+        transitions={transitions}
+        held={true}
+      />,
+    )
     const fill = container
       .querySelector('[data-segment-id="ana"] .wheel__segment')
       ?.getAttribute('fill')
@@ -212,6 +262,7 @@ describe('the presence clock', () => {
     const retained: { current: ReadonlySet<string> } = { current: new Set() }
     const { rerender } = render(
       <Wheel
+        motion={motion}
         segments={[segment('ana'), segment('ben')]}
         transitions={transitions}
         retainedRef={retained}
@@ -219,7 +270,14 @@ describe('the presence clock', () => {
     )
     expect([...retained.current].sort()).toEqual(['ana', 'ben'])
 
-    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
+    rerender(
+      <Wheel
+        motion={motion}
+        segments={[segment('ana')]}
+        transitions={transitions}
+        retainedRef={retained}
+      />,
+    )
     expect(retained.current.has('ben')).toBe(true)
   })
 
@@ -227,12 +285,20 @@ describe('the presence clock', () => {
     const retained: { current: ReadonlySet<string> } = { current: new Set() }
     const { rerender } = render(
       <Wheel
+        motion={motion}
         segments={[segment('ana'), segment('ben')]}
         transitions={transitions}
         retainedRef={retained}
       />,
     )
-    rerender(<Wheel segments={[segment('ana')]} transitions={transitions} retainedRef={retained} />)
+    rerender(
+      <Wheel
+        motion={motion}
+        segments={[segment('ana')]}
+        transitions={transitions}
+        retainedRef={retained}
+      />,
+    )
     clock.advance(401)
     expect([...retained.current]).toEqual(['ana'])
   })

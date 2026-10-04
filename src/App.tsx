@@ -230,6 +230,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
         onClick={canSpin ? onSpin : undefined}
       >
         <Wheel
+          motion={motion}
           segments={displaySegments}
           layoutFrom={layoutSegments}
           slice={preset.slice}

@@ -248,6 +248,7 @@ export function Editor() {
         </section>
         <section ref={wheelRef} className="editor__column editor__column--center">
           <Wheel
+            motion={motion}
             segments={shown}
             layoutFrom={spinOwns ? layoutSegments : undefined}
             slice={preset.slice}
