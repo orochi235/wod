@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef, useState } from 'react'
+import { type RefObject, useEffect, useRef } from 'react'
 import { type Motion, WHEEL } from '../clock/motion'
 import type { OutageRun } from '../wheel/useSpin'
 import { type CreateFx, type Fx, createFx } from './fx'
@@ -17,14 +17,12 @@ export type UseOutageFxOptions = {
 /**
  * Plays each outage once, from the moment its spin starts. A run ending does not
  * stop it — the chord rings on past the landing — only a newer run or leaving
- * the page does. Returns whether the room is dark right now, from the pop until
- * the lights come back, for anything else on the page that should go quiet.
+ * the page does. Whether the room is dark is on the wheel mix's `dark` channel.
  */
 export function useOutageFx(
   run: OutageRun | null,
   { targetRef, depth, sound, muted, motion, create = createFx }: UseOutageFxOptions,
-): boolean {
-  const [dark, setDark] = useState(false)
+): void {
   const fx = useRef<Fx | null>(null)
   const stop = useRef<(() => void) | null>(null)
   const settings = useRef({ depth, sound, muted })
@@ -47,13 +45,8 @@ export function useOutageFx(
       start: run.startedAt,
       loop: false,
     })
-    const off = ticker.subscribe(() => setDark(wheel.probe(WHEEL).dark ?? false))
     ticker.wake()
-    return () => {
-      off()
-      voice.fade({ over: 0 })
-      setDark(false)
-    }
+    return () => voice.fade({ over: 0 })
   }, [run, motion])
 
   useEffect(() => {
@@ -67,6 +60,4 @@ export function useOutageFx(
     },
     [],
   )
-
-  return dark
 }

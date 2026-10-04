@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { Motion } from '../clock/motion'
+import { type Motion, WHEEL } from '../clock/motion'
 import { fakeMotion } from '../clock/testing'
 import type { OutageRun } from '../wheel/useSpin'
 import type { Fx } from './fx'
@@ -64,16 +64,17 @@ describe('useOutageFx', () => {
     expect(fx.dispose).toHaveBeenCalled()
   })
 
-  it('reports the room dark from the pop until the lights come back', () => {
+  it('puts the room dark on the wheel mix from the pop until the lights come back', () => {
     const { create } = fake()
     const clock = fakeMotion()
-    const view = render(runOf(1), create, clock.motion)
+    render(runOf(1), create, clock.motion)
+    const dark = () => clock.motion.wheel.probe(WHEEL).dark ?? false
     act(() => clock.step(plan.popAtMs - 1))
-    expect(view.result.current).toBe(false)
+    expect(dark()).toBe(false)
     act(() => clock.step(plan.popAtMs))
-    expect(view.result.current).toBe(true)
+    expect(dark()).toBe(true)
     act(() => clock.step(plan.lightsAtMs))
-    expect(view.result.current).toBe(false)
+    expect(dark()).toBe(false)
   })
 
   it('stays lit once the run is over, and lets the clock sleep', () => {
@@ -82,7 +83,7 @@ describe('useOutageFx', () => {
     const view = render(runOf(1), create, clock.motion)
     act(() => clock.step(plan.popAtMs))
     act(() => clock.step(plan.lightsAtMs + 1000))
-    expect(view.result.current).toBe(false)
+    expect(clock.motion.wheel.probe(WHEEL).dark ?? false).toBe(false)
     view.unmount()
     expect(clock.waiting()).toBe(false)
   })

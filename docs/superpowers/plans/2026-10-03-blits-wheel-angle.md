@@ -20,15 +20,15 @@ peg crossings for the clicker, and writes the arm's rotation onto an SVG group. 
 
 ## Readings the spec leaves open
 
-These are the readings this plan takes. Each has a line in the spec update (Task 8).
+Accepted on 2026-10-04. Each has a line in the spec update (Task 8).
 
 - **The arm still rides the pegs.** The spec's flapper paragraph describes a kick on each crossing. Its
   viewer table says only the settle changes. This plan follows the viewer table: the spring's target is
   today's `deflectionDeg`, and 0 once the wheel is still. Visible behavior is unchanged except that the
   fall back upright is a spring rather than 1.5° per frame.
-- **The arm still moves in the dark.** The spec says "no kicks while dark". App says "The flapper still
-  turns in the dark, but the power that ticks it is out", and passes `muted={muted || dark}`, which only
-  silences the clicker. This plan keeps App's behavior.
+- **The arm and the clicker both keep going in the dark.** The spec says "no kicks while dark", which was
+  rejected on 2026-10-04: the clicker is mechanical, so pegs striking the flapper make noise
+  with the lights out. App no longer mutes the clicker on `dark` (done ahead of this plan).
 - **`angleAt` stays in `src/wheel/outage.ts`.** `withOutage` uses it too; the patch imports it.
 
 ## Files
@@ -65,11 +65,11 @@ These are the readings this plan takes. Each has a line in the spec update (Task
 - [ ] **Step 1: Check 0.4.0 is published and carries both features**
 
 Run: `npm view @msb235/blits@0.4.0 version`
-Expected: `0.4.0`. If it prints nothing or errors, **stop**: the plan cannot proceed. Tell Mike.
+Expected: `0.4.0`. If it prints nothing or errors, **stop**: the plan cannot proceed. Report it.
 
 Run: `npm pack @msb235/blits@0.4.0 --pack-destination "$TMPDIR" && tar -xzf "$TMPDIR"/msb235-blits-0.4.0.tgz -C "$TMPDIR" && grep -n "readonly inert\|hold?:" "$TMPDIR"/package/dist/*.d.ts; rm -rf "$TMPDIR"/package "$TMPDIR"/msb235-blits-0.4.0.tgz`
 Expected: one `readonly inert: boolean;` line and one `hold?: 'before' | 'after' | 'both';` line. If
-either is missing, **stop** and tell Mike which.
+either is missing, **stop** and tell the owner which.
 
 - [ ] **Step 2: Pin it exactly**
 
@@ -1137,7 +1137,7 @@ Replace the **Flapper.** paragraph with:
 current angle) while the wheel turns and at 0 once its speed is under `STILL_SPEED`, retargeting only
 when the target changes. A subscriber writes the arm's `rotate()` onto `.wheel__flapper-arm` and counts
 `pegCrossings` for the clicker, whose speed is the angle voice's `speed` channel: the track's analytic
-slope. The arm still moves while `dark`; only the clicker is muted, through Wheel's `muted`.
+slope. Arm and clicker both carry on while `dark`: the clicker is mechanical.
 ```
 
 Replace the **Angle.** paragraph's last two sentences ("`angleAt` moves into the patch. The angle is
@@ -1146,8 +1146,7 @@ track ends. Each of the rotor's WAAPI animations is given `startTime = startedAt
 time, so the voice and the pixels share a start. The angle is wrapped only where it is drawn."
 
 In the Wheel test table, replace the "Peg kick" row with
-`| Peg lift | a peg coming under the hinge lifts the arm past half of MAX_DEFLECTION_DEG |` and delete
-the "Muted while dark" row.
+`| Peg lift | a peg coming under the hinge lifts the arm past half of MAX_DEFLECTION_DEG |`.
 
 - [ ] **Step 2: Update the handoff**
 
@@ -1178,6 +1177,6 @@ EOF
 
 - [ ] **Step 5: Run the full suite on the fleet**
 
-Per Mike's standing rule, after this lands on `main`, start the full suite with the `onto-test` skill
+After this lands on `main`, start the full suite with the `onto-test` skill
 in the background and read its exit code when it finishes. If wod is not enlisted yet, enlist it with
 `onto-enlist` first (it is item 2 of the handoff).

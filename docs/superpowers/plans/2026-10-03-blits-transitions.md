@@ -12,7 +12,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-03-blits-migration-design.md` (sections Structure, Wedge transitions, Tests → Wedge transitions).
 
-## Open questions for Mike
+## Readings taken where the spec is open
+
+Accepted on 2026-10-04.
 
 Each is answered below the way that keeps today's behavior, or the spec's where today's is a bug. Flip any before building.
 

@@ -125,7 +125,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
   // The show window is the one that goes dark and makes the noise.
   const stageRef = useRef<HTMLDivElement | null>(null)
   const motion = useMotionRoot()
-  const dark = useOutageFx(outage, {
+  useOutageFx(outage, {
     targetRef: stageRef,
     depth: 1,
     sound: true,
@@ -242,8 +242,8 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
           retainedRef={retainedRef}
           held={held}
           theme={theme}
-          // The flapper still turns in the dark, but the power that ticks it is out.
-          muted={muted || dark}
+          // The clicker is mechanical: pegs still strike the flapper in the dark.
+          muted={muted}
         />
       </div>
       <div className="app__controls">

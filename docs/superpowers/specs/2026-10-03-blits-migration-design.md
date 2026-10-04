@@ -164,7 +164,8 @@ where it is drawn.
 **Flapper.** Each frame a subscriber reads `angle` now and at the previous
 frame, runs `pegCrossings`, and on a crossing retargets a `spring` voice on
 `deflection` with `.to('wheel', kick)`. The clicker's speed comes from the
-track's analytic slope. No kicks while `dark`.
+track's analytic slope. The flapper and its clicker carry on while `dark`: the clicker is mechanical,
+and pegs still strike it with the lights out.
 
 **Outage visuals.**
 
@@ -263,7 +264,7 @@ pending; `hold: 'before'` reads the first stop before `start`.
 | Blackout | matches `blackoutKeyframes` at each offset |
 | `dark` | flips at the schedule's times, to the frame |
 | Sparks fire once | each shot fires once; re-reading a range does not re-fire |
-| Muted while dark | no kicks while `dark` |
+| Ticks in the dark | crossings while `dark` still reach the clicker |
 
 **Scrub**
 

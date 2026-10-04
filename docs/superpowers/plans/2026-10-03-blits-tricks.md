@@ -12,7 +12,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-03-blits-migration-design.md`, sections "Tricks" and "Tests → Tricks".
 
-## Open questions for Mike
+## Readings taken where the spec is open
+
+Accepted on 2026-10-04.
 
 Each was settled toward the current behavior; the plan builds that reading. Each is one line to change if the answer differs.
 
@@ -1332,7 +1334,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 - [ ] **Step 2: Update the handoff**
 
-In `docs/HANDOFF.md`, move phase 4 from next to done and carry this plan's open questions that Mike has not answered.
+In `docs/HANDOFF.md`, move phase 4 from next to done and carry this plan's open questions that the owner has not answered.
 
 - [ ] **Step 3: Delete this plan**
 
