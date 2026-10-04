@@ -74,3 +74,12 @@ export function styleOf(presence: Presence, target: EmitTarget): PresenceStyle {
   if (presence.aperture < 1) style['--wedge-clip'] = clipOf(frame)
   return style
 }
+
+/** Writes a presence's properties onto a wedge, which is all React used to do with them. */
+export function paintPresence(element: ElementCSSInlineStyle, style: PresenceStyle): void {
+  element.style.setProperty('--wedge-transform', style['--wedge-transform'])
+  element.style.setProperty('--wedge-opacity', style['--wedge-opacity'])
+  const clip = style['--wedge-clip']
+  if (clip === undefined) element.style.removeProperty('--wedge-clip')
+  else element.style.setProperty('--wedge-clip', clip)
+}

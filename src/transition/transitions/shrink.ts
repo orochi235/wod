@@ -18,8 +18,8 @@ export const shrink: Transition = {
     const [from, to] = ctx.moment === 'exit' ? [1, 0] : [0, 1]
     return {
       keyframes: [
-        { at: 0, hold: from, scale: from, opacity: from },
-        { at: 1, hold: to, scale: to, opacity: to },
+        { at: 0, share: from, scale: from, opacity: from },
+        { at: 1, share: to, scale: to, opacity: to },
       ],
       delayMs: readNumber(params, 'staggerMs', STAGGER_MS) * ctx.index,
       easing: 'easeInOut',

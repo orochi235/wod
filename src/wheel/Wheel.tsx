@@ -9,7 +9,6 @@ import { facesUsed } from '../slice/fonts/usage'
 import { createMeasure } from '../slice/measure'
 import { getSlice, instancesUsed, resolveInstance } from '../slice/registry'
 import type { SliceInstance } from '../slice/types'
-import { styleOf } from '../transition/css'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
 import { HubEmblem } from './HubEmblem'
@@ -57,8 +56,8 @@ export type WheelProps = {
   held?: boolean
   /**
    * Receives the ids this wheel is drawing, including wedges animating out.
-   * Written during render and rewritten on every animation frame, so reading it
-   * during your own render is the intended use. One wheel per ref: two wheels
+   * Written during render, so reading it during your own render is the intended
+   * use. One wheel per ref: two wheels
    * given the same ref overwrite each other, and an unmounted wheel leaves its
    * last set in place.
    */
@@ -124,7 +123,7 @@ export function Wheel({
   // Per wheel, not per wedge: two wheels on one page draw the same segment ids,
   // and a clip path is resolved by id across the whole document.
   const clipBase = `wedge-${useId()}`
-  const drawn = usePresence(segments, transitions, held, retainedRef)
+  const { drawn, wedgeRef } = usePresence(segments, transitions, held, motion, retainedRef)
   const pegs = partOn(theme, 'peg')
     ? pegAngles(
         theme.pegs,
@@ -233,7 +232,7 @@ export function Wheel({
               else if (rotorRef) rotorRef.current = node
             }}
           >
-            {drawn.map(({ segment, arc: presenceArc, presence }, index) => {
+            {drawn.map(({ segment, arc: presenceArc }, index) => {
               const width = presenceArc.end - presenceArc.start
               if (!(width > 0)) return null
 
@@ -265,16 +264,14 @@ export function Wheel({
               return (
                 <g
                   key={segment.id}
+                  ref={wedgeRef(segment.id, {
+                    angle: midDeg(layoutArc),
+                    radius,
+                    pivot: radius * 0.6,
+                  })}
                   className="wheel__wedge"
                   data-segment-id={segment.id}
-                  style={{
-                    ...styleOf(presence, {
-                      angle: midDeg(layoutArc),
-                      radius,
-                      pivot: radius * 0.6,
-                    }),
-                    ...inkOf(segment.color),
-                  }}
+                  style={inkOf(segment.color)}
                 >
                   <path className="wheel__segment" d={d} fill={segment.color} />
                   {partOn(theme, 'divider') &&
