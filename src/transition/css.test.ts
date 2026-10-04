@@ -2,9 +2,8 @@ import type { CSSProperties } from 'react'
 import { describe, expect, it } from 'vitest'
 import wheelCss from '../wheel/Wheel.css?raw'
 import { paintPresence, styleOf, transformOf } from './css'
-import { samplePresence } from './sample'
 import { fly } from './transitions/fly'
-import { RESTING } from './voices'
+import { RESTING, presenceOf, stopsOf } from './voices'
 
 const target = { angle: 90, radius: 200, pivot: 120 }
 
@@ -101,7 +100,8 @@ describe('styleOf', () => {
       durationMs: 500,
       moment: 'enter',
     })
-    const presence = samplePresence(keyframes, 0, RESTING)
+    const first = stopsOf(keyframes, 'enter', null).find((stop) => stop.at === 0)
+    const presence = presenceOf(first?.delta ?? {})
     expect(styleOf(presence, target)['--wedge-transform']).toBe(transformOf(keyframes[0], target))
   })
 

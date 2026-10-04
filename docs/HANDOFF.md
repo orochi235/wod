@@ -8,19 +8,18 @@ what's next, and the traps.
 ## State
 
 - Work lands on `main`. Phases 1 (one ticker in `src/clock/`), 2 (wheel angle
-  and flapper on the wheel mix), 3 (outage blackout, `dark` and sparks) and 4
-  (trick morphs as voices on the wedge mix) are merged. `git log --oneline @{u}..HEAD` lists what is unpushed; pushing is
+  and flapper on the wheel mix), 3 (outage blackout, `dark` and sparks), 4
+  (trick morphs as voices on the wedge mix) and 5 (wedge transitions as voices
+  on the wedge mix) are merged. `git log --oneline @{u}..HEAD` lists what is unpushed; pushing is
   the owner's call.
 - blits is pinned at exactly `0.4.0`, which carries `hold`, `Mix.inert` and
   `handle.played`.
 
 ## Next, in order
 
-1. **Build phase 5** from `docs/superpowers/plans/2026-10-03-blits-transitions.md`.
-   It opens with the readings it took where the spec was ambiguous or wrong;
-   accepted on 2026-10-04. It was written before phase 4 was built: phase 4 put
-   `wedgeKit` and `WedgePose` in `src/clock/motion.ts` with only weight, color,
-   label, media and reveal, and composes frames in `src/clock/compose.ts`. Phase 6 (scrub) comes after, unplanned.
+1. **Plan phase 6** (editor scrub over the whole show) with
+   superpowers:writing-plans. The spec's "Editor scrub" section and its open
+   point on `history` cost are the starting place; nothing of it is built.
 2. The `App.test` case "rolls a material for a wedge that names none" failed
    once in a combined run and then passed 3 of 3 runs alone and the next
    combined run. The failure text was not captured. Unexplained.

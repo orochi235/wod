@@ -1,6 +1,6 @@
 import type { EasingName } from '../wheel/types'
 
-/** Shared by morphs and presences so neither imports the other, as `bracket` is. */
+/** Shared by trick morphs and presence transitions, so neither imports the other. */
 export const EASINGS: Record<EasingName, (t: number) => number> = {
   linear: (t) => t,
   easeIn: (t) => t * t,

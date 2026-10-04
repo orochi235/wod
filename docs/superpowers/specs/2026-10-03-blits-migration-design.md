@@ -3,8 +3,9 @@
 For whoever works on the spin, tricks, wedge transitions, the outage or the
 editor's transport. It answers: how wod's clocks and animated values move onto
 [`@msb235/blits`](https://www.npmjs.com/package/@msb235/blits), what changes for
-the viewer, and in what order it lands. **Phases 1 to 4 built** (clock, wheel
-angle and flapper, outage visuals, tricks); phases 5 and 6 unbuilt.
+the viewer, and in what order it lands. **Phases 1 to 5 built** (clock, wheel
+angle and flapper, outage visuals, tricks, wedge transitions); phase 6 (scrub)
+unbuilt and unplanned.
 
 ## Why
 
@@ -86,11 +87,13 @@ phase 4, where the wheel's children first need them.
 
 | Mix | Subject | Channels |
 |---|---|---|
-| wedges | wedge id (string; `drop` when it leaves) | `weight: sum()` (a delta), `color: hex()`, `label`, `media`, `reveal: last()`, `transform`, `opacity`, `clip`, `share` |
+| wedges | wedge id (string; `drop` when it leaves) | `weight: sum()` (a delta), `color: hex()`, `label`, `media`, `reveal: last()`, `share`, `opacity`, `scale`, `aperture: mul()`, `offset`, `rotate: sum()`, `offsetAngle: last()` with a numeric lerp |
 | wheel | `'wheel'` | `angle` (unwrapped degrees, `sum()`), `deflection`, `blackout: max()`, `dark: last()` with a lerp that steps at the stop (stock `last` steps halfway between stops; measured) |
 
-`share` is today's presence `hold`, renamed so it is not confused with the
-voice option.
+`share` is the presence field once called `hold`, renamed so it is not
+confused with the voice option. Presence travels as numbers: a CSS string
+cannot blend in a locus, and only the Wheel knows the angle and radius the
+strings need.
 
 **Readers write the DOM.** Subscribers write CSS variables and attributes onto
 refs. React renders only on structural change: a wedge arrives or leaves, a
@@ -105,12 +108,11 @@ composes the frame: `weight = max(0, base.weight + pose.weight)`,
 weight channel has no `bounds`, because a bound on the delta would clamp
 vanish's negative delta.
 
-**Removed so far:** the morph loop in `useSpin`, `useWheelAngle`,
-`applyMorphs` and its samplers, `morphProgress`, `lerpColor`, `spinTime`,
+**Removed:** the morph loop in `useSpin`, the `tick` loop in `usePresence`,
+`useWheelAngle`, `applyMorphs` and its samplers, `morphProgress`, `lerpColor`,
+`spinTime`, `sampleTrack`/`samplePresence`, `src/keyframes/bracket.ts`,
 `playBlackout`, the `dark` timers in `useOutageFx`, the `setTimeout` sparks in
-`fx.ts`. **Phase 5 removes** the `tick` loop in `usePresence`,
-`sampleTrack`/`samplePresence` and `src/keyframes/bracket.ts`, which presence
-still reads.
+`fx.ts`.
 **Stays:** recipes returning `Morph[]`, `EASINGS` (blits accepts easing
 functions; see Tricks for how stops are retimed), `parseHex` (now
 `src/wheel/hex.ts`, which recipes validate colors with), the rotor's WAAPI
@@ -158,15 +160,34 @@ trick on …" and the earlier "overridden by a later trick on …".
 ## Wedge transitions
 
 `advance` still diffs the roster (arrivals, departures, returns, `ghostArc`)
-but no longer samples. Each transition is a voice writing `transform`,
-`opacity`, `clip` and `share`, all sharing `locus: 'presence:<id>'` with
-`from: 'current'`, so an interruption crossfades from where the wedge actually
-is. That replaces `base` and `withoutZeroFrame`. Entrances use `hold: 'both'`
-so a staggered wedge stays invisible through its `delayMs`; exits use
-`hold: 'after'`, and on `handle.done` wod calls `drop(id)` and removes the
-ghost arc. `drawList` reads `share` from the probe. `styleOf` still builds the
-strings; a subscriber writes them. While `held`, every presence voice gets
-`fade({ over: 0 })`.
+but no longer samples. Each transition is one `keys` voice on the wedge mix,
+writing the presence channels it touches, in `locus: 'presence:<id>'`.
+Transitions stay authored as `PresentationKeyframe`s; `stopsOf` turns them into
+stops, giving every channel a stop at 0 because blits holds a channel's first
+stop before it. The mix carries numbers; `styleOf` builds the CSS strings, and
+`paintPresence` writes them onto the wedge from the ticker. React renders when
+a wedge arrives, leaves or finishes, or an arc moves.
+
+An interruption probes the wedge, fades the old voice over 0 and cues the new
+one with `from: 'current'`, which starts from the last probe (measured) and
+carries its speed: a fade-out cut into a fade-in at 40% rises from 0.40 to
+0.49 before it falls. A fresh entrance does not use `from: 'current'`, which
+would start it at rest. Channels the new transition is silent on go to rest
+(entrance) or hold (exit).
+
+Entrances hold `'both'`, so a staggered wedge shows its first frame through its
+delay. A fresh exit holds `'after'`; an exit that interrupts another transition
+holds `'both'`, so a staggered wedge stays where it was cut until its turn. A
+voice holding after never resolves `done` until faded, so wod retires a
+transition on the frame its voice reads `held` (rather than awaiting
+`handle.played`, which settles a microtask later): an entrance's voice is
+faded (its last frame is rest), an exit's is faded, the wedge dropped and its
+ghost arc removed. While `held`, every presence voice is faded over 0. A
+transition of 0 ms cues no voice.
+
+Unmounting the wheel drops every wedge it drew from the wedge mix, which also
+clears per-subject state that trick voices on those wedges keep. Harmless while
+the wheel and `useSpin` share a motion and unmount together.
 
 ## The wheel
 
