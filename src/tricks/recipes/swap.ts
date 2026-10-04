@@ -39,9 +39,8 @@ export const swap: Recipe = {
     const at = readUnit(params, 'at', DEFAULT_AT)
     const { winner, other, winnerColor, otherColor } = trade
     // Two keyframes on one offset per wedge: the first holds the wedge as
-    // itself, the second is what it becomes. A zero-length span makes `bracket`
-    // return t = 1, so the identity snaps instead of fading — a fade would show
-    // the audience the switch coming.
+    // itself, the second is what it becomes. Two stops at one offset snap rather
+    // than fade — a fade would show the audience the switch coming.
     return [
       {
         segmentId: winner.id,

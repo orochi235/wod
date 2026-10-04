@@ -114,7 +114,7 @@ function evaluateWheel(
  * roster whose ids do not exist at authoring time.
  *
  * Expanded against `withWedges`, not `landing`. Both hold the same wedges today
- * — `applyMorphs` rewrites a wedge's weight, never the membership of the list —
+ * — the morph voices rewrite a wedge's weight, never the membership of the list —
  * so this is a choice rather than a difference in outcome, and it is the choice
  * that keeps "did this land on an attendee" independent of whether that
  * attendee's arc happened to collapse on the way down.

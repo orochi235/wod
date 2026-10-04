@@ -1,5 +1,5 @@
 import { EffectCard, EffectCardList, PropertyPanel } from '@weasel-js/labkit'
-import type { Conflict } from '../tricks/conflicts'
+import { type Conflict, conflictText } from '../tricks/conflicts'
 import { RECIPE_LIST, getRecipe } from '../tricks/registry'
 import type { RecipeId, Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
@@ -94,7 +94,7 @@ export function TrickLibrary({
             >
               {own.length > 0 && (
                 <output className="trick-card__conflict" aria-label={`${trick.name} conflicts`}>
-                  ⚠ also written by another trick: {own.map((c) => c.segmentId).join(', ')}
+                  ⚠ {conflictText(trick.id, own)}
                 </output>
               )}
               {recipe && (

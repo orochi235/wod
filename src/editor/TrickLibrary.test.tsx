@@ -124,7 +124,7 @@ describe('TrickLibrary', () => {
 
   it('badges a trick that shares a write with another', () => {
     renderLibrary({
-      conflicts: [{ segmentId: 'ana', property: 'weight', trickIds: ['beer', 'v'] }],
+      conflicts: [{ segmentId: 'ana', property: 'weight', trickIds: ['beer', 'v'], blends: true }],
     })
     expect(screen.getByRole('status', { name: /slow burn conflicts/i })).toHaveTextContent('ana')
   })

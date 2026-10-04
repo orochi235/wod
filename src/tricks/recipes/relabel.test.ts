@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { segmentsAt } from '../../clock/compose'
 import { wedgeIndexOf } from '../../compose/compose'
 import { namesOf } from '../../text/template'
-import { applyMorphs } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import type { RecipeContext } from '../types'
 import { relabel } from './relabel'
@@ -35,8 +35,8 @@ describe('relabel', () => {
 
   it('steps rather than blending', () => {
     const morphs = relabel.resolve({ targets: ['ana'], toLabel: 'LOSER', at: 0.8 }, ctx)
-    const before = applyMorphs(segments, morphs, 799)
-    const after = applyMorphs(segments, morphs, 801)
+    const before = segmentsAt(segments, morphs, 799)
+    const after = segmentsAt(segments, morphs, 801)
     expect(before.find((s) => s.id === 'ana')?.label).toBe('Ana')
     expect(after.find((s) => s.id === 'ana')?.label).toBe('LOSER')
   })

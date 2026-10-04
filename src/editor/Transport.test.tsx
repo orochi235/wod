@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { applyMorphs } from '../wheel/morph'
+import { segmentsAt } from '../clock/compose'
 import type { Morph, Segment } from '../wheel/types'
 import { Transport } from './Transport'
 
@@ -51,13 +51,13 @@ describe('Transport', () => {
     )
     // A range input cannot be typed into; set the value and fire the change.
     fireEvent.change(screen.getByLabelText(/scrub/i), { target: { value: '0.5' } })
-    expect(scrubbed.at(-1)).toEqual(applyMorphs(segments, morphs, 500))
+    expect(scrubbed.at(-1)).toEqual(segmentsAt(segments, morphs, 500))
   })
 
   it('reports the same geometry a real spin would show at that instant', () => {
     // The invariant the scrubber exists to preserve: preview geometry is the
     // same function a real spin uses, sampled at a fixed instant. Driven
-    // through the component, since asserting on applyMorphs alone would pass
+    // through the component, since asserting on segmentsAt alone would pass
     // no matter what Transport did with it.
     const scrubbed: Segment[][] = []
     render(
@@ -74,7 +74,7 @@ describe('Transport', () => {
 
     for (const t of [0, 0.25, 0.5, 0.75, 1]) {
       fireEvent.change(screen.getByLabelText(/scrub/i), { target: { value: String(t) } })
-      expect(scrubbed.at(-1)).toEqual(applyMorphs(segments, morphs, t * 1000))
+      expect(scrubbed.at(-1)).toEqual(segmentsAt(segments, morphs, t * 1000))
     }
   })
 

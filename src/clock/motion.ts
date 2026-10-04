@@ -1,5 +1,6 @@
-import { type Kit, type Mix, kit, last, max, mix, sum } from '@msb235/blits'
+import { type Kit, type Mix, hex, kit, last, max, mix, sum } from '@msb235/blits'
 import { useState } from 'react'
+import type { Media, Reveal } from '../wheel/types'
 import { type Ticker, type TickerTiming, createTicker } from './ticker'
 
 export type WheelPose = {
@@ -27,11 +28,35 @@ export const wheelKit: Kit<WheelPose> = kit<WheelPose>({
   deflection: sum(),
 })
 
-export type Motion = { ticker: Ticker; wheel: Mix<string, WheelPose> }
+/** A wedge's change from its roster entry. `weight` is a delta; `color` is `0xrrggbb`. */
+export type WedgePose = {
+  weight?: number
+  color?: number
+  label?: string
+  media?: Media
+  /** `null` clears the wedge's reveal, as a swap does to a wedge that had none. */
+  reveal?: Reveal | null
+}
+
+export const wedgeKit: Kit<WedgePose> = kit<WedgePose>({
+  // No bounds: a bound on the delta would clamp a vanish. The floor at 0 is wod's, in compose.
+  weight: sum(),
+  color: hex(),
+  label: last<string>({ lerp: atStop }),
+  media: last<Media>({ lerp: atStop }),
+  reveal: last<Reveal>({ lerp: atStop }),
+})
+
+export type Motion = {
+  ticker: Ticker
+  wheel: Mix<string, WheelPose>
+  wedges: Mix<string, WedgePose>
+}
 
 export function createMotion(timing?: TickerTiming): Motion {
   const wheel = mix<string, WheelPose>(wheelKit)
-  return { ticker: createTicker([wheel], timing), wheel }
+  const wedges = mix<string, WedgePose>(wedgeKit)
+  return { ticker: createTicker([wheel, wedges], timing), wheel, wedges }
 }
 
 /** One motion per page, made on first render. Its owners unsubscribe; it holds nothing itself. */

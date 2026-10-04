@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { segmentsAt } from '../../clock/compose'
 import { wedgeIndexOf } from '../../compose/compose'
 import type { Origin } from '../../compose/types'
-import { applyMorphs } from '../../wheel/morph'
 import type { Segment } from '../../wheel/types'
 import { resolveTricks } from '../resolve'
 import type { RecipeContext } from '../types'
@@ -45,7 +45,7 @@ describe('recolor', () => {
       { targets: ['beer'], toColor: '#000000', startAt: 0, easing: 'linear' },
       ctx,
     )
-    const midway = applyMorphs(segments, morphs, 500)
+    const midway = segmentsAt(segments, morphs, 500)
     const beer = midway.find((segment) => segment.id === 'beer')
     expect(beer?.color).not.toBe('#ffd166')
     expect(beer?.color).not.toBe('#000000')

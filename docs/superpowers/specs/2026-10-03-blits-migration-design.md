@@ -3,8 +3,8 @@
 For whoever works on the spin, tricks, wedge transitions, the outage or the
 editor's transport. It answers: how wod's clocks and animated values move onto
 [`@msb235/blits`](https://www.npmjs.com/package/@msb235/blits), what changes for
-the viewer, and in what order it lands. **Phases 1, 2 and 3 built** (clock,
-wheel angle and flapper, outage visuals); phases 4, 5 and 6 unbuilt.
+the viewer, and in what order it lands. **Phases 1 to 4 built** (clock, wheel
+angle and flapper, outage visuals, tricks); phases 5 and 6 unbuilt.
 
 ## Why
 
@@ -63,9 +63,10 @@ so far has broken something.
 ```
 src/clock/
   ticker.ts         the only requestAnimationFrame caller
-  mixes.ts          wedgeKit, wheelKit, and the two mixes
-  motion.ts         wheelKit, createMotion, useMotionRoot
-  morphVoices.ts    Morph → VoiceSpec[]
+  motion.ts         wheelKit, wedgeKit, createMotion, useMotionRoot
+  morphVoices.ts    Morph → VoiceSpec[], cueMorphs
+  compose.ts        base + pose → Segment, segmentsAt on a scratch mix
+  testing.ts        fakeMotion, a clock tests step by hand
 ```
 
 **Ticker.** `createTicker(mixes, { now?, raf?, caf? })` returns
@@ -104,12 +105,15 @@ composes the frame: `weight = max(0, base.weight + pose.weight)`,
 weight channel has no `bounds`, because a bound on the delta would clamp
 vanish's negative delta.
 
-**Removed:** the morph loop in `useSpin`, the `tick` loop in `usePresence`,
-`useWheelAngle`, `applyMorphs` and its samplers, `lerpColor`,
-`src/keyframes/bracket.ts`, `sampleTrack`/`samplePresence`, `playBlackout`, the
-`dark` timers in `useOutageFx`, the `setTimeout` sparks in `fx.ts`.
+**Removed so far:** the morph loop in `useSpin`, `useWheelAngle`,
+`applyMorphs` and its samplers, `morphProgress`, `lerpColor`, `spinTime`,
+`playBlackout`, the `dark` timers in `useOutageFx`, the `setTimeout` sparks in
+`fx.ts`. **Phase 5 removes** the `tick` loop in `usePresence`,
+`sampleTrack`/`samplePresence` and `src/keyframes/bracket.ts`, which presence
+still reads.
 **Stays:** recipes returning `Morph[]`, `EASINGS` (blits accepts easing
-functions, so the quadratics pass through exactly), the rotor's WAAPI
+functions; see Tricks for how stops are retimed), `parseHex` (now
+`src/wheel/hex.ts`, which recipes validate colors with), the rotor's WAAPI
 animation, the audio graph on the audio clock, klieg, magicsmoke,
 `schedule.ts` as the one show timeline.
 
@@ -128,17 +132,28 @@ A voice is emitted only for channels the morph touches. A locus normalizes
 equal weights (measured: blue and green at weight 1 each give `#00bbe3`;
 at 0.25/0.75 the result leans green, `#00e89f`).
 
+A morph eases its whole timeline, with stops on eased progress; blits eases
+each segment. So each stop moves to the time the morph's easing reaches it
+(`EASING_INVERSES`), and each segment takes that slice of the curve. A golden
+test pins every recipe to the old `applyMorphs` output at 0, ¼, ½, ¾ and 1.
+
 Trick voices start at `startedAt + prologueMs` (0 without an outage), which
-replaces `spinTime`'s gating. The swap, known only after `resolveLate`, is cued
-then and `seek`ed to the elapsed spin time; `keys` voices are stateless, so
-blits' stateful-seek gap does not apply.
+replaces `spinTime`'s gating, and play at `authored ÷ actual` duration under
+reduced motion. `resolveLate` runs before the rotation starts, so the swap is
+cued at the start like any other trick: no seek.
+
+Until phase 5 writes arc geometry straight to the DOM, the wedge frame is
+composed by a ticker subscriber in `useSpin`, which re-renders only on frames
+where the composed segments changed.
 
 `landingSegments(segments, morphs, durationMs)` keeps its signature but runs
-`morphVoices` on a scratch mix and probes at `durationMs`: winner selection and
-the live spin share one path, and selection sees the blended layout.
+`segmentsAt`, which cues `morphVoices` on a scratch mix and probes at
+`durationMs`: winner selection, the editor scrub and the live spin share one
+path, and selection sees the blended layout.
 
 `findConflicts` stays editor-only; its badge reads "blends with" for weight and
-color and "overrides" for label, media and reveal.
+color; for label, media and reveal the later trick reads "overrides another
+trick on …" and the earlier "overridden by a later trick on …".
 
 ## Wedge transitions
 
@@ -236,7 +251,6 @@ pending; `hold: 'before'` reads the first stop before `start`.
 | No phase wrap | reads at `durationMs` and `durationMs + 1` equal the end value |
 | Untouched wedge | composes to its base |
 | Outage prologue | with `prologueMs` 12000: 11999 equals 0; `12000 + d/2` equals the no-outage `d/2` |
-| Late swap | cued at 60% and read at 95% equals cued at start and read at 95% |
 | One landing path | `landingSegments` deep-equals the live mix at `startedAt + d` |
 | Winner from blend | overlapping vanish + takeover put wedge X under the pointer only when blended; `planSpin` picks X under a fixed RNG |
 | Badges | two color tricks "blends with"; two relabels "overrides" |

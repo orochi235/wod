@@ -1,10 +1,12 @@
 import type { Handle } from '@msb235/blits'
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { composeSegments, sameFrame } from '../clock/compose'
+import { cueMorphs } from '../clock/morphVoices'
 import { type Motion, WHEEL } from '../clock/motion'
 import { anglePatch } from './anglePatch'
-import { applyMorphs, landingSegments } from './morph'
-import { type OutagePlan, spinTime, withOutage } from './outage'
+import { landingSegments } from './morph'
+import { type OutagePlan, withOutage } from './outage'
 import type { PegMode } from './pegs'
 import { invertTrack, rotationTrack } from './rotation'
 import type { SelectionStrategy } from './selection'
@@ -75,7 +77,8 @@ export type UseSpinResult = {
 
 export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion): UseSpinResult {
   const rotorRef = useRef<SVGGElement | null>(null)
-  const frameRef = useRef<number | null>(null)
+  const morphVoicesRef = useRef<Handle<string>[]>([])
+  const offMorphsRef = useRef<(() => void) | null>(null)
   const animationRef = useRef<Animation | null>(null)
   const angleVoiceRef = useRef<Handle<string> | null>(null)
   const lastSegmentsRef = useRef(segments)
@@ -164,18 +167,23 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
     setLayoutSegments(segments)
   }, [segments])
 
+  // A trick voice holds its last frame until faded, so whatever ends a spin fades them.
+  const stopMorphs = useCallback(() => {
+    offMorphsRef.current?.()
+    offMorphsRef.current = null
+    for (const voice of morphVoicesRef.current) voice.fade({ over: 0 })
+    morphVoicesRef.current = []
+  }, [])
+
   const stopTracks = useCallback(() => {
-    if (frameRef.current !== null) {
-      cancelAnimationFrame(frameRef.current)
-      frameRef.current = null
-    }
+    stopMorphs()
     animationRef.current?.cancel()
     animationRef.current = null
     riderAnimation.current?.cancel()
     riderAnimation.current = null
     angleVoiceRef.current?.fade({ over: 0 })
     angleVoiceRef.current = null
-  }, [])
+  }, [stopMorphs])
 
   useEffect(() => {
     mountedRef.current = true
@@ -283,31 +291,31 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
       })
       motion.ticker.wake()
 
-      // Track 2: geometry. Independent of rotation; only regenerates paths.
+      // Track 2: geometry, on the wedge mix. Morphs are authored against the spin's own
+      // durationMs, so a shortened spin plays them faster rather than cutting them off.
       if (morphs.length > 0 && durationMs > 0) {
-        const tick = (now: number) => {
-          const real = Math.min(now - startedAt, track.durationMs)
-          const elapsed = Math.min(spinTime(outagePlan, real), durationMs)
-          // Morphs are authored against the spin's own durationMs, so the clock is scaled
-          // to whatever duration actually ran. Without this, reduced motion lands
-          // the rotation at 300ms while the morph keeps running for seconds, and
-          // the wheel contradicts the announced winner the entire time.
-          const morphElapsed = (elapsed / durationMs) * spinConfig.durationMs
-          setDisplaySegments(applyMorphs(spinSegments, morphs, morphElapsed))
-          if (real < track.durationMs) {
-            frameRef.current = requestAnimationFrame(tick)
-          }
-        }
-        frameRef.current = requestAnimationFrame(tick)
+        const { ticker, wedges } = motion
+        morphVoicesRef.current = cueMorphs(
+          wedges,
+          spinSegments,
+          morphs,
+          startedAt + (outagePlan?.resumedAtMs ?? 0),
+          spinConfig.durationMs / durationMs,
+        )
+        let shown = spinSegments
+        offMorphsRef.current = ticker.subscribe(() => {
+          const next = composeSegments(spinSegments, wedges)
+          if (sameFrame(next, shown)) return
+          shown = next
+          setDisplaySegments(next)
+        })
+        ticker.wake()
       }
 
       animation.finished
         .then(() => {
           if (!mountedRef.current || animationRef.current !== animation) return
-          if (frameRef.current !== null) {
-            cancelAnimationFrame(frameRef.current)
-            frameRef.current = null
-          }
+          stopMorphs()
           // JavaScript's % keeps the sign of the dividend, so a counter-clockwise
           // spin would otherwise store a negative resting angle and the next spin
           // would start from a nonsense origin.
@@ -325,6 +333,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
         .catch(() => {
           // Cancelled — unmounted, or superseded by a newer spin.
           if (!mountedRef.current || animationRef.current !== animation) return
+          stopMorphs()
           spinningRef.current = false
           setIsSpinning(false)
           setOutage(null)
@@ -332,7 +341,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
           setHeld(false)
         })
     },
-    [segments, config, stopTracks, levels, restingDegs, motion],
+    [segments, config, stopTracks, stopMorphs, levels, restingDegs, motion],
   )
 
   return {
