@@ -50,8 +50,10 @@ behavior. This is on blits `main` (`2dd0e19`), unreleased. wod depends on:
 - A mix flag `inert`: true when every voice is held or done (or there are none),
   so another frame would change nothing. `live` stays true while anything is
   held, so wod's ticker runs while `!inert` or a `stay()` hold is out, not while
-  `live`; otherwise it ticks every frame under a landed wheel. **`inert` is not in
-  blits yet.**
+  `live`; otherwise it ticks every frame under a landed wheel. A motion voice
+  (the flapper's `spring`) counts as inert while every subject it has met is at
+  rest, so the wheel mix sleeps once the flapper settles; a held voice with a
+  signal weight does not count. **`inert` is agreed with blits but not built yet.**
 
 wod pins blits to an exact version (`"0.4.0"`, not `"^0.4.0"`); every 0.x minor
 so far has broken something.
