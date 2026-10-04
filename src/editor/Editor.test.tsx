@@ -148,7 +148,7 @@ describe('Editor integration', () => {
     // Named, not counted: the transport's scrub readout is also an <output>,
     // so a bare role query would pass with no conflict at all.
     expect(screen.getByRole('status', { name: /slow burn conflicts/i })).toHaveTextContent(
-      /also written by another trick/i,
+      /blends with another trick/i,
     )
   })
 

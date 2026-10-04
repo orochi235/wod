@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { composeBase } from '../compose/compose'
 import type { Segment } from '../wheel/types'
-import { findConflicts } from './conflicts'
+import { conflictText, findConflicts } from './conflicts'
 import type { Trick } from './types'
 
 const people: Segment[] = [
@@ -46,11 +46,35 @@ describe('findConflicts', () => {
 
   it('reports a segment two tricks both write the weight of', () => {
     const conflicts = findConflicts(base, [takeoverAll, vanishAna], 1000)
-    expect(conflicts).toEqual([{ segmentId: 'ana', property: 'weight', trickIds: ['beer', 'v'] }])
+    expect(conflicts).toEqual([
+      { segmentId: 'ana', property: 'weight', trickIds: ['beer', 'v'], blends: true },
+    ])
   })
 
   it('ignores disabled tricks', () => {
     const conflicts = findConflicts(base, [takeoverAll, { ...vanishAna, enabled: false }], 1000)
     expect(conflicts).toEqual([])
+  })
+})
+
+const relabelAna = (id: string): Trick => ({
+  id,
+  name: id,
+  recipe: 'relabel',
+  params: { targets: ['ana'], toLabel: id },
+  enabled: true,
+})
+
+describe('conflictText', () => {
+  it('says two color tricks blend', () => {
+    const conflicts = findConflicts(base, [grayEveryone, { ...grayEveryone, id: 'gray2' }], 1000)
+    expect(conflictText('gray', conflicts)).toBe('blends with another trick on ana, ben')
+  })
+
+  it('says the later of two relabels overrides the earlier', () => {
+    const conflicts = findConflicts(base, [relabelAna('first'), relabelAna('second')], 1000)
+    expect(conflicts[0].blends).toBe(false)
+    expect(conflictText('second', conflicts)).toBe('overrides another trick on ana')
+    expect(conflictText('first', conflicts)).toBe('overridden by a later trick on ana')
   })
 })

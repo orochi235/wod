@@ -3,7 +3,10 @@ import { getRecipe } from './registry'
 import { resolveTricks } from './resolve'
 import type { Trick, Write } from './types'
 
-export type Conflict = Write & { trickIds: string[] }
+/** Properties two tricks blend on; on the rest the later trick in list order wins. */
+const BLENDS: ReadonlySet<Write['property']> = new Set(['weight', 'color'])
+
+export type Conflict = Write & { trickIds: string[]; blends: boolean }
 
 /**
  * Editor-facing only. `resolveTricks` never consults this, so a wrong `writes()`
@@ -49,8 +52,23 @@ export function findConflicts(base: Composition, tricks: Trick[], durationMs: nu
   for (const [segmentId, byProperty] of claims) {
     for (const [property, trickIds] of byProperty) {
       if (trickIds.length < 2) continue
-      conflicts.push({ segmentId, property, trickIds })
+      conflicts.push({ segmentId, property, trickIds, blends: BLENDS.has(property) })
     }
   }
   return conflicts
+}
+
+/** What a trick's badge says about the conflicts it is in. `own` holds only those. */
+export function conflictText(trickId: string, own: Conflict[]): string {
+  const on = (list: Conflict[]) => [...new Set(list.map((c) => c.segmentId))].join(', ')
+  const blends = own.filter((c) => c.blends)
+  const wins = own.filter((c) => !c.blends && c.trickIds.at(-1) === trickId)
+  const loses = own.filter((c) => !c.blends && c.trickIds.at(-1) !== trickId)
+  return [
+    blends.length > 0 ? `blends with another trick on ${on(blends)}` : '',
+    wins.length > 0 ? `overrides another trick on ${on(wins)}` : '',
+    loses.length > 0 ? `overridden by a later trick on ${on(loses)}` : '',
+  ]
+    .filter((part) => part !== '')
+    .join('; ')
 }
