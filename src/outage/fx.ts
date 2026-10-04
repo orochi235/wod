@@ -1,7 +1,7 @@
 import { type Overlay, createOverlay } from 'magicsmoke'
 import type { Motion } from '../clock/motion'
 import type { OutageRun } from '../wheel/useSpin'
-import { playBlackout } from './blackout'
+import { cueBlackout } from './blackout'
 import { type Kit, loadKit } from './kit'
 import { BLOW_MS, escalation } from './schedule'
 import { playOutage } from './sound'
@@ -91,7 +91,7 @@ export function createFx(): Fx {
         fault?.blow({ peak: Math.min(BLOW_MS, sparkMs), after: 400 })
       })
 
-      const blackout = playBlackout(run.startedAt + plan.popAtMs - performance.now(), options.depth)
+      const blackout = cueBlackout(options.motion, run.startedAt + plan.popAtMs, options.depth)
 
       let voice: GainNode | null = null
       let stopped = false
