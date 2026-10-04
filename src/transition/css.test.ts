@@ -1,9 +1,10 @@
 import type { CSSProperties } from 'react'
 import { describe, expect, it } from 'vitest'
 import wheelCss from '../wheel/Wheel.css?raw'
-import { styleOf, transformOf } from './css'
-import { RESTING, samplePresence } from './sample'
+import { paintPresence, styleOf, transformOf } from './css'
+import { samplePresence } from './sample'
 import { fly } from './transitions/fly'
+import { RESTING } from './voices'
 
 const target = { angle: 90, radius: 200, pivot: 120 }
 
@@ -134,5 +135,24 @@ describe('styleOf', () => {
     for (const [name, property] of bindings) {
       expect(wheelCss).toContain(`${property}: var(${name},`)
     }
+  })
+})
+
+describe('paintPresence', () => {
+  const target = { angle: 0, radius: 100, pivot: 60 }
+
+  it('writes the properties the stylesheet binds', () => {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    paintPresence(element, styleOf({ ...RESTING, opacity: 0.5, aperture: 0.5 }, target))
+    expect(element.style.getPropertyValue('--wedge-opacity')).toBe('0.5')
+    expect(element.style.getPropertyValue('--wedge-transform')).toBe('none')
+    expect(element.style.getPropertyValue('--wedge-clip')).toMatch(/^circle\(/)
+  })
+
+  it('takes the clip off once the aperture opens', () => {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    paintPresence(element, styleOf({ ...RESTING, aperture: 0.5 }, target))
+    paintPresence(element, styleOf(RESTING, target))
+    expect(element.style.getPropertyValue('--wedge-clip')).toBe('')
   })
 })
