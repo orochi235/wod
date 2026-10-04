@@ -79,4 +79,14 @@ describe('createTicker', () => {
     step(16)
     expect(fn).not.toHaveBeenCalled()
   })
+
+  it('keeps the clock running when a subscriber throws', () => {
+    const { ticker, step, waiting } = harness(true)
+    ticker.subscribe(() => {
+      throw new Error('boom')
+    })
+    ticker.wake()
+    expect(() => step(16)).toThrow('boom')
+    expect(waiting()).toBe(1)
+  })
 })

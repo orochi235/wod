@@ -30,10 +30,13 @@ export function createTicker(mixes: readonly Syncable[], timing: TickerTiming = 
   }
   function frame() {
     pending = null
-    const t = now()
-    for (const mix of mixes) mix.sync(t)
-    for (const fn of [...subscribers]) fn(t)
-    if (holds > 0 || mixes.some((mix) => mix.live)) schedule()
+    try {
+      const t = now()
+      for (const mix of mixes) mix.sync(t)
+      for (const fn of [...subscribers]) fn(t)
+    } finally {
+      if (holds > 0 || mixes.some((mix) => mix.live)) schedule()
+    }
   }
 
   return {

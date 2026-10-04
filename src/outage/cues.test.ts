@@ -8,9 +8,9 @@ describe('sparkCues', () => {
   it('starts the fault, plays the escalation, and blows before the pop', () => {
     const cues = sparkCues(plan)
     const sparkMs = plan.popAtMs - plan.sparkAtMs
-    expect(cues[0]).toEqual({ at: 2000, kind: 'fault' })
+    expect(cues[0]).toEqual({ at: 2000, kind: 'fault', always: true })
     expect(cues.filter((cue) => cue.kind === 'shot')).toHaveLength(escalation(sparkMs).length)
-    expect(cues.at(-1)).toEqual({ at: plan.popAtMs - BLOW_MS, kind: 'blow', sparkMs })
+    expect(cues.at(-1)).toEqual({ at: plan.popAtMs - BLOW_MS, kind: 'blow', sparkMs, always: true })
   })
 
   it('is in time order', () => {
@@ -41,6 +41,12 @@ describe('takeDue', () => {
     const due = takeDue(cues, 0, 451, STALE_MS)
     expect(due.fire).toEqual([{ at: 300 }])
     expect(due.cursor).toBe(4)
+  })
+
+  it('fires a late fault and blow, which start and end the fault, however late', () => {
+    const late = sparkCues(plan).filter((cue) => cue.kind !== 'shot')
+    const due = takeDue(sparkCues(plan), 0, plan.popAtMs + 5000, STALE_MS)
+    expect(due.fire).toEqual(late)
   })
 
   it('waits for a cue still ahead', () => {
