@@ -10,7 +10,7 @@ import { flat } from './themes/flat'
 import { wof } from './themes/wof'
 import type { Segment } from './types'
 
-// Never stepped: these tests drive presence on their own rAF clock, not the motion's.
+// Never stepped: tests that watch a transition mid-flight use installClock().
 const { motion } = fakeMotion()
 
 const segments: Segment[] = [
@@ -19,37 +19,19 @@ const segments: Segment[] = [
 ]
 
 /**
- * A hand-pumped rAF clock, so a test can watch a transition mid-flight rather
- * than only on the frame it starts. Mirrors the one in usePresence.test.tsx,
- * which exists for the same reason.
+ * A hand-stepped motion, so a test can watch a transition mid-flight rather
+ * than only on the frame it starts. `advance` moves it forward by `ms`.
  */
 function installClock() {
-  const queue = new Map<number, FrameRequestCallback>()
-  let next = 1
+  const fake = fakeMotion()
   let now = 0
-  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
-    const id = next++
-    queue.set(id, cb)
-    return id
-  })
-  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
-    queue.delete(id)
-  })
-  const clock = vi.spyOn(performance, 'now').mockImplementation(() => now)
-
   return {
+    motion: fake.motion,
     advance(ms: number) {
       now += ms
-      const due = [...queue.entries()]
-      queue.clear()
-      act(() => {
-        for (const [, cb] of due) cb(now)
-      })
+      act(() => fake.step(now))
     },
-    restore() {
-      vi.unstubAllGlobals()
-      clock.mockRestore()
-    },
+    restore() {},
   }
 }
 
@@ -223,7 +205,7 @@ describe('Wheel', () => {
       // disagree, and neither is near the size cap that would hide the gap.
       const { container, rerender } = render(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           transitions={opening}
           slice={AUTO}
@@ -233,7 +215,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
           slice={AUTO}
@@ -253,7 +235,7 @@ describe('Wheel', () => {
     try {
       const { container, rerender } = render(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
           slice={AUTO}
@@ -264,7 +246,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           transitions={opening}
           slice={AUTO}
@@ -289,7 +271,7 @@ describe('Wheel', () => {
     try {
       const { container, rerender } = render(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
           slice={AUTO}
@@ -300,7 +282,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           transitions={opening}
           slice={AUTO}
@@ -334,7 +316,7 @@ describe('Wheel', () => {
     try {
       const { container, rerender } = render(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           transitions={opening}
           slice={AUTO}
@@ -344,7 +326,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           transitions={opening}
           slice={AUTO}
@@ -379,7 +361,7 @@ describe('Wheel', () => {
 
       const { rerender } = render(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli'])}
           slice={level}
           levelRef={levelRef}
@@ -390,7 +372,7 @@ describe('Wheel', () => {
 
       rerender(
         <Wheel
-          motion={motion}
+          motion={clock.motion}
           segments={roster(['ana', 'ben', 'cy', 'dee', 'eli', 'cal'])}
           slice={level}
           levelRef={levelRef}
