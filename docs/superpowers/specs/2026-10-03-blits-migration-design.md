@@ -3,8 +3,8 @@
 For whoever works on the spin, tricks, wedge transitions, the outage or the
 editor's transport. It answers: how wod's clocks and animated values move onto
 [`@msb235/blits`](https://www.npmjs.com/package/@msb235/blits), what changes for
-the viewer, and in what order it lands. **Unbuilt.** Nothing here exists in code
-yet, and everything past phase 1 is blocked on blits 0.4.0 (see Prerequisite).
+the viewer, and in what order it lands. **Phases 1 and 3 built** (clock, outage
+visuals); phases 2, 4, 5 and 6 unbuilt, blocked on blits 0.4.0 (see Prerequisite).
 
 ## Why
 
@@ -59,24 +59,29 @@ so far has broken something.
 src/clock/
   ticker.ts         the only requestAnimationFrame caller
   mixes.ts          wedgeKit, wheelKit, and the two mixes
-  MotionProvider.tsx  React context: { ticker, wedges, wheel }
+  motion.ts         wheelKit, createMotion, useMotionRoot
   morphVoices.ts    Morph → VoiceSpec[]
 ```
 
-**Ticker.** `createTicker({ now?, raf? })` returns
-`{ subscribe(fn: (t: number) => void), wake() }`. Time is
+**Ticker.** `createTicker(mixes, { now?, raf?, caf? })` returns
+`{ now(), subscribe(fn: (t: number) => void), stay(), wake() }`; `stay()` keeps frames
+coming until released, for work no mix sees, such as the spark cues. Time is
 `document.timeline.currentTime` and nothing else, the same timeline the rotor's
-WAAPI animation runs on. Each frame it calls `sync(t)` on both mixes, then
-notifies subscribers; it sleeps when neither mix is `live`. wod never calls
+WAAPI animation runs on. Each frame it calls `sync(t)` on every mix, then
+notifies subscribers; it sleeps when no mix is `live` and nothing holds it. wod never calls
 `rebase()`: a hidden tab keeps advancing the document timeline under the rotor,
 and the angle model must advance with it. Tests inject `now` and `raf`.
+
+**One motion per page.** App and Editor each own one through `useMotionRoot()`
+and pass it to what needs it. The React context, and the wedge mix, arrive with
+phase 4, where the wheel's children first need them.
 
 **Two kits.**
 
 | Mix | Subject | Channels |
 |---|---|---|
 | wedges | wedge id (string; `drop` when it leaves) | `weight: sum()` (a delta), `color: hex()`, `label`, `media`, `reveal: last()`, `transform`, `opacity`, `clip`, `share` |
-| wheel | `'wheel'` | `angle` (unwrapped degrees, `sum()`), `deflection`, `blackout: max()`, `dark: last()` |
+| wheel | `'wheel'` | `angle` (unwrapped degrees, `sum()`), `deflection`, `blackout: max()`, `dark: last()` with a lerp that steps at the stop (stock `last` steps halfway between stops; measured) |
 
 `share` is today's presence `hold`, renamed so it is not confused with the
 voice option.
@@ -162,8 +167,12 @@ track's analytic slope. No kicks while `dark`.
 |---|---|
 | `playBlackout(delayMs, depth)` | `keys` voice on `blackout`, stops from `blackoutKeyframes(depth)`, `start = popAt` |
 | `useOutageFx` timers for `dark` | `keys` voice stepping `dark` from the schedule |
-| `fx.ts` `setTimeout` sparks | each shot `announce('spark', { at })`; a subscriber reads `marks(prevT, t)` and fires magicsmoke |
+| `fx.ts` `setTimeout` sparks | a precomputed cue list fired by a ticker subscriber with a cursor; cues more than 250 ms late are skipped |
 | `playOutage(ctx, when)` | unchanged, `when` from `startedAt` |
+
+Sparks do not use blits marks: measured on 0.3.0, a mix without `history` drops
+announced marks once `sync` passes them, so `marks(prev, t)` after `sync(t)`
+returns nothing.
 
 ## Editor scrub
 
@@ -262,8 +271,5 @@ false while only holding; `hold: 'before'` reads the first stop before `start`.
 
 ## Open points
 
-- `announce`/`marks` semantics are read from types only: whether `marks(from, to)`
-  is half-open and whether a re-read repeats marks decides whether sparks
-  double-fire. The "Sparks fire once" test settles it in phase 3.
 - `history` cost over a whole show (tens of seconds, two mixes) is unmeasured;
   phase 6 measures it before relying on it.
