@@ -1,5 +1,6 @@
 import { type Kit, type Mix, hex, kit, last, max, mix, sum } from '@msb235/blits'
 import { useState } from 'react'
+import { type PresencePose, presenceChannels } from '../transition/channels'
 import type { Media, Reveal } from '../wheel/types'
 import { type Ticker, type TickerTiming, createTicker } from './ticker'
 
@@ -29,7 +30,7 @@ export const wheelKit: Kit<WheelPose> = kit<WheelPose>({
 })
 
 /** A wedge's change from its roster entry. `weight` is a delta; `color` is `0xrrggbb`. */
-export type WedgePose = {
+export type TrickPose = {
   weight?: number
   color?: number
   label?: string
@@ -38,13 +39,20 @@ export type WedgePose = {
   reveal?: Reveal | null
 }
 
-export const wedgeKit: Kit<WedgePose> = kit<WedgePose>({
+export type WedgePose = TrickPose & PresencePose
+
+const trickChannels: Kit<TrickPose> = kit<TrickPose>({
   // No bounds: a bound on the delta would clamp a vanish. The floor at 0 is wod's, in compose.
   weight: sum(),
   color: hex(),
   label: last<string>({ lerp: atStop }),
   media: last<Media>({ lerp: atStop }),
   reveal: last<Reveal>({ lerp: atStop }),
+})
+
+export const wedgeKit: Kit<WedgePose> = kit<WedgePose>({
+  ...trickChannels,
+  ...presenceChannels,
 })
 
 export type Motion = {
