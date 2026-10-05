@@ -9,24 +9,23 @@ what's next, and the traps.
 
 - Work lands on `main`. Phases 1 (one ticker in `src/clock/`), 2 (wheel angle
   and flapper on the wheel mix), 3 (outage blackout, `dark` and sparks), 4
-  (trick morphs as voices on the wedge mix) and 5 (wedge transitions as voices
-  on the wedge mix) are merged. `git log --oneline @{u}..HEAD` lists what is unpushed; pushing is
+  (trick morphs as voices on the wedge mix), 5 (wedge transitions as voices
+  on the wedge mix) and 6 (editor scrub over the whole show) are merged. `git log --oneline @{u}..HEAD` lists what is unpushed; pushing is
   the owner's call.
 - blits is pinned at exactly `0.4.0`, which carries `hold`, `Mix.inert` and
   `handle.played`.
 
-## Next, in order
+## Open items
 
-1. **Plan phase 6** (editor scrub over the whole show) with
-   superpowers:writing-plans. The spec's "Editor scrub" section and its open
-   point on `history` cost are the starting place; nothing of it is built.
-2. The `App.test` case "rolls a material for a wedge that names none" failed
+1. The `App.test` case "rolls a material for a wedge that names none" failed
    once in a combined run and then passed 3 of 3 runs alone and the next
    combined run. The failure text was not captured. Unexplained.
-3. Deferred from review: `TickerTiming.caf` is never called by the ticker.
-4. After a landing, klieg's own loop (the winner banner) requests a frame 60
+2. Deferred from review: `TickerTiming.caf` is never called by the ticker.
+3. After a landing, klieg's own loop (the winner banner) requests a frame 60
    times a second for as long as the banner shows; measured in the browser on
    2026-10-04. The wheel's ticker sleeps. Unexamined whether the banner needs it.
+4. Nothing reads the wheel mix's `dark` channel since the clicker kept ticking
+   in the dark (`0934914`). Either something should paint it or the voice goes.
 
 ## Decisions made in conversation
 

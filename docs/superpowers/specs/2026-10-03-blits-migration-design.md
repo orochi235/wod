@@ -3,9 +3,8 @@
 For whoever works on the spin, tricks, wedge transitions, the outage or the
 editor's transport. It answers: how wod's clocks and animated values move onto
 [`@msb235/blits`](https://www.npmjs.com/package/@msb235/blits), what changes for
-the viewer, and in what order it lands. **Phases 1 to 5 built** (clock, wheel
-angle and flapper, outage visuals, tricks, wedge transitions); phase 6 (scrub)
-unbuilt and unplanned.
+the viewer, and in what order it lands. **All six phases built** (clock, wheel
+angle and flapper, outage visuals, tricks, wedge transitions, scrub).
 
 ## Why
 
@@ -222,12 +221,30 @@ returns nothing.
 
 ## Editor scrub
 
-`Transport` builds a preview pair of mixes from the planned spin, with
-`startedAt = 0` and `MixOptions.history: { ms: totalMs }`, and the slider calls
-`project(t)` on both; the same writers paint the result. While scrubbing, the
-rotor's WAAPI animation is canceled and its transform is written from the
-projected angle. No audio, sparks or marks fire; blackout and `dark` render.
-The slider stays disabled mid-spin and spans the whole show, prologue included.
+The slider spans the spin a press of Spin would make now, outage prologue
+included, in ms. `useSpin.preview()` plans it through `planShow`, the same
+function `spin()` uses, from the wheel's current resting angle, at the authored
+duration (reduced motion or not), with a fixed draw (`rng = 0.5`) so the show
+does not change between plannings.
+
+`recordShow` (`src/editor/recordShow.ts`) cues that show's voices (angle, dark,
+blackout, morphs) on a hand-stepped motion whose mixes keep `history`, runs the
+real `trackFlapper` against it with silent writers, and steps it once at 60 fps.
+`at(ms)` then reads `project(ms)` on both mixes. Measured on a 20.4 s outage show
+with 6 morphs on 12 wedges: 35–55 ms to record in jsdom, 0.1 ms per projection,
+and a projection at a recorded frame equals the live probe exactly, deflection
+included. In Chromium the first slider move, which records, took 188 ms; later
+moves take two frames.
+
+`useScrub` paints the frame through the existing writers: wedges to the Wheel,
+deflection through the Wheel's `flapperDeg` prop, blackout to a cover of its own.
+The rotor is not canceled and written: `useSpin.pose(track, ms)` holds paused
+copies of the rotor, rider and level tracks at `currentTime = ms`, over the last
+spin's fill-forward animations, so canceling them restores rest. Writing the
+rotor alone would have left level groups and the hub rider on the landed angle.
+No audio, sparks or marks fire. The slider is disabled mid-spin; Spin leaves the
+scrub. Nothing paints `dark` anywhere, live or scrubbed, since the clicker
+stopped going quiet in the dark.
 
 ## Build order
 
@@ -309,13 +326,8 @@ pending; `hold: 'before'` reads the first stop before `start`.
 
 | Case | Expect |
 |---|---|
-| Scrub matches live | `project(t)` equals the live probe at `startedAt + t` |
+| Scrub matches live | `recording.at(t)` equals the live probe at `startedAt + t` |
 | Backward | 8 s, 3 s, 8 s: both 8 s frames equal, deflection included |
 | Silent | a full sweep fires no sparks and makes no audio nodes |
 | Rotor handoff | scrub cancels the rotor animation; leaving restores rest |
 | Outage visible | inside the dark window, `blackout` > 0 and `dark` true |
-
-## Open points
-
-- `history` cost over a whole show (tens of seconds, two mixes) is unmeasured;
-  phase 6 measures it before relying on it.
