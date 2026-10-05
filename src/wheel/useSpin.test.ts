@@ -59,6 +59,8 @@ type AnimateCall = {
   /** Settles the animation's `finished` promise, as a real one does when it ends. */
   finish: () => void
   animation: Animation
+  /** Whether it was paused, as a pose is, and canceled. */
+  state: { paused: boolean; canceled: boolean }
 }
 
 type Harness = {
@@ -100,17 +102,28 @@ function installHarness(): Harness {
       resolveFinished = resolve
       rejectFinished = reject
     })
+    const state = { paused: false, canceled: false }
     const animation = {
       finished,
       startTime: null as number | null,
-      cancel: () => rejectFinished(new Error('animation cancelled')),
+      currentTime: null as number | null,
+      pause: () => {
+        state.paused = true
+      },
+      cancel: () => {
+        state.canceled = true
+        rejectFinished(new Error('animation cancelled'))
+      },
     } as unknown as Animation
+    // A pose cancels without anyone awaiting `finished`.
+    finished.catch(() => undefined)
 
     harness.animateCalls.push({
       keyframes: (Array.isArray(keyframes) ? keyframes : []) as Keyframe[],
       options: typeof options === 'object' && options !== null ? options : {},
       finish: () => resolveFinished(animation),
       animation,
+      state,
     })
     return animation
   }
@@ -997,5 +1010,79 @@ describe('useSpin with an outage', () => {
     act(() => result.current.spin())
     expect(result.current.outage).toBeNull()
     expect(harness.animateCalls[0].options.duration).toBe(REDUCED_MOTION_MS)
+  })
+})
+
+describe('useSpin preview', () => {
+  let harness: Harness
+
+  beforeEach(() => {
+    harness = installHarness()
+  })
+
+  afterEach(() => {
+    Reflect.deleteProperty(Element.prototype, 'animate')
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('plans the spin a press would make, without playing it', () => {
+    const { result } = renderSpin(MORPHING)
+    const show = result.current.preview()
+    expect(show?.track.keyframes[0].transform).toBe('rotate(0deg)')
+    expect(show?.track.durationMs).toBe(DURATION_MS)
+    expect(show?.landedFrame).toEqual(landingSegments(SEGMENTS, MORPHS, DURATION_MS))
+    expect(harness.animateCalls).toHaveLength(0)
+    expect(fake.motion.wheel.inert).toBe(true)
+  })
+
+  it('draws the same preview every time', () => {
+    const { result } = renderSpin(PLAIN)
+    expect(result.current.preview()?.plan).toEqual(result.current.preview()?.plan)
+  })
+
+  it('plays the authored length under reduced motion', () => {
+    harness.setReducedMotion(true)
+    const { result } = renderSpin(PLAIN)
+    expect(result.current.preview()?.track.durationMs).toBe(DURATION_MS)
+  })
+
+  it('previews from where the last spin left the wheel', async () => {
+    const { result } = renderSpin(PLAIN)
+    act(() => result.current.spin())
+    await act(async () => harness.animateCalls[0].finish())
+    const rest = harness.animateCalls[0].keyframes.at(-1)?.transform
+    const from = Number(/rotate\((-?[\d.]+)deg\)/.exec(String(rest))?.[1])
+    const show = result.current.preview()
+    expect(show?.track.keyframes[0].transform).toBe(`rotate(${((from % 360) + 360) % 360}deg)`)
+  })
+
+  it('holds the rotor paused anywhere along a track, and hands it back', () => {
+    const { result } = renderSpin(PLAIN)
+    const show = result.current.preview()
+    if (!show) throw new Error('no show')
+    act(() => result.current.pose(show.track, 1200))
+    expect(harness.animateCalls).toHaveLength(1)
+    const [posed] = harness.animateCalls
+    expect(posed.keyframes).toEqual(show.track.keyframes)
+    expect(posed.state.paused).toBe(true)
+    expect(posed.animation.currentTime).toBe(1200)
+
+    act(() => result.current.pose(show.track, 300))
+    expect(harness.animateCalls).toHaveLength(1)
+    expect(posed.animation.currentTime).toBe(300)
+
+    act(() => result.current.pose(null))
+    expect(posed.state.canceled).toBe(true)
+  })
+
+  it('lets a spin take the rotor back from a pose', () => {
+    const { result } = renderSpin(PLAIN)
+    const show = result.current.preview()
+    if (!show) throw new Error('no show')
+    act(() => result.current.pose(show.track, 1200))
+    act(() => result.current.spin())
+    expect(harness.animateCalls[0].state.canceled).toBe(true)
+    expect(harness.animateCalls).toHaveLength(2)
   })
 })
