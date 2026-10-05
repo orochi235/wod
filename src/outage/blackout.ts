@@ -1,8 +1,22 @@
 import { type Motion, WHEEL } from '../clock/motion'
-import { blackoutPatch } from './voices'
+import { blackoutVoice } from './voices'
 import './blackout.css'
 
 export type Blackout = { stop(): void }
+
+/** The window's blackout layer, at whatever darkness it is told. */
+export type BlackoutCover = { set(darkness: number): void; remove(): void }
+
+export function createBlackoutCover(doc: Document = document): BlackoutCover {
+  const cover = doc.createElement('div')
+  cover.className = 'outage-blackout'
+  cover.setAttribute('aria-hidden', 'true')
+  doc.body.appendChild(cover)
+  return {
+    set: (darkness) => cover.style.setProperty('--blackout', String(darkness)),
+    remove: () => cover.remove(),
+  }
+}
 
 /**
  * Blacks out the window from `startAt` on the motion's clock, flickers it on the
@@ -15,20 +29,11 @@ export function cueBlackout(
   doc: Document = document,
 ): Blackout {
   const { ticker, wheel } = motion
-  const cover = doc.createElement('div')
-  cover.className = 'outage-blackout'
-  cover.setAttribute('aria-hidden', 'true')
-  doc.body.appendChild(cover)
-
-  const voice = wheel.cue({
-    patch: blackoutPatch(depth),
-    subjects: [WHEEL],
-    start: startAt,
-    loop: false,
-  })
+  const cover = createBlackoutCover(doc)
+  const voice = wheel.cue(blackoutVoice(depth, startAt))
   const release = ticker.stay()
   const off = ticker.subscribe(() => {
-    cover.style.setProperty('--blackout', String(wheel.probe(WHEEL).blackout ?? 0))
+    cover.set(wheel.probe(WHEEL).blackout ?? 0)
   })
 
   let stopped = false

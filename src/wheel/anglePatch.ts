@@ -1,5 +1,5 @@
-import { type Patch, patch } from '@msb235/blits'
-import type { WheelPose } from '../clock/motion'
+import { type Patch, type VoiceSpec, patch } from '@msb235/blits'
+import { WHEEL, type WheelPose } from '../clock/motion'
 import { angleAt } from './outage'
 import type { RotationTrack } from './rotation'
 
@@ -23,4 +23,9 @@ export function anglePatch(track: RotationTrack): Patch<string, WheelPose, void>
     },
     { writes: ['angle', 'speed'] },
   )
+}
+
+/** The angle voice for a spin that starts at `start` on the motion's clock. */
+export function angleVoice(track: RotationTrack, start: number): VoiceSpec<string, WheelPose> {
+  return { patch: anglePatch(track), subjects: [WHEEL], start, loop: false, hold: 'after' }
 }

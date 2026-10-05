@@ -3,15 +3,14 @@ import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { composeSegments, sameFrame } from '../clock/compose'
 import { cueMorphs } from '../clock/morphVoices'
-import { type Motion, WHEEL } from '../clock/motion'
-import { anglePatch } from './anglePatch'
-import { landingSegments } from './morph'
-import { type OutagePlan, withOutage } from './outage'
+import type { Motion } from '../clock/motion'
+import { angleVoice } from './anglePatch'
+import type { OutagePlan } from './outage'
 import type { PegMode } from './pegs'
-import { invertTrack, rotationTrack } from './rotation'
-import type { SelectionStrategy } from './selection'
+import { invertTrack } from './rotation'
 import { cryptoRng, weightedRandom } from './selection'
-import { planSpin } from './spin'
+import type { SelectionStrategy } from './selection'
+import { planShow } from './show'
 import type { Morph, Segment, SpinConfig } from './types'
 
 export const REDUCED_MOTION_MS = 300
@@ -203,16 +202,23 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
       const spinConfig = override.config ?? config
       const strategy = override.strategy ?? weightedRandom
 
-      const plan = planSpin(spinSegments, spinConfig, strategy, cryptoRng, override.catchPegs)
-      if (!plan) return
-
-      const lateMorphs = override.resolveLate?.(plan.winnerId)
-      const morphs = lateMorphs ?? spinConfig.morphs
-      // plan.landing was sampled from pass 1 and still shows the pre-swap
-      // labels; landing on it would undo the trick as it fires.
-      const landedFrame = lateMorphs
-        ? landingSegments(spinSegments, lateMorphs, spinConfig.durationMs)
-        : plan.landing
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+      const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
+      // Reduced motion gets the plain spin: a blackout and a stall are exactly
+      // the motion it asks to be spared.
+      const show = planShow({
+        segments: spinSegments,
+        config: spinConfig,
+        strategy,
+        rng: cryptoRng,
+        from: rotationRef.current,
+        durationMs,
+        outage: !reduceMotion,
+        resolveLate: override.resolveLate,
+        catchPegs: override.catchPegs,
+      })
+      if (!show) return
+      const { plan, morphs, landedFrame, track, outagePlan } = show
 
       stopTracks()
       spinningRef.current = true
@@ -228,19 +234,6 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
       // never published, so it must not count as having synced to it.
       lastSegmentsRef.current = segments
 
-      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-      const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
-
-      const from = rotationRef.current
-      const planned = rotationTrack(from, plan.restingRotationDeg, spinConfig, durationMs)
-      // Reduced motion gets the plain spin: a blackout and a stall are exactly
-      // the motion it asks to be spared.
-      const outaged =
-        spinConfig.outage && !reduceMotion && durationMs > 0
-          ? withOutage(planned, spinConfig.outage)
-          : null
-      const track = outaged?.track ?? planned
-      const outagePlan = outaged?.plan ?? null
       // The rotor and the wheel mix both read the document timeline; pinning
       // WAAPI's start to this same instant keeps the angle voice on the pixels.
       const startedAt = motion.ticker.now()
@@ -282,13 +275,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
         }).startTime = startedAt
       }
 
-      angleVoiceRef.current = motion.wheel.cue({
-        patch: anglePatch(track),
-        subjects: [WHEEL],
-        start: startedAt,
-        loop: false,
-        hold: 'after',
-      })
+      angleVoiceRef.current = motion.wheel.cue(angleVoice(track, startedAt))
       motion.ticker.wake()
 
       // Track 2: geometry, on the wedge mix. Morphs are authored against the spin's own
@@ -299,7 +286,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
           wedges,
           spinSegments,
           morphs,
-          startedAt + (outagePlan?.resumedAtMs ?? 0),
+          startedAt + show.morphsAt,
           spinConfig.durationMs / durationMs,
         )
         let shown = spinSegments

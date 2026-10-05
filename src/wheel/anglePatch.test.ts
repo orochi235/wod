@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { WHEEL } from '../clock/motion'
 import { fakeMotion } from '../clock/testing'
-import { anglePatch } from './anglePatch'
+import { angleVoice } from './anglePatch'
 import { angleAt, withOutage } from './outage'
 import { rotationTrack } from './rotation'
 import type { RotationTrack } from './rotation'
@@ -17,13 +17,7 @@ const OUTAGE = withOutage(SETTLE, { cruiseMs: 1500, sparkMs: 800 }).track
 
 function cued(track: RotationTrack, start = 1000) {
   const fake = fakeMotion()
-  fake.motion.wheel.cue({
-    patch: anglePatch(track),
-    subjects: [WHEEL],
-    start,
-    loop: false,
-    hold: 'after',
-  })
+  fake.motion.wheel.cue(angleVoice(track, start))
   fake.motion.ticker.wake()
   const read = (t: number) => {
     fake.step(t)
