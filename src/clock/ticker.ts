@@ -11,6 +11,8 @@ export type Ticker = {
   /** Keeps frames coming, whatever the mixes say, until the returned release is called. */
   stay(): () => void
   wake(): void
+  /** Cancels the waiting frame; the next `wake` or `stay` starts the loop again. */
+  stop(): void
 }
 
 // The rotor's WAAPI animation runs on the document timeline; the mixes must read the same clock.
@@ -21,6 +23,7 @@ const timelineNow = () =>
 export function createTicker(mixes: readonly Syncable[], timing: TickerTiming = {}): Ticker {
   const now = timing.now ?? timelineNow
   const raf = timing.raf ?? ((callback) => requestAnimationFrame(callback))
+  const caf = timing.caf ?? ((id) => cancelAnimationFrame(id))
   const subscribers = new Set<Frame>()
   let holds = 0
   let pending: number | null = null
@@ -58,5 +61,9 @@ export function createTicker(mixes: readonly Syncable[], timing: TickerTiming = 
       }
     },
     wake: schedule,
+    stop() {
+      if (pending !== null) caf(pending)
+      pending = null
+    },
   }
 }

@@ -115,7 +115,9 @@ vanish's negative delta.
 **Stays:** recipes returning `Morph[]`, `EASINGS` (blits accepts easing
 functions; see Tricks for how stops are retimed), `parseHex` (now
 `src/wheel/hex.ts`, which recipes validate colors with), the rotor's WAAPI
-animation, the audio graph on the audio clock, klieg, magicsmoke,
+animation, the audio graph on the audio clock, klieg on its own loop (every
+active motion the banner rolls — float, pulse, shimmer — cycles without rest,
+so it redraws every frame it is up), magicsmoke,
 `schedule.ts` as the one show timeline.
 
 ## Tricks

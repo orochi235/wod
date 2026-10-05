@@ -1,8 +1,9 @@
 import { keys, mix } from '@msb235/blits'
-import { describe, expect, it } from 'vitest'
+import { renderHook } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { blackoutVoice } from '../outage/voices'
 import { manualMotion } from './manual'
-import { WHEEL, type WedgePose, type WheelPose, wedgeKit } from './motion'
+import { WHEEL, type WedgePose, type WheelPose, useMotionRoot, wedgeKit } from './motion'
 import { fakeMotion } from './testing'
 
 describe('the wheel mix', () => {
@@ -142,5 +143,16 @@ describe('the wedge mix', () => {
     for (let t = 0; t <= 2000; t += 16) step(t)
     release()
     expect(motion.wheel.project(400).probe(WHEEL).blackout).toBeGreaterThan(0)
+  })
+})
+
+describe('useMotionRoot', () => {
+  it('cancels the waiting frame when its page leaves', () => {
+    const cancel = vi.spyOn(globalThis, 'cancelAnimationFrame')
+    const { result, unmount } = renderHook(() => useMotionRoot())
+    result.current.ticker.wake()
+    unmount()
+    expect(cancel).toHaveBeenCalledTimes(1)
+    cancel.mockRestore()
   })
 })

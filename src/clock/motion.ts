@@ -1,5 +1,5 @@
 import { type Kit, type Mix, hex, kit, last, max, mix, sum } from '@msb235/blits'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { type PresencePose, presenceChannels } from '../transition/channels'
 import type { Media, Reveal } from '../wheel/types'
 import { type Ticker, type TickerTiming, createTicker } from './ticker'
@@ -71,8 +71,9 @@ export function createMotion(timing?: TickerTiming, { historyMs }: MotionOptions
   return { ticker: createTicker([wheel, wedges], timing), wheel, wedges }
 }
 
-/** One motion per page, made on first render. Its owners unsubscribe; it holds nothing itself. */
+/** One motion per page, made on first render; leaving the page cancels its waiting frame. */
 export function useMotionRoot(): Motion {
   const [motion] = useState(() => createMotion())
+  useEffect(() => () => motion.ticker.stop(), [motion])
   return motion
 }

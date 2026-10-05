@@ -80,6 +80,18 @@ describe('createTicker', () => {
     expect(fn).not.toHaveBeenCalled()
   })
 
+  it('cancels the waiting frame when stopped, and runs again once woken', () => {
+    const { mix, ticker, step, waiting } = harness(false)
+    ticker.wake()
+    ticker.stop()
+    expect(waiting()).toBe(0)
+    step(16)
+    expect(mix.sync).not.toHaveBeenCalled()
+    ticker.wake()
+    step(32)
+    expect(mix.sync).toHaveBeenCalledWith(32)
+  })
+
   it('keeps the clock running when a subscriber throws', () => {
     const { ticker, step, waiting } = harness(false)
     ticker.subscribe(() => {
