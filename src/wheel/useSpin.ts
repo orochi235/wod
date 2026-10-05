@@ -3,15 +3,14 @@ import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { composeSegments, sameFrame } from '../clock/compose'
 import { cueMorphs } from '../clock/morphVoices'
-import { type Motion, WHEEL } from '../clock/motion'
-import { anglePatch } from './anglePatch'
-import { landingSegments } from './morph'
-import { type OutagePlan, withOutage } from './outage'
+import type { Motion } from '../clock/motion'
+import { angleVoice } from './anglePatch'
+import type { OutagePlan } from './outage'
 import type { PegMode } from './pegs'
-import { invertTrack, rotationTrack } from './rotation'
-import type { SelectionStrategy } from './selection'
+import { type RotationTrack, invertTrack } from './rotation'
 import { cryptoRng, weightedRandom } from './selection'
-import { planSpin } from './spin'
+import type { SelectionStrategy } from './selection'
+import { type Show, planShow } from './show'
 import type { Morph, Segment, SpinConfig } from './types'
 
 export const REDUCED_MOTION_MS = 300
@@ -73,7 +72,20 @@ export type UseSpinResult = {
   levelRef: (id: string, restingDeg: number) => (element: SVGGElement | null) => void
   /** Registers an element outside the rotor that should turn with it anyway. */
   riderRef: (element: SVGGElement | null) => void
+  /**
+   * The spin a press of Spin would make now, from where the wheel rests, drawn
+   * the same way every time and at the authored length. Plays nothing.
+   */
+  preview: (override?: SpinOverride) => Show | null
+  /**
+   * Holds the rotor, its rider and its level groups `ms` into `track`, paused,
+   * over whatever the last spin left; null hands them back. A spin takes them back too.
+   */
+  pose: (track: RotationTrack | null, ms?: number) => void
 }
+
+/** The preview's draw: a fixed one, so the scrubbed show stays put between plannings. */
+const PREVIEW_RNG = () => 0.5
 
 export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion): UseSpinResult {
   const rotorRef = useRef<SVGGElement | null>(null)
@@ -175,7 +187,50 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
     morphVoicesRef.current = []
   }, [])
 
+  const posed = useRef<{ track: RotationTrack; animations: Animation[] } | null>(null)
+
+  const pose = useCallback(
+    (track: RotationTrack | null, ms = 0) => {
+      if (posed.current && posed.current.track !== track) {
+        for (const animation of posed.current.animations) animation.cancel()
+        posed.current = null
+      }
+      if (!track) return
+      if (!posed.current) {
+        const timing = { duration: track.durationMs, easing: track.easing, fill: 'both' as const }
+        const animations = [rotorRef.current, rider.current].flatMap((element) =>
+          element ? [element.animate(track.keyframes, timing)] : [],
+        )
+        for (const [id, element] of levels) {
+          animations.push(element.animate(invertTrack(track, restingDegs.get(id) ?? 0), timing))
+        }
+        for (const animation of animations) animation.pause()
+        posed.current = { track, animations }
+      }
+      for (const animation of posed.current.animations) animation.currentTime = ms
+    },
+    [levels, restingDegs],
+  )
+
+  const preview = useCallback(
+    (override: SpinOverride = {}) => {
+      const spinConfig = override.config ?? config
+      return planShow({
+        segments: override.segments ?? segments,
+        config: spinConfig,
+        strategy: override.strategy,
+        rng: PREVIEW_RNG,
+        from: rotationRef.current,
+        durationMs: spinConfig.durationMs,
+        resolveLate: override.resolveLate,
+        catchPegs: override.catchPegs,
+      })
+    },
+    [segments, config],
+  )
+
   const stopTracks = useCallback(() => {
+    pose(null)
     stopMorphs()
     animationRef.current?.cancel()
     animationRef.current = null
@@ -183,7 +238,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
     riderAnimation.current = null
     angleVoiceRef.current?.fade({ over: 0 })
     angleVoiceRef.current = null
-  }, [stopMorphs])
+  }, [stopMorphs, pose])
 
   useEffect(() => {
     mountedRef.current = true
@@ -203,16 +258,23 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
       const spinConfig = override.config ?? config
       const strategy = override.strategy ?? weightedRandom
 
-      const plan = planSpin(spinSegments, spinConfig, strategy, cryptoRng, override.catchPegs)
-      if (!plan) return
-
-      const lateMorphs = override.resolveLate?.(plan.winnerId)
-      const morphs = lateMorphs ?? spinConfig.morphs
-      // plan.landing was sampled from pass 1 and still shows the pre-swap
-      // labels; landing on it would undo the trick as it fires.
-      const landedFrame = lateMorphs
-        ? landingSegments(spinSegments, lateMorphs, spinConfig.durationMs)
-        : plan.landing
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+      const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
+      // Reduced motion gets the plain spin: a blackout and a stall are exactly
+      // the motion it asks to be spared.
+      const show = planShow({
+        segments: spinSegments,
+        config: spinConfig,
+        strategy,
+        rng: cryptoRng,
+        from: rotationRef.current,
+        durationMs,
+        outage: !reduceMotion,
+        resolveLate: override.resolveLate,
+        catchPegs: override.catchPegs,
+      })
+      if (!show) return
+      const { plan, morphs, landedFrame, track, outagePlan } = show
 
       stopTracks()
       spinningRef.current = true
@@ -228,19 +290,6 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
       // never published, so it must not count as having synced to it.
       lastSegmentsRef.current = segments
 
-      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-      const durationMs = reduceMotion ? REDUCED_MOTION_MS : spinConfig.durationMs
-
-      const from = rotationRef.current
-      const planned = rotationTrack(from, plan.restingRotationDeg, spinConfig, durationMs)
-      // Reduced motion gets the plain spin: a blackout and a stall are exactly
-      // the motion it asks to be spared.
-      const outaged =
-        spinConfig.outage && !reduceMotion && durationMs > 0
-          ? withOutage(planned, spinConfig.outage)
-          : null
-      const track = outaged?.track ?? planned
-      const outagePlan = outaged?.plan ?? null
       // The rotor and the wheel mix both read the document timeline; pinning
       // WAAPI's start to this same instant keeps the angle voice on the pixels.
       const startedAt = motion.ticker.now()
@@ -282,13 +331,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
         }).startTime = startedAt
       }
 
-      angleVoiceRef.current = motion.wheel.cue({
-        patch: anglePatch(track),
-        subjects: [WHEEL],
-        start: startedAt,
-        loop: false,
-        hold: 'after',
-      })
+      angleVoiceRef.current = motion.wheel.cue(angleVoice(track, startedAt))
       motion.ticker.wake()
 
       // Track 2: geometry, on the wedge mix. Morphs are authored against the spin's own
@@ -299,7 +342,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
           wedges,
           spinSegments,
           morphs,
-          startedAt + (outagePlan?.resumedAtMs ?? 0),
+          startedAt + show.morphsAt,
           spinConfig.durationMs / durationMs,
         )
         let shown = spinSegments
@@ -357,5 +400,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
     rotorRef,
     levelRef,
     riderRef,
+    preview,
+    pose,
   }
 }

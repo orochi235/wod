@@ -1,5 +1,7 @@
 import { keys, mix } from '@msb235/blits'
 import { describe, expect, it } from 'vitest'
+import { blackoutVoice } from '../outage/voices'
+import { manualMotion } from './manual'
 import { WHEEL, type WedgePose, type WheelPose, wedgeKit } from './motion'
 import { fakeMotion } from './testing'
 
@@ -131,5 +133,14 @@ describe('the wedge mix', () => {
     motion.ticker.wake()
     step(50)
     expect(motion.wedges.probe('x').weight).toBe(2)
+  })
+
+  it('reads back over a show when made with history', () => {
+    const { motion, step } = manualMotion({ historyMs: 10_000 })
+    motion.wheel.cue(blackoutVoice(1, 0))
+    const release = motion.ticker.stay()
+    for (let t = 0; t <= 2000; t += 16) step(t)
+    release()
+    expect(motion.wheel.project(400).probe(WHEEL).blackout).toBeGreaterThan(0)
   })
 })

@@ -311,6 +311,7 @@ describe('Editor overrides', () => {
 function installSpinHarness() {
   const finishers: (() => void)[] = []
   const keyframes: Keyframe[][] = []
+  const animations: { animation: Animation; paused: boolean; canceled: boolean }[] = []
   const realAnimate = Element.prototype.animate
   Element.prototype.animate = function animate(
     frames: Keyframe[] | PropertyIndexedKeyframes | null,
@@ -320,7 +321,19 @@ function installSpinHarness() {
     const finished = new Promise<Animation>((resolve) => {
       settle = resolve
     })
-    const animation = { finished, cancel: () => undefined } as unknown as Animation
+    const record = { animation: {} as Animation, paused: false, canceled: false }
+    const animation = {
+      finished,
+      currentTime: null,
+      pause: () => {
+        record.paused = true
+      },
+      cancel: () => {
+        record.canceled = true
+      },
+    } as unknown as Animation
+    record.animation = animation
+    animations.push(record)
     finishers.push(() => settle(animation))
     return animation
   } as unknown as Element['animate']
@@ -330,6 +343,7 @@ function installSpinHarness() {
 
   return {
     keyframes,
+    animations,
     async land() {
       for (const finish of finishers) finish()
       // Two ticks: one for `finished.then`, one for the state it sets.
@@ -345,6 +359,49 @@ function installSpinHarness() {
 describe('Editor spin', () => {
   beforeEach(() => {
     resetUnlocked()
+  })
+
+  it('holds the rotor at the scrubbed instant of the planned spin', () => {
+    const harness = installSpinHarness()
+    try {
+      render(<Editor />)
+      fireEvent.change(screen.getByLabelText(/scrub/i), { target: { value: '2000' } })
+      const posed = harness.animations.filter((a) => a.paused)
+      expect(posed.length).toBeGreaterThan(0)
+      for (const { animation } of posed) expect(animation.currentTime).toBe(2000)
+      expect(screen.getByText('2.00 s')).toBeInTheDocument()
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('scrubs to the landed wheel at the end of the show', async () => {
+    const harness = installSpinHarness()
+    try {
+      render(<Editor />)
+      await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+      const slider = screen.getByLabelText(/scrub/i)
+      fireEvent.change(slider, { target: { value: slider.getAttribute('max') } })
+      // The same full-share takeover a spin lands on: one label left.
+      expect(wheelHas('free beer')).toBe(true)
+      expect(wheelHas(FIRST.label)).toBe(false)
+    } finally {
+      harness.restore()
+    }
+  })
+
+  it('hands the rotor to a spin pressed after scrubbing', async () => {
+    const harness = installSpinHarness()
+    try {
+      render(<Editor />)
+      fireEvent.change(screen.getByLabelText(/scrub/i), { target: { value: '2000' } })
+      const posed = harness.animations.filter((a) => a.paused)
+      await userEvent.click(screen.getByRole('button', { name: /spin/i }))
+      for (const record of posed) expect(record.canceled).toBe(true)
+      expect(document.querySelector('.outage-blackout')).toBeNull()
+    } finally {
+      harness.restore()
+    }
   })
 
   it('keeps the landed wheel on screen after the spin ends', async () => {

@@ -1,5 +1,6 @@
 import type { FontId } from '../slice/types'
-import type { PegMode } from './pegs'
+import type { Arc } from './geometry'
+import { type PegMode, pegAngles } from './pegs'
 
 /**
  * Every part a theme may switch. `wedge`, `label`, and `pointer` are missing on
@@ -61,4 +62,9 @@ export const FLAT_METRICS: Metrics = {
 
 export function partOn(theme: Theme, part: WheelPart): boolean {
   return theme.parts[part] === true
+}
+
+/** Where a look puts its pegs on these arcs, as turns: none for a look without them. */
+export function pegsOn(theme: Theme, arcs: Arc[]): number[] {
+  return partOn(theme, 'peg') ? pegAngles(theme.pegs, arcs) : []
 }

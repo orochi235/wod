@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fakeMotion } from '../clock/testing'
-import { cueBlackout } from './blackout'
+import { createBlackoutCover, cueBlackout } from './blackout'
 import { blackoutKeyframes, blackoutMs } from './schedule'
 
 const cover = () => document.querySelector<HTMLElement>('.outage-blackout')
@@ -45,5 +45,14 @@ describe('cueBlackout', () => {
     const second = cueBlackout(motion, 100, 1)
     expect(document.querySelectorAll('.outage-blackout')).toHaveLength(1)
     second.stop()
+  })
+
+  it('makes a cover that sets its own darkness and leaves', () => {
+    const cover = createBlackoutCover(document)
+    cover.set(0.4)
+    const node = document.querySelector('.outage-blackout') as HTMLElement
+    expect(node.style.getPropertyValue('--blackout')).toBe('0.4')
+    cover.remove()
+    expect(document.querySelector('.outage-blackout')).toBeNull()
   })
 })

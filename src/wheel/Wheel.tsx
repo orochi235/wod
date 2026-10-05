@@ -1,6 +1,6 @@
 import type { Ref } from 'react'
-import { useCallback, useEffect, useId, useMemo, useRef } from 'react'
-import type { Motion } from '../clock/motion'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react'
+import { type Motion, WHEEL } from '../clock/motion'
 import type { Hub } from '../preset/types'
 import type { Breakpoint } from '../slice/breakpoints'
 import { createFit } from '../slice/fit'
@@ -18,8 +18,7 @@ import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
 import { wantsInverseInk } from './ink'
 import { panelPath } from './panel'
-import { pegAngles } from './pegs'
-import { partOn } from './theme'
+import { partOn, pegsOn } from './theme'
 import type { Theme } from './theme'
 import { styleOfTheme } from './themeStyle'
 import { flat } from './themes/flat'
@@ -70,6 +69,8 @@ export type WheelProps = {
   hub?: Hub
   /** Registers the hub group so a spin can turn it from outside the rotor. */
   riderRef?: (element: SVGGElement | null) => void
+  /** Holds the flapper arm at this deflection instead of the wheel mix's, as a scrub does. */
+  flapperDeg?: number
 }
 
 /**
@@ -118,24 +119,27 @@ export function Wheel({
   muted = false,
   hub,
   riderRef,
+  flapperDeg,
 }: WheelProps) {
   const emblemId = useId()
   // Per wheel, not per wedge: two wheels on one page draw the same segment ids,
   // and a clip path is resolved by id across the whole document.
   const clipBase = `wedge-${useId()}`
   const { drawn, wedgeRef } = usePresence(segments, transitions, held, motion, retainedRef)
-  const pegs = partOn(theme, 'peg')
-    ? pegAngles(
-        theme.pegs,
-        drawn.map((item) => item.arc),
-      )
-    : []
+  const pegs = pegsOn(
+    theme,
+    drawn.map((item) => item.arc),
+  )
   const rim = partOn(theme, 'rim') ? theme.metrics.rimWidth : 0
   const half = radius + rim + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`
 
   const hasFlapper = partOn(theme, 'flapper')
   const armRef = useRef<SVGGElement>(null)
+  const writeArm = useCallback(
+    (deg: number) => armRef.current?.setAttribute('transform', `rotate(${deg.toFixed(3)})`),
+    [],
+  )
 
   const clickerRef = useRef<ReturnType<typeof createClicker> | null>(null)
   // On demand and never during render, so a caller after a cleanup gets a live
@@ -155,12 +159,17 @@ export function Wheel({
     if (!hasFlapper) return
     return trackFlapper(motion, {
       pegs: () => pegsRef.current,
-      write: (deg) => armRef.current?.setAttribute('transform', `rotate(${deg.toFixed(3)})`),
+      write: writeArm,
       click: (count, speed) => {
         if (!silentRef.current) clicker().click(count, speed)
       },
     })
-  }, [motion, hasFlapper, clicker])
+  }, [motion, hasFlapper, clicker, writeArm])
+
+  useLayoutEffect(() => {
+    if (!hasFlapper) return
+    writeArm(flapperDeg ?? motion.wheel.probe(WHEEL).deflection ?? 0)
+  }, [flapperDeg, motion, hasFlapper, writeArm])
 
   useEffect(() => {
     const unlock = () => clicker().unlock()

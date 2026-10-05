@@ -569,6 +569,17 @@ describe('parts', () => {
     expect(renders).toBe(before)
   })
 
+  it('holds the flapper arm where the caller puts it, then hands it back', () => {
+    const fake = fakeMotion()
+    const { container, rerender } = render(
+      <Wheel motion={fake.motion} segments={segments} theme={wof} flapperDeg={12} />,
+    )
+    const arm = container.querySelector('.wheel__flapper-arm')
+    expect(arm?.getAttribute('transform')).toBe('rotate(12.000)')
+    rerender(<Wheel motion={fake.motion} segments={segments} theme={wof} />)
+    expect(arm?.getAttribute('transform')).toBe('rotate(0.000)')
+  })
+
   it('measures again once the label face has loaded', async () => {
     // The first render measures against whatever the fallback is, because the
     // webfont has not arrived — and the measurer caches per string, so those

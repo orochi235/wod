@@ -1,8 +1,8 @@
 import { type RefObject, useEffect, useRef } from 'react'
-import { type Motion, WHEEL } from '../clock/motion'
+import type { Motion } from '../clock/motion'
 import type { OutageRun } from '../wheel/useSpin'
 import { type CreateFx, type Fx, createFx } from './fx'
-import { darkPatch } from './voices'
+import { darkVoice } from './voices'
 
 export type UseOutageFxOptions = {
   targetRef: RefObject<Element | null>
@@ -39,12 +39,7 @@ export function useOutageFx(
   useEffect(() => {
     if (!run) return
     const { ticker, wheel } = motion
-    const voice = wheel.cue({
-      patch: darkPatch(run.plan),
-      subjects: [WHEEL],
-      start: run.startedAt,
-      loop: false,
-    })
+    const voice = wheel.cue(darkVoice(run.plan, run.startedAt))
     ticker.wake()
     return () => voice.fade({ over: 0 })
   }, [run, motion])
