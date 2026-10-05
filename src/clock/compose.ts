@@ -1,4 +1,4 @@
-import { type Mix, mix } from '@msb235/blits'
+import { mix } from '@msb235/blits'
 import { hexString } from '../wheel/hex'
 import type { Morph, Segment } from '../wheel/types'
 import { cueMorphs } from './morphVoices'
@@ -23,7 +23,11 @@ export function composeSegment(base: Segment, pose: WedgePose): Segment {
   return { ...base, weight, color, label, media, reveal }
 }
 
-export function composeSegments(segments: Segment[], wedges: Mix<string, WedgePose>): Segment[] {
+/** `wedges` is the mix, or a projection of it. */
+export function composeSegments(
+  segments: Segment[],
+  wedges: { probe(subject: string): WedgePose },
+): Segment[] {
   return segments.map((segment) => composeSegment(segment, wedges.probe(segment.id)))
 }
 

@@ -61,9 +61,13 @@ export type Motion = {
   wedges: Mix<string, WedgePose>
 }
 
-export function createMotion(timing?: TickerTiming): Motion {
-  const wheel = mix<string, WheelPose>(wheelKit)
-  const wedges = mix<string, WedgePose>(wedgeKit)
+/** `historyMs`: how far back `project` may read on both mixes. */
+export type MotionOptions = { historyMs?: number }
+
+export function createMotion(timing?: TickerTiming, { historyMs }: MotionOptions = {}): Motion {
+  const options = historyMs ? { history: { ms: historyMs } } : {}
+  const wheel = mix<string, WheelPose>(wheelKit, options)
+  const wedges = mix<string, WedgePose>(wedgeKit, options)
   return { ticker: createTicker([wheel, wedges], timing), wheel, wedges }
 }
 
