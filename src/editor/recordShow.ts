@@ -6,8 +6,8 @@ import { WHEEL } from '../clock/motion'
 import { blackoutVoice, darkVoice } from '../outage/voices'
 import { angleVoice } from '../wheel/anglePatch'
 import { arcs } from '../wheel/geometry'
-import { type PegMode, pegAngles } from '../wheel/pegs'
 import type { Show } from '../wheel/show'
+import { type Theme, partOn, pegsOn } from '../wheel/theme'
 import { trackFlapper } from '../wheel/trackFlapper'
 import type { Segment } from '../wheel/types'
 
@@ -19,8 +19,9 @@ export type Recording = {
 }
 
 export type RecordOptions = {
-  /** The pegs the flapper meets; null for a look without a flapper. */
-  pegs: PegMode | null
+  /** The look, which decides whether there is a flapper and which pegs it meets. */
+  theme: Theme
+  /** How dark the blackout gets, 0..1. */
   depth: number
 }
 
@@ -28,7 +29,7 @@ export type RecordOptions = {
  * Plays a show once on a clock of its own, at 60 fps, keeping history, so any
  * instant of it reads back exactly. Nothing it plays reaches the page.
  */
-export function recordShow(show: Show, { pegs, depth }: RecordOptions): Recording {
+export function recordShow(show: Show, { theme, depth }: RecordOptions): Recording {
   const durationMs = show.track.durationMs
   const { motion, step } = manualMotion({ historyMs: durationMs + 1000 })
   const { wheel, wedges, ticker } = motion
@@ -38,9 +39,9 @@ export function recordShow(show: Show, { pegs, depth }: RecordOptions): Recordin
     wheel.cue(blackoutVoice(depth, show.outagePlan.popAtMs))
   }
   if (show.morphs.length > 0) cueMorphs(wedges, show.segments, show.morphs, show.morphsAt)
-  if (pegs) {
+  if (partOn(theme, 'flapper')) {
     trackFlapper(motion, {
-      pegs: () => pegAngles(pegs, arcs(composeSegments(show.segments, wedges))),
+      pegs: () => pegsOn(theme, arcs(composeSegments(show.segments, wedges))),
       write: () => undefined,
       click: () => undefined,
     })

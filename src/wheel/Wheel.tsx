@@ -18,8 +18,7 @@ import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
 import { wantsInverseInk } from './ink'
 import { panelPath } from './panel'
-import { pegAngles } from './pegs'
-import { partOn } from './theme'
+import { partOn, pegsOn } from './theme'
 import type { Theme } from './theme'
 import { styleOfTheme } from './themeStyle'
 import { flat } from './themes/flat'
@@ -127,12 +126,10 @@ export function Wheel({
   // and a clip path is resolved by id across the whole document.
   const clipBase = `wedge-${useId()}`
   const { drawn, wedgeRef } = usePresence(segments, transitions, held, motion, retainedRef)
-  const pegs = partOn(theme, 'peg')
-    ? pegAngles(
-        theme.pegs,
-        drawn.map((item) => item.arc),
-      )
-    : []
+  const pegs = pegsOn(
+    theme,
+    drawn.map((item) => item.arc),
+  )
   const rim = partOn(theme, 'rim') ? theme.metrics.rimWidth : 0
   const half = radius + rim + VIEWBOX_PAD
   const viewBox = `${-half} ${-half} ${half * 2} ${half * 2}`

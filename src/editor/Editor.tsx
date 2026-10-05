@@ -16,7 +16,7 @@ import { resolveTricks } from '../tricks/resolve'
 import { Wheel } from '../wheel/Wheel'
 import { flat } from '../wheel/themes/flat'
 import { getTheme } from '../wheel/themes/registry'
-import type { Segment, SpinConfig } from '../wheel/types'
+import type { SpinConfig } from '../wheel/types'
 import { useSpin } from '../wheel/useSpin'
 import './Editor.css'
 import { FeedPanel } from './FeedPanel'
@@ -32,6 +32,7 @@ import { ThemePanel } from './ThemePanel'
 import { TransitionPanel } from './TransitionPanel'
 import { Transport } from './Transport'
 import { TrickLibrary } from './TrickLibrary'
+import { useScrub } from './useScrub'
 
 /**
  * Never a bare `items[feedId]`, for the same reason composeBase avoids one: a
@@ -142,6 +143,7 @@ export function Editor() {
   )
 
   const motion = useMotionRoot()
+  const spinner = useSpin(resolved.segments, spinConfig, motion)
   const {
     displaySegments,
     layoutSegments,
@@ -151,34 +153,44 @@ export function Editor() {
     rotorRef,
     levelRef,
     riderRef,
-  } = useSpin(resolved.segments, spinConfig, motion)
+  } = spinner
   // The editor previews the sparks and a half-dark room, silently: the show
   // window is the one that makes noise.
   const wheelRef = useRef<HTMLElement | null>(null)
   useOutageFx(outage, { targetRef: wheelRef, depth: 0.6, sound: false, muted: true, motion })
-  const [scrubbed, setScrubbed] = useState<Segment[] | null>(null)
+  const theme = getTheme(preset.theme ?? '') ?? flat
+
+  const override = useMemo(
+    () => ({
+      resolveLate: (winnerId: string) =>
+        resolveTricks(base, preset.tricks, preset.spin.motion.durationMs, 0, winnerId).morphs,
+    }),
+    [base, preset.tricks, preset.spin.motion.durationMs],
+  )
+  const scrub = useScrub({ spinner, override, theme, depth: 0.6 })
   // Handing the wheel back to the scrubber the moment `isSpinning` goes false
   // would erase the landing — the one frame the whole trick exists to produce.
   // `useSpin` keeps that geometry in `displaySegments`, so the editor holds it
   // until the operator moves the scrubber again.
   const [spun, setSpun] = useState(false)
 
-  const handleScrub = useCallback((segments: Segment[]) => {
-    setScrubbed(segments)
-    setSpun(false)
-  }, [])
+  const handleScrub = useCallback(
+    (ms: number) => {
+      setSpun(false)
+      scrub.scrub(ms)
+    },
+    [scrub.scrub],
+  )
 
   const handleSpin = useCallback(() => {
     setSpun(true)
-    spin({
-      resolveLate: (winnerId) =>
-        resolveTricks(base, preset.tricks, preset.spin.motion.durationMs, 0, winnerId).morphs,
-    })
-  }, [spin, base, preset.tricks, preset.spin.motion.durationMs])
+    scrub.leave()
+    spin(override)
+  }, [spin, override, scrub.leave])
 
   // A spin owns the geometry, running or landed; otherwise the scrubber does.
   const spinOwns = isSpinning || spun
-  const shown = spinOwns ? displaySegments : (scrubbed ?? resolved.segments)
+  const shown = spinOwns ? displaySegments : (scrub.segments ?? resolved.segments)
 
   return (
     <LabShell
@@ -259,15 +271,15 @@ export function Editor() {
             hub={preset.hub}
             transitions={preset.transitions}
             held={spinOwns}
-            theme={getTheme(preset.theme ?? '') ?? flat}
+            theme={theme}
+            flapperDeg={spinOwns ? undefined : scrub.flapperDeg}
             // The show window is the one that makes noise. Two windows clicking
             // over each other is not a preview of anything.
             muted
           />
           <Transport
-            segments={resolved.segments}
-            morphs={resolved.morphs}
-            durationMs={preset.spin.motion.durationMs}
+            durationMs={scrub.durationMs}
+            valueMs={scrub.valueMs}
             isSpinning={isSpinning}
             showScrub={rigVisible}
             onSpin={handleSpin}

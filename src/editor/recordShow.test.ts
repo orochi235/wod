@@ -6,8 +6,9 @@ import { WHEEL, type WheelPose } from '../clock/motion'
 import { blackoutVoice, darkVoice } from '../outage/voices'
 import { angleVoice } from '../wheel/anglePatch'
 import { arcs } from '../wheel/geometry'
-import { type PegMode, pegAngles } from '../wheel/pegs'
 import { type Show, planShow } from '../wheel/show'
+import { pegsOn } from '../wheel/theme'
+import { wof } from '../wheel/themes/wof'
 import { trackFlapper } from '../wheel/trackFlapper'
 import type { Segment, SpinConfig } from '../wheel/types'
 import { FRAME_MS, recordShow } from './recordShow'
@@ -35,10 +36,9 @@ const config: SpinConfig = {
     },
   ],
 }
-const PEGS: PegMode = { kind: 'bounds' }
 const show = planShow({ segments, config, rng: () => 0.5, from: 0, durationMs: 4500 }) as Show
 const plan = show.outagePlan as NonNullable<Show['outagePlan']>
-const recording = recordShow(show, { pegs: PEGS, depth: 0.6 })
+const recording = recordShow(show, { theme: wof, depth: 0.6 })
 
 /** The same show played live from `startedAt`, every frame stepped as the recording was. */
 function playLive(startedAt: number) {
@@ -49,7 +49,7 @@ function playLive(startedAt: number) {
   wheel.cue(blackoutVoice(0.6, startedAt + plan.popAtMs))
   cueMorphs(wedges, show.segments, show.morphs, startedAt + show.morphsAt)
   trackFlapper(live.motion, {
-    pegs: () => pegAngles(PEGS, arcs(composeSegments(show.segments, wedges))),
+    pegs: () => pegsOn(wof, arcs(composeSegments(show.segments, wedges))),
     write: () => undefined,
     click: () => undefined,
   })
@@ -118,7 +118,7 @@ describe('recordShow', () => {
   it('makes no sound', () => {
     const audio = vi.fn()
     vi.stubGlobal('AudioContext', audio)
-    const again = recordShow(show, { pegs: PEGS, depth: 0.6 })
+    const again = recordShow(show, { theme: wof, depth: 0.6 })
     for (let ms = 0; ms <= again.durationMs; ms += 250) again.at(ms)
     expect(audio).not.toHaveBeenCalled()
   })
