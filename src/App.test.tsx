@@ -979,6 +979,8 @@ describe('App banner tint', () => {
 
   it('rolls a material for a wedge that names none', async () => {
     const harness = installSpinHarness()
+    // Pinned: a roll that lands on `gem` fires wod's composed spec, not the name.
+    const zeros = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => array)
     try {
       seed('wof')
       const bk = stage()
@@ -986,8 +988,9 @@ describe('App banner tint', () => {
       await userEvent.click(screen.getByRole('button', { name: /spin/i }))
       await harness.land()
 
-      expect(LOOK_NAMES).toContain(bk.fires[0].look)
+      expect(bk.fires[0].look).toBe(LOOK_NAMES[0])
     } finally {
+      zeros.mockRestore()
       harness.restore()
     }
   })

@@ -17,10 +17,7 @@ what's next, and the traps.
 
 ## Open items
 
-1. The `App.test` case "rolls a material for a wedge that names none" failed
-   once in a combined run and then passed 3 of 3 runs alone and the next
-   combined run. The failure text was not captured. Unexplained.
-2. Nothing reads the wheel mix's `dark` channel since the clicker kept ticking
+1. Nothing reads the wheel mix's `dark` channel since the clicker kept ticking
    in the dark (`0934914`). Either something should paint it or the voice goes.
 
 ## Decisions made in conversation
