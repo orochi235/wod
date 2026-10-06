@@ -1,9 +1,17 @@
 import { keys, mix } from '@msb235/blits'
 import { renderHook } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { blackoutVoice } from '../outage/voices'
 import { manualMotion } from './manual'
-import { WHEEL, type WedgePose, type WheelPose, useMotionRoot, wedgeKit } from './motion'
+import {
+  WHEEL,
+  type WedgePose,
+  type WheelPose,
+  createMotion,
+  useMotionRoot,
+  wedgeKit,
+} from './motion'
 import { fakeMotion } from './testing'
 
 describe('the wheel mix', () => {
@@ -19,7 +27,6 @@ describe('the wheel mix', () => {
       start: 0,
       loop: false,
     })
-    motion.ticker.wake()
     const read = (t: number) => {
       step(t)
       return motion.wheel.probe(WHEEL).dark
@@ -37,7 +44,6 @@ describe('the wheel mix', () => {
         loop: false,
       })
     }
-    motion.ticker.wake()
     step(10)
     expect(motion.wheel.probe(WHEEL).blackout).toBe(0.7)
   })
@@ -50,7 +56,6 @@ describe('the wheel mix', () => {
       start: 0,
       loop: false,
     })
-    motion.ticker.wake()
     step(50)
     expect(waiting()).toBe(true)
     step(100)
@@ -69,7 +74,6 @@ describe('the wheel mix', () => {
       loop: false,
       freeze: 'after',
     })
-    motion.ticker.wake()
     step(50)
     step(100)
     step(116)
@@ -131,7 +135,6 @@ describe('the wedge mix', () => {
       start: 0,
       loop: false,
     })
-    motion.ticker.wake()
     step(50)
     expect(motion.wedges.probe('x').weight).toBe(2)
   })
@@ -139,18 +142,60 @@ describe('the wedge mix', () => {
   it('reads back over a show when made with history', () => {
     const { motion, step } = manualMotion({ historyMs: 10_000 })
     motion.wheel.cue(blackoutVoice(1, 0))
-    const release = motion.ticker.stay()
+    const release = motion.ticker.hold()
     for (let t = 0; t <= 2000; t += 16) step(t)
     release()
     expect(motion.wheel.project(400).probe(WHEEL).blackout).toBeGreaterThan(0)
   })
 })
 
+describe('createMotion', () => {
+  it('reads the document timeline the rotor runs on', () => {
+    Object.defineProperty(document, 'timeline', {
+      value: { currentTime: 1234 },
+      configurable: true,
+    })
+    try {
+      expect(createMotion().ticker.now()).toBe(1234)
+    } finally {
+      Reflect.deleteProperty(document, 'timeline')
+    }
+  })
+
+  it('wakes on a cue after sleeping', () => {
+    const { motion, step, waiting } = fakeMotion()
+    step(16)
+    expect(waiting()).toBe(false)
+    motion.wheel.cue(blackoutVoice(1, 100))
+    expect(waiting()).toBe(true)
+  })
+})
+
 describe('useMotionRoot', () => {
+  it('runs again after a StrictMode remount stops it', () => {
+    const frames = new Map<number, FrameRequestCallback>()
+    let id = 0
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
+      frames.set(++id, callback)
+      return id
+    })
+    const caf = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((i) => {
+      frames.delete(i)
+    })
+    try {
+      const { result } = renderHook(() => useMotionRoot(), { wrapper: StrictMode })
+      const sync = vi.spyOn(result.current.wheel, 'sync')
+      for (const callback of [...frames.values()]) callback(16)
+      expect(sync).toHaveBeenCalled()
+    } finally {
+      raf.mockRestore()
+      caf.mockRestore()
+    }
+  })
+
   it('cancels the waiting frame when its page leaves', () => {
     const cancel = vi.spyOn(globalThis, 'cancelAnimationFrame')
-    const { result, unmount } = renderHook(() => useMotionRoot())
-    result.current.ticker.wake()
+    const { unmount } = renderHook(() => useMotionRoot())
     unmount()
     expect(cancel).toHaveBeenCalledTimes(1)
     cancel.mockRestore()

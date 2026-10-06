@@ -46,7 +46,7 @@ export function recordShow(show: Show, { theme, depth }: RecordOptions): Recordi
       click: () => undefined,
     })
   }
-  const release = ticker.stay()
+  const release = ticker.hold()
   const frames = Math.ceil(durationMs / FRAME_MS)
   for (let i = 0; i <= frames; i++) step(i * FRAME_MS)
   release()

@@ -53,7 +53,7 @@ function playLive(startedAt: number) {
     write: () => undefined,
     click: () => undefined,
   })
-  ticker.stay()
+  ticker.hold()
   let frame = 0
   return {
     /** Steps every frame up to frame `k` and reads it. */

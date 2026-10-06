@@ -560,7 +560,6 @@ describe('parts', () => {
       loop: false,
       freeze: 'after',
     })
-    fake.motion.ticker.wake()
     act(() => {
       for (let t = 0; t <= 1000; t += 16) fake.step(t)
     })

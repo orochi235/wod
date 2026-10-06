@@ -1,8 +1,19 @@
-import { type Kit, type Mix, hex, kit, last, max, mix, sum } from '@msb235/blits'
+import {
+  type Kit,
+  type Mix,
+  type Ticker,
+  type TickerOptions,
+  hex,
+  kit,
+  last,
+  max,
+  mix,
+  sum,
+  ticker,
+} from '@msb235/blits'
 import { useEffect, useState } from 'react'
 import { type PresencePose, presenceChannels } from '../transition/channels'
 import type { Media, Reveal } from '../wheel/types'
-import { type Ticker, type TickerTiming, createTicker } from './ticker'
 
 export type WheelPose = {
   blackout?: number
@@ -64,16 +75,32 @@ export type Motion = {
 /** `historyMs`: how far back `project` may read on both mixes. */
 export type MotionOptions = { historyMs?: number }
 
-export function createMotion(timing?: TickerTiming, { historyMs }: MotionOptions = {}): Motion {
+/** What a motion's ticker runs on, when not the page's own frames and clock. */
+export type MotionTiming = Pick<TickerOptions, 'now' | 'raf' | 'caf'>
+
+// The rotor's WAAPI animation runs on the document timeline; the mixes must read the same clock.
+const timelineNow = () =>
+  (globalThis.document?.timeline?.currentTime as number | null | undefined) ?? performance.now()
+
+export function createMotion(timing?: MotionTiming, { historyMs }: MotionOptions = {}): Motion {
   const options = historyMs ? { history: { ms: historyMs } } : {}
   const wheel = mix<string, WheelPose>(wheelKit, options)
   const wedges = mix<string, WedgePose>(wedgeKit, options)
-  return { ticker: createTicker([wheel, wedges], timing), wheel, wedges }
+  const loop = ticker({ now: timelineNow, ...timing })
+  loop.add(wheel)
+  loop.add(wedges)
+  return { ticker: loop, wheel, wedges }
 }
 
 /** One motion per page, made on first render; leaving the page cancels its waiting frame. */
 export function useMotionRoot(): Motion {
   const [motion] = useState(() => createMotion())
-  useEffect(() => () => motion.ticker.stop(), [motion])
+  useEffect(() => {
+    const { ticker, wheel, wedges } = motion
+    // Adding a mix again asks for a frame: a StrictMode remount restarts the loop it stopped.
+    ticker.add(wheel)
+    ticker.add(wedges)
+    return () => ticker.stop()
+  }, [motion])
   return motion
 }

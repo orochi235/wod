@@ -332,7 +332,6 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
       }
 
       angleVoiceRef.current = motion.wheel.cue(angleVoice(track, startedAt))
-      motion.ticker.wake()
 
       // Track 2: geometry, on the wedge mix. Morphs are authored against the spin's own
       // durationMs, so a shortened spin plays them faster rather than cutting them off.
@@ -346,13 +345,12 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
           spinConfig.durationMs / durationMs,
         )
         let shown = spinSegments
-        offMorphsRef.current = ticker.subscribe(() => {
+        offMorphsRef.current = ticker.after(() => {
           const next = composeSegments(spinSegments, wedges)
           if (sameFrame(next, shown)) return
           shown = next
           setDisplaySegments(next)
         })
-        ticker.wake()
       }
 
       animation.finished

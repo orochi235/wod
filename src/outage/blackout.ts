@@ -31,8 +31,8 @@ export function cueBlackout(
   const { ticker, wheel } = motion
   const cover = createBlackoutCover(doc)
   const voice = wheel.cue(blackoutVoice(depth, startAt))
-  const release = ticker.stay()
-  const off = ticker.subscribe(() => {
+  const release = ticker.hold()
+  const off = ticker.after(() => {
     cover.set(wheel.probe(WHEEL).blackout ?? 0)
   })
 
