@@ -285,7 +285,7 @@ describe('the presence clock', () => {
     expect(pathOf(container, 'ben')).toBe(settledPath)
   })
 
-  // 0.4.0: the exit reads 'held' at its end.
+  // 0.6.0: the exit reads 'frozen' at its end.
   it('holds an exit at its last frame, then drops it and its ghost arc', () => {
     const { motion, frame, waiting } = clock()
     const retained: { current: ReadonlySet<string> } = { current: new Set() }

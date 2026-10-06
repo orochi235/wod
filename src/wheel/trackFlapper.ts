@@ -31,7 +31,7 @@ export function trackFlapper({ ticker, wheel }: Motion, arm: FlapperArm): () => 
   let lastAngle: number | null = null
   let shown = 0
 
-  const off = ticker.subscribe(() => {
+  const off = ticker.after(() => {
     const pose = wheel.probe(WHEEL)
     const angle = pose.angle ?? 0
     const speed = pose.speed ?? 0

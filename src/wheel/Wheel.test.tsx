@@ -558,9 +558,8 @@ describe('parts', () => {
       subjects: [WHEEL],
       start: 0,
       loop: false,
-      hold: 'after',
+      freeze: 'after',
     })
-    fake.motion.ticker.wake()
     act(() => {
       for (let t = 0; t <= 1000; t += 16) fake.step(t)
     })

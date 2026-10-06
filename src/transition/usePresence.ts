@@ -92,16 +92,12 @@ export function usePresence(
   })
 
   useEffect(() => {
-    if (!wedges.inert) ticker.wake()
-  })
-
-  useEffect(() => {
     // StrictMode's remount comes after a release, with every voice gone: replay.
     if (released.current) {
       released.current = false
       render((n) => n + 1)
     }
-    const off = ticker.subscribe(() => {
+    const off = ticker.after(() => {
       const next = retire(tracks.current, wedges)
       if (next) {
         tracks.current = next

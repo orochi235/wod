@@ -49,34 +49,37 @@ behavior. This is on blits `main` (`2dd0e19`), unreleased. wod depends on:
   `mute()` or `drop()`; `probe` keeps returning the held value.
 - A mix flag `inert`: true when every voice is held or done (or there are none),
   so another frame would change nothing. `live` stays true while anything is
-  held, so wod's ticker runs while `!inert` or a `stay()` hold is out, not while
+  held, so wod's ticker runs while `!inert` or a `hold()` is out, not while
   `live`; otherwise it ticks every frame under a landed wheel. A motion voice
   (the flapper's `spring`) counts as inert while every subject it has met is at
   rest, so the wheel mix sleeps once the flapper settles; a held voice with a
   signal weight does not count. Both shipped in 0.4.0.
 
-wod pins blits to an exact version (`"0.4.0"`, not `"^0.4.0"`); every 0.x minor
-so far has broken something.
+wod pins blits to an exact version (`"0.6.0"`, not `"^0.6.0"`); every 0.x minor
+so far has broken something. In 0.6.0 `hold` became `freeze` and the state
+`'held'` became `'frozen'`; wod uses the new names.
 
 ## Structure
 
 ```
 src/clock/
-  ticker.ts         the only requestAnimationFrame caller
   motion.ts         wheelKit, wedgeKit, createMotion, useMotionRoot
   morphVoices.ts    Morph → VoiceSpec[], cueMorphs
   compose.ts        base + pose → Segment, segmentsAt on a scratch mix
   testing.ts        fakeMotion, a clock tests step by hand
 ```
 
-**Ticker.** `createTicker(mixes, { now?, raf?, caf? })` returns
-`{ now(), subscribe(fn: (t: number) => void), stay(), wake() }`; `stay()` keeps frames
-coming until released, for work no mix sees, such as the spark cues. Time is
-`document.timeline.currentTime` and nothing else, the same timeline the rotor's
-WAAPI animation runs on. Each frame it calls `sync(t)` on every mix, then
-notifies subscribers; it sleeps when no mix is `live` and nothing holds it. wod never calls
-`rebase()`: a hidden tab keeps advancing the document timeline under the rotor,
-and the angle model must advance with it. Tests inject `now` and `raf`.
+**Ticker.** blits' own `ticker()` (0.6.0), made in `createMotion` with both
+mixes added. `after(fn)` runs once every mix has synced; `hold()` keeps frames
+coming until released, for work no mix sees, such as the spark cues. A cue,
+fade or retarget wakes it through the mix's `onWake`, so nothing in wod wakes it
+by hand. Time is `document.timeline.currentTime` (passed as `now`), the same
+timeline the rotor's WAAPI animation runs on. It sleeps when every mix is
+`inert` and nothing holds it. `useMotionRoot` stops it on unmount and adds the
+mixes again on mount, which restarts it after a StrictMode remount. wod never
+calls `rebase()`: a hidden tab keeps advancing the document timeline under the
+rotor, and the angle model must advance with it. Tests inject `now`, `raf` and
+`caf`.
 
 **One motion per page.** App and Editor each own one through `useMotionRoot()`
 and pass it to what needs it. The React context, and the wedge mix, arrive with

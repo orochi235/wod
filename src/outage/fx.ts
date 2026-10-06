@@ -88,8 +88,8 @@ export function createFx(): Fx {
       const cues = sparkCues(plan)
       let cursor = 0
       const { ticker } = options.motion
-      const release = ticker.stay()
-      const off = ticker.subscribe((t) => {
+      const release = ticker.hold()
+      const off = ticker.after((t) => {
         const due = takeDue(cues, cursor, t - run.startedAt, STALE_MS)
         cursor = due.cursor
         for (const cue of due.fire) fire(cue)

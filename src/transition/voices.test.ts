@@ -118,12 +118,12 @@ describe('presenceVoice', () => {
   const plan: PresencePlan = { frames: [{ at: 0, opacity: 0 }], delayMs: 200, durationMs: 400 }
 
   it('holds an entrance both ways and an exit after', () => {
-    expect(presenceVoice('ana', plan, 'enter', 0, null)?.hold).toBe('both')
-    expect(presenceVoice('ana', plan, 'exit', 0, null)?.hold).toBe('after')
+    expect(presenceVoice('ana', plan, 'enter', 0, null)?.freeze).toBe('both')
+    expect(presenceVoice('ana', plan, 'exit', 0, null)?.freeze).toBe('after')
   })
 
   it('holds an interrupting exit both ways, so it waits out its stagger where it stands', () => {
-    expect(presenceVoice('ana', plan, 'exit', 0, RESTING)?.hold).toBe('both')
+    expect(presenceVoice('ana', plan, 'exit', 0, RESTING)?.freeze).toBe('both')
   })
 
   it('starts after its stagger, in the wedge own locus', () => {

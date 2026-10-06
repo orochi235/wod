@@ -618,8 +618,9 @@ describe('useSpin', () => {
       act(() => result.current.spin({ strategy: forced('ana') }))
       const { keyframes, options } = harness.animateCalls[0]
       await act(async () => harness.animateCalls[0].finish())
-      fake.motion.ticker.wake()
+      const release = fake.motion.ticker.hold()
       act(() => fake.step(1000 + Number(options.duration) + 5000))
+      release()
       expect(fake.motion.wheel.probe(WHEEL).angle).toBeCloseTo(
         degreesOf(keyframes[keyframes.length - 1]),
         6,
@@ -631,8 +632,9 @@ describe('useSpin', () => {
       const { result } = renderSpin(PLAIN)
       act(() => result.current.spin({ strategy: forced('ana') }))
       await act(async () => harness.animateCalls[0].finish())
-      fake.motion.ticker.wake()
+      const release = fake.motion.ticker.hold()
       act(() => fake.step(20000))
+      release()
       act(() => result.current.spin({ strategy: forced('ben') }))
       act(() => fake.step(20000))
       expect(fake.motion.wheel.probe(WHEEL).angle).toBeCloseTo(
@@ -646,8 +648,9 @@ describe('useSpin', () => {
       const { result, unmount } = renderSpin(PLAIN)
       act(() => result.current.spin({ strategy: forced('ana') }))
       unmount()
-      fake.motion.ticker.wake()
+      const release = fake.motion.ticker.hold()
       fake.step(1500)
+      release()
       expect(fake.motion.wheel.probe(WHEEL).angle ?? 0).toBe(0)
     })
   })
@@ -943,10 +946,9 @@ describe('release and reset', () => {
     await act(async () => harness.animateCalls[0].finish())
     act(() => result.current.reset())
     // Something else waking the clock must not repaint the old landing over the roster.
-    act(() => {
-      fake.motion.ticker.wake()
-      fake.step(1000 + DURATION_MS + 50)
-    })
+    const release = fake.motion.ticker.hold()
+    act(() => fake.step(1000 + DURATION_MS + 50))
+    release()
     expect(result.current.displaySegments).toEqual(SEGMENTS)
     expect(fake.motion.wedges.inert).toBe(true)
   })

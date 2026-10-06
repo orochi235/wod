@@ -38,9 +38,7 @@ export function useOutageFx(
 
   useEffect(() => {
     if (!run) return
-    const { ticker, wheel } = motion
-    const voice = wheel.cue(darkVoice(run.plan, run.startedAt))
-    ticker.wake()
+    const voice = motion.wheel.cue(darkVoice(run.plan, run.startedAt))
     return () => voice.fade({ over: 0 })
   }, [run, motion])
 

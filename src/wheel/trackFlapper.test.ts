@@ -32,9 +32,8 @@ function rig(track: RotationTrack) {
     subjects: [WHEEL],
     start: 0,
     loop: false,
-    hold: 'after',
+    freeze: 'after',
   })
-  fake.motion.ticker.wake()
   const deflection = () => fake.motion.wheel.probe(WHEEL).deflection ?? 0
   return { ...fake, written, click, stop, deflection }
 }

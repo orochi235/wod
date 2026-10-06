@@ -257,7 +257,7 @@ describe('retire', () => {
     expect(retire(tracks, w)).toBeNull()
   })
 
-  // 0.4.0: a voice holding after reads 'held' once played.
+  // 0.6.0: a voice frozen after reads 'frozen' once played.
   it('promotes a played entrance and forgets a played exit', () => {
     const w = wedges()
     const start = run(w, { segments: [segment('ana'), segment('ben')], now: -1000 })

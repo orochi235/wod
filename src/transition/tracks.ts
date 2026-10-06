@@ -40,7 +40,7 @@ export type AdvanceInput = {
 /** Played out: its voice holds its last frame, or it has none. */
 export function isDone(track: Track): boolean {
   if (track.phase === 'present' || track.voice === null) return true
-  return track.voice.state === 'held' || track.voice.state === 'done'
+  return track.voice.state === 'frozen' || track.voice.state === 'done'
 }
 
 function inFlight(track: Track): boolean {

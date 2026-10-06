@@ -18,7 +18,6 @@ const OUTAGE = withOutage(SETTLE, { cruiseMs: 1500, sparkMs: 800 }).track
 function cued(track: RotationTrack, start = 1000) {
   const fake = fakeMotion()
   fake.motion.wheel.cue(angleVoice(track, start))
-  fake.motion.ticker.wake()
   const read = (t: number) => {
     fake.step(t)
     return fake.motion.wheel.probe(WHEEL)

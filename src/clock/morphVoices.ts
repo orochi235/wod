@@ -54,7 +54,7 @@ export function morphVoices(morph: Morph, base: Segment, startAt: number, rate =
     start: morph.durationMs > 0 ? startAt : startAt - period,
     rate,
     loop: false,
-    hold: 'after',
+    freeze: 'after',
     ...(locus ? { locus } : {}),
   })
 
