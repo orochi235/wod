@@ -67,7 +67,7 @@ describe('the wheel mix', () => {
       subjects: [WHEEL],
       start: 0,
       loop: false,
-      hold: 'after',
+      freeze: 'after',
     })
     motion.ticker.wake()
     step(50)
@@ -90,7 +90,7 @@ describe('the wedge mix', () => {
         subjects: ['x'],
         start: 0,
         loop: false,
-        hold: 'after',
+        freeze: 'after',
       })
     }
     wedges.sync(500)
@@ -113,7 +113,7 @@ describe('the wedge mix', () => {
         subjects: ['x'],
         start: 0,
         loop: false,
-        hold: 'after',
+        freeze: 'after',
       })
     }
     const read = (t: number) => {

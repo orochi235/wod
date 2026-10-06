@@ -9,7 +9,7 @@ const SLOPE_MS = 1
 /**
  * The rotor's track as a voice: where the wheel is and how fast it turns, from the
  * same keyframes WAAPI plays. Cue it from the animation's own start time with
- * `hold: 'after'`, and the angle stays on the resting angle until it is faded.
+ * `freeze: 'after'`, and the angle stays on the resting angle until it is faded.
  */
 export function anglePatch(track: RotationTrack): Patch<string, WheelPose, void> {
   const total = track.durationMs
@@ -27,5 +27,5 @@ export function anglePatch(track: RotationTrack): Patch<string, WheelPose, void>
 
 /** The angle voice for a spin that starts at `start` on the motion's clock. */
 export function angleVoice(track: RotationTrack, start: number): VoiceSpec<string, WheelPose> {
-  return { patch: anglePatch(track), subjects: [WHEEL], start, loop: false, hold: 'after' }
+  return { patch: anglePatch(track), subjects: [WHEEL], start, loop: false, freeze: 'after' }
 }
