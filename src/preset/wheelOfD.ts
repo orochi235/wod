@@ -3,8 +3,8 @@ import type { Media, Segment } from '../wheel/types'
 import type { Affinity, Pool, Preset } from './types'
 
 /**
- * Letters may lie on their sides or stand upright, but every word reads from the
- * hub out: one direction along the radius for the whole wheel.
+ * Letters on their sides read from the hub out; upright letters read from the rim
+ * in. Never both directions along one axis.
  */
 type Orientation = 'radial' | 'taperedRadial' | 'stacked'
 type Style = Omit<SlicePart, 'content' | 'orientation' | 'band' | 'font' | 'color' | 'direction'>
@@ -26,8 +26,8 @@ function set(
     font,
     color,
     ...rest,
-    // `radial` only runs outward, so a glyph run is turned to match it.
-    ...(orientation === 'radial' ? {} : { direction: 'hubOutward' as const }),
+    // `radial` only runs outward, so a sideways glyph run is turned to match it.
+    ...(orientation === 'taperedRadial' ? { direction: 'hubOutward' as const } : {}),
     // Words on their sides sit out against the rim; upright stacks fill their band.
     ...(orientation === 'stacked' ? {} : { toRim: true }),
   }
@@ -173,8 +173,8 @@ const WORDS: Segment[] = [
     '#3b3b3b',
     'bezel',
     composed(
-      set('stacked', INNER, 'archivo-black', '#ffcc00', { text: 'DEAD' }),
-      set('stacked', OUTER, 'archivo-black', '#ffcc00', { text: 'LOCK' }),
+      set('stacked', OUTER, 'archivo-black', '#ffcc00', { text: 'DEAD' }),
+      set('stacked', INNER, 'archivo-black', '#ffcc00', { text: 'LOCK' }),
     ),
   ),
   word(
@@ -486,6 +486,65 @@ const WORDS: Segment[] = [
     composed(set('radial', FULL, 'great-vibes', '#f4f1e8', { caps: false, text: 'Danube' })),
   ),
   word('DUNGEONS', '#2b2620', 'leather', composed(set('radial', FULL, 'pirata-one', '#d9c9a3'))),
+  word(
+    'DOPE KICKS',
+    '#ff5a1f',
+    'glitter',
+    composed(
+      set('taperedRadial', INNER, 'permanent-marker', '#ffffff', { text: 'DOPE' }),
+      set('taperedRadial', OUTER, 'permanent-marker', '#ffffff', { text: 'KICKS' }),
+    ),
+  ),
+  word('DEUTERONOMY', '#3b1f0f', 'leather', composed(set('radial', FULL, 'pirata-one', '#e2b84a'))),
+  word(
+    'DIRTY DANCING',
+    '#0d0d0d',
+    'velvet',
+    composed(
+      set('taperedRadial', INNER, 'great-vibes', '#ff4f9a', { text: 'Dirty', caps: false }),
+      set('taperedRadial', OUTER, 'great-vibes', '#ff4f9a', { text: 'Dancing', caps: false }),
+    ),
+  ),
+  word(
+    'DINNER',
+    '#0f6b6b',
+    'neon',
+    composed(set('radial', FULL, 'lobster', '#ff3b3b', { caps: false, text: 'Dinner' })),
+  ),
+  word('DILBERT', '#9ea4a8', 'piping', composed(set('radial', FULL, 'overpass', '#1f3a5f'))),
+  word(
+    'DANGER',
+    '#ffd100',
+    'flake',
+    composed(set('stacked', [0.32, 0.94], 'black-ops-one', '#111111')),
+  ),
+  word(
+    'DEMOCRACY',
+    '#1c2c5b',
+    'carved',
+    composed(set('radial', FULL, 'playfair-display', '#f4f0e6')),
+  ),
+  word('DEPILATION', '#f3d9c6', 'pave', composed(set('radial', FULL, 'bodoni-moda', '#8e2f45'))),
+  word('DEFENSE', '#4b5320', 'bezel', composed(set('radial', FULL, 'anton', '#e8e4d0'))),
+  word(
+    'DETERRENCE',
+    '#2b2f33',
+    'chrome',
+    composed(set('radial', FULL, 'black-ops-one', '#c9d1d9')),
+  ),
+  word('DETENTE', '#7a1f1f', 'ice', composed(set('radial', FULL, 'playfair-display', '#f2f2f2'))),
+  word(
+    'DETRITUS',
+    '#5a5246',
+    'leather',
+    composed(set('radial', FULL, 'special-elite', '#c8bfae', { tracking: 0.3 })),
+  ),
+  word(
+    'DYSFUNCTION',
+    '#3c3c3c',
+    'flake',
+    composed(set('radial', FULL, 'permanent-marker', '#ff7a59')),
+  ),
 ]
 
 /** Drawing one of a group makes the rest of it six times as likely to be on the same wheel. */
