@@ -131,3 +131,28 @@ describe('tracking and leading', () => {
     expect(fit({ ...level, leading: 3 })?.size ?? 0).toBeLessThan(fit(level)?.size ?? 0)
   })
 })
+
+describe('toRim', () => {
+  const spec = {
+    text: 'AB',
+    orientation: 'radial' as const,
+    frame: 'wheel' as const,
+    width: 1 / 24,
+    radius: 200,
+    anchor: 0.6,
+    maxSize: 40,
+    minSize: 4,
+  }
+
+  it('sits a short radial run against the rim limit instead of centering it', () => {
+    const fit = createFit((text, size) => text.length * 0.6 * size)
+    const centered = fit(spec)
+    const pulled = fit({ ...spec, toRim: true })
+    expect(centered && pulled).toBeTruthy()
+    expect((pulled as { anchor: number }).anchor).toBeGreaterThan(
+      (centered as { anchor: number }).anchor,
+    )
+    const { anchor, size } = pulled as { anchor: number; size: number }
+    expect(anchor * 200 + (2 * 0.6 * size) / 2).toBeCloseTo(0.96 * 200, 0)
+  })
+})

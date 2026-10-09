@@ -272,7 +272,14 @@ export function placeAlongRadius(
     solved = solveRadial(steps, across, along, part, ctx, maxSize, concession.fan)
     if (spanOf(solved.sizes, steps) <= length + FIT_SLACK) break
   }
-  const { sizes, radii } = solved
+  const { sizes } = solved
+  let { radii } = solved
+  if (part.toRim && radii.length > 0) {
+    // Outward only: a glyph moved toward the rim has more chord than it was sized for.
+    const reach = Math.max(...radii.map((r, i) => r + (sizes[i] * steps[i]) / 2))
+    const shift = part.band[1] * ctx.radius - reach
+    if (shift > 0) radii = radii.map((r) => r + shift)
+  }
   const fill = fillerFor(part, ctx)
 
   return {

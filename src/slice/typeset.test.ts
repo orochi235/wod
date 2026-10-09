@@ -877,3 +877,17 @@ describe('padding across the wedge', () => {
     expect(widthOf(hubward[hubward.length - 1])).toBeLessThan(widthOf(even[even.length - 1]))
   })
 })
+
+describe('toRim on a glyph run', () => {
+  it('pushes a run that stops short of its band out to the band edge', () => {
+    const base = {
+      orientation: 'taperedRadial' as const,
+      content: { from: 'text' as const, value: 'AB' },
+      direction: 'hubOutward' as const,
+      band: [0.3, 0.95] as [number, number],
+    }
+    const near = Math.max(...glyphsOf(base).map(radiusOf))
+    const far = Math.max(...glyphsOf({ ...base, toRim: true }).map(radiusOf))
+    expect(far).toBeGreaterThan(near)
+  })
+})

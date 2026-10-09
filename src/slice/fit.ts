@@ -123,10 +123,16 @@ export function createFit(measure: Measure): (spec: FitSpec) => Placement | null
     }
 
     if (!(size >= spec.minSize)) return null
+    const placedSize = floor2(size)
+    // Moving a radial run outward only widens the chord it was sized against.
+    const anchor =
+      spec.toRim && spec.frame === 'wheel' && spec.orientation === 'radial'
+        ? (spec.radius * RIM_MARGIN - (unit * placedSize) / 2) / spec.radius
+        : anchorFor(spec)
     return {
       orientation: spec.orientation,
-      anchor: anchorFor(spec),
-      size: floor2(size),
+      anchor,
+      size: placedSize,
       text: spec.text,
     }
   }

@@ -57,6 +57,8 @@ export type FitSpec = {
   tracking?: number
   /** The line box, as a multiple of the size. */
   leading?: number
+  /** Radial only: sit the run's outer end at the rim limit instead of centering it. */
+  toRim?: boolean
 }
 
 export type Placement = {
@@ -217,6 +219,11 @@ export type SlicePart = {
   shrink?: 'proportional' | 'condense'
   /** Set the resolved content in capitals, whatever case it arrived in. */
   caps?: boolean
+  /**
+   * A run shorter than its band sits out against the band's outer edge rather
+   * than centered (`radial`) or at the edge it starts from (glyph runs).
+   */
+  toRim?: boolean
   /** How the run is drawn. Default 'glyphs'. Only 'glyphs' is implemented. */
   shape?: 'glyphs' | 'outline'
   /** A registry id. Absent means the theme's default face. */

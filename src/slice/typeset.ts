@@ -59,6 +59,7 @@ function fitted(part: FittedPart, ctx: SliceContext, text: string, family: strin
     family,
     tracking: part.tracking,
     leading: part.leading,
+    toRim: part.toRim,
   })
   if (!placed) return []
 
