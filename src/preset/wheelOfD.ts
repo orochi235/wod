@@ -257,6 +257,15 @@ const WORDS: Segment[] = [
     composed(set('radial', FULL, 'alfa-slab-one', '#e8b04a')),
   ),
   word('DIURETICS', '#9fd3e8', 'ice', composed(set('radial', FULL, 'righteous', '#0f3a52'))),
+  word(
+    'DOWN SYNDROME',
+    '#1f5fa8',
+    'bezel',
+    composed(
+      set('taperedRadial', OUTER, 'overpass', '#ffd23f', { text: 'DOWN' }),
+      set('taperedRadial', INNER, 'overpass', '#ffd23f', { text: 'SYNDROME' }),
+    ),
+  ),
   word('DUNGEONS', '#2b2620', 'leather', composed(set('radial', FULL, 'pirata-one', '#d9c9a3'))),
 ]
 
@@ -271,7 +280,7 @@ const AFFINITIES: Affinity[] = [
 
 export const WHEEL_OF_D_POOL: Pool = { segments: WORDS, draw: 24, affinities: AFFINITIES }
 
-/** Twenty-four words drawn from forty, each set in a style of its own, on the poster look. */
+/** A draw from the pool, each word set in a style of its own, on the poster look. */
 export const wheelOfD: Preset = {
   version: 5,
   name: 'wheel of D',

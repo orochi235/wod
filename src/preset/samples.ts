@@ -299,7 +299,7 @@ export const SAMPLES: Sample[] = [
   {
     id: 'wheel-of-d',
     name: 'Wheel of D',
-    about: 'twenty-four of forty words that could finish the name',
+    about: 'a fresh draw of words that could finish the name',
     preset: wheelOfD,
   },
 ]
