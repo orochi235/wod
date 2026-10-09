@@ -28,6 +28,8 @@ function set(
     ...rest,
     // `radial` only runs outward, so a glyph run is turned to match it.
     ...(orientation === 'radial' ? {} : { direction: 'hubOutward' as const }),
+    // Words on their sides sit out against the rim; upright stacks fill their band.
+    ...(orientation === 'stacked' ? {} : { toRim: true }),
   }
 }
 
@@ -376,6 +378,7 @@ const WORDS: Segment[] = [
     'piping',
     composed(set('radial', FULL, 'permanent-marker', '#2549b8')),
   ),
+  word('D12', '#000000', 'chrome', composed(set('stacked', [0.36, 0.94], 'pirata-one', '#ffffff'))),
   word(
     'DICE',
     '#c4161c',
