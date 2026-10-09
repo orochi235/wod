@@ -54,13 +54,12 @@ describe('drawPool', () => {
     expect(together(20)).toBeGreaterThan(together(1) * 3)
   })
 
-  it('seats drawn mates side by side, in the affinity order', () => {
+  it('does not keep drawn mates together', () => {
     const p = pool(['a', 'b', 'c', 'd', 'e', 'f'], 6, [{ ids: ['c', 'e'], boost: 1 }])
-    for (let seed = 0; seed < 20; seed++) {
-      const order = drawPool(p, seeded(seed)).map((s) => s.id)
-      const at = order.indexOf('c')
-      expect(order[at + 1]).toBe('e')
-    }
+    const apart = Array.from({ length: 40 }, (_, seed) =>
+      drawPool(p, seeded(seed)).map((s) => s.id),
+    ).some((order) => Math.abs(order.indexOf('c') - order.indexOf('e')) > 1)
+    expect(apart).toBe(true)
   })
 })
 

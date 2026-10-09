@@ -175,12 +175,12 @@ const WORDS: Segment[] = [
   ),
   word('DORITOS', '#e8641e', 'flake', composed(set('radial', FULL, 'anton', '#1a1a1a'))),
   word(
-    'DIFFS',
-    '#0d1117',
-    'neon',
+    'DIFFERENTIAL EQUATIONS',
+    '#2f4f3a',
+    'ice',
     composed(
-      set('taperedRadial', [0.26, 0.62], 'press-start-2p', '#f85149', { text: 'DIF' }),
-      set('taperedRadial', [0.64, 0.94], 'press-start-2p', '#3fb950', { text: 'FS' }),
+      set('taperedRadial', INNER, 'shadows-into-light', '#f1f1e8', { text: 'DIFFERENTIAL' }),
+      set('taperedRadial', OUTER, 'shadows-into-light', '#f1f1e8', { text: 'EQUATIONS' }),
     ),
   ),
   word(
@@ -281,6 +281,147 @@ const WORDS: Segment[] = [
       set('taperedRadial', OUTER, 'overpass', '#ffd23f', { text: 'SYNDROME' }),
     ),
   ),
+  // Read it once, then read it again.
+  word(
+    'DEJA VU',
+    '#3d5a80',
+    'ice',
+    composed(
+      set('taperedRadial', INNER, 'overpass', '#e0fbfc', { text: 'DEJA VU' }),
+      set('taperedRadial', OUTER, 'overpass', '#e0fbfc', { text: 'DEJA VU' }),
+    ),
+  ),
+  word(
+    'DAD JOKES',
+    '#7a5c3e',
+    'gold',
+    composed(
+      set('taperedRadial', INNER, 'luckiest-guy', '#f6e7c8', { text: 'DAD' }),
+      set('taperedRadial', OUTER, 'luckiest-guy', '#f6e7c8', { text: 'JOKES' }),
+    ),
+  ),
+  word(
+    'DUMPSTER FIRES',
+    '#1f4d2b',
+    'flake',
+    composed(
+      set('taperedRadial', INNER, 'black-ops-one', '#d8e8d0', { text: 'DUMPSTER' }),
+      set('taperedRadial', OUTER, 'black-ops-one', '#ff6a13', { text: 'FIRES' }),
+    ),
+  ),
+  word(
+    'DRAMA LLAMAS',
+    '#7a0f1c',
+    'velvet',
+    composed(
+      set('taperedRadial', INNER, 'limelight', '#f2d27a', { text: 'DRAMA' }),
+      set('taperedRadial', OUTER, 'limelight', '#f2d27a', { text: 'LLAMAS' }),
+    ),
+  ),
+  word(
+    'DEUS EX MACHINA',
+    '#e9e4dc',
+    'carved',
+    composed(
+      set('taperedRadial', INNER, 'cinzel', '#3a3a3a', { text: 'DEUS EX' }),
+      set('taperedRadial', OUTER, 'cinzel', '#3a3a3a', { text: 'MACHINA' }),
+    ),
+  ),
+  word(
+    'DISCOMBOBULATION',
+    '#3b1f5c',
+    'glitter',
+    composed(set('radial', FULL, 'bodoni-moda', '#f0c3ff')),
+  ),
+  word('DOOMSCROLLING', '#0e1a2b', 'neon', composed(set('radial', FULL, 'jersey-25', '#5ab0ff'))),
+  word(
+    'DAYLIGHT SAVINGS',
+    '#ffcf5a',
+    'gold',
+    composed(
+      set('taperedRadial', INNER, 'overpass', '#5a2d0c', { text: 'DAYLIGHT' }),
+      set('taperedRadial', OUTER, 'overpass', '#5a2d0c', { text: 'SAVINGS' }),
+    ),
+  ),
+  word(
+    'DEWEY DECIMAL',
+    '#d8c7a3',
+    'leather',
+    composed(
+      set('taperedRadial', INNER, 'special-elite', '#3b2f2f', { text: 'DEWEY' }),
+      set('taperedRadial', OUTER, 'special-elite', '#3b2f2f', { text: 'DECIMAL' }),
+    ),
+  ),
+  word(
+    'DEAD DROPS',
+    '#c9b38a',
+    'oil',
+    composed(
+      set('taperedRadial', INNER, 'special-elite', '#2b2b2b', { text: 'DEAD' }),
+      set('taperedRadial', OUTER, 'special-elite', '#2b2b2b', { text: 'DROPS' }),
+    ),
+  ),
+  word(
+    'DUCT TAPE',
+    '#9aa1a8',
+    'chrome',
+    composed(
+      set('taperedRadial', INNER, 'permanent-marker', '#1d1d1d', { text: 'DUCT' }),
+      set('taperedRadial', OUTER, 'permanent-marker', '#1d1d1d', { text: 'TAPE' }),
+    ),
+  ),
+  word(
+    'DUST BUNNIES',
+    '#8e8a86',
+    'velvet',
+    composed(
+      set('taperedRadial', INNER, 'shadows-into-light', '#f1eee9', { text: 'DUST' }),
+      set('taperedRadial', OUTER, 'shadows-into-light', '#f1eee9', { text: 'BUNNIES' }),
+    ),
+  ),
+  word(
+    'DOILIES',
+    '#b9a7d6',
+    'piping',
+    composed(set('radial', FULL, 'great-vibes', '#ffffff', { caps: false, text: 'Doilies' })),
+  ),
+  word('DIORAMAS', '#5c4a3a', 'carved', composed(set('radial', FULL, 'abril-fatface', '#f3e6cf'))),
+  word('DOORKNOBS', '#3b2a1a', 'gold', composed(set('radial', FULL, 'gravitas-one', '#d4a64a'))),
+  word(
+    'DOODLES',
+    '#f7f4e8',
+    'piping',
+    composed(set('radial', FULL, 'permanent-marker', '#2549b8')),
+  ),
+  word('DICE', '#c4161c', 'gem', composed(set('radial', FULL, 'alfa-slab-one', '#ffffff'))),
+  word('DOMINOES', '#111111', 'bezel', composed(set('radial', FULL, 'archivo-black', '#f5f5f5'))),
+  word('DUCKS', '#ffd23f', 'gold', composed(set('radial', FULL, 'luckiest-guy', '#e8641e'))),
+  word('DODOS', '#7b7f86', 'leather', composed(set('radial', FULL, 'goblin-one', '#ece4d0'))),
+  word('DOLPHINS', '#1b6ca8', 'ice', composed(set('radial', FULL, 'righteous', '#dff3ff'))),
+  word(
+    'DANDELIONS',
+    '#4f7a2b',
+    'glitter',
+    composed(set('radial', FULL, 'satisfy', '#fffdf0', { caps: false, text: 'Dandelions' })),
+  ),
+  word(
+    'DIM SUM',
+    '#c8a46a',
+    'piping',
+    composed(
+      set('taperedRadial', INNER, 'changa-one', '#5a3a1a', { text: 'DIM' }),
+      set('taperedRadial', OUTER, 'changa-one', '#5a3a1a', { text: 'SUM' }),
+    ),
+  ),
+  word(
+    'DEVILED EGGS',
+    '#ffe9a8',
+    'gold',
+    composed(
+      set('taperedRadial', INNER, 'croissant-one', '#c0392b', { text: 'DEVILED' }),
+      set('taperedRadial', OUTER, 'croissant-one', '#c0392b', { text: 'EGGS' }),
+    ),
+  ),
   word(
     'DRUNK DRIVING',
     '#2b2b2b',
@@ -346,11 +487,11 @@ const WORDS: Segment[] = [
   word('DUNGEONS', '#2b2620', 'leather', composed(set('radial', FULL, 'pirata-one', '#d9c9a3'))),
 ]
 
-/** Drawing one of these makes the rest of its group six times as likely. */
+/** Drawing one of a group makes the rest of it six times as likely to be on the same wheel. */
 const AFFINITIES: Affinity[] = [
   ['DUNGEONS', 'DRAGONS'],
   ['DONUTS', 'DIET SODA', 'DIABETES'],
-  ['DIFFS', 'DEADLOCK', 'DEPRECATION', 'DOCUMENTATION'],
+  ['DEADLOCK', 'DEPRECATION', 'DOCUMENTATION'],
   ['DIVIDENDS', 'DIVESTMENT'],
   ['DIRIGIBLES', 'DOOM'],
   ['DAFT PUNK', 'DIRE STRAITS', 'DISCO'],

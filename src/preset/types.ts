@@ -68,13 +68,10 @@ export type Hub = {
   spins?: boolean
 }
 
-/** Wedges that pull each other in: once one is drawn, each of the rest is `boost` times as likely. */
+/** Wedges that pull each other onto the wheel: once one is drawn, each of the rest is `boost` times as likely. */
 export type Affinity = { ids: string[]; boost: number }
 
-/**
- * Candidates the wheel draws `draw` of each time it loads, joining `segments`.
- * Drawn mates of an affinity sit side by side.
- */
+/** Candidates the wheel draws `draw` of each time it loads, joining `segments` in a shuffled order. */
 export type Pool = {
   segments: Segment[]
   draw: number
