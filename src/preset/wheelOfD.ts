@@ -2,8 +2,11 @@ import type { FontId, SliceInstance, SlicePart } from '../slice/types'
 import type { Media, Segment } from '../wheel/types'
 import type { Affinity, Pool, Preset } from './types'
 
-/** Both read from the hub out, with the letters on their sides: one way for every word on the wheel. */
-type Orientation = 'radial' | 'taperedRadial'
+/**
+ * Letters may lie on their sides or stand upright, but every word reads from the
+ * hub out: one direction along the radius for the whole wheel.
+ */
+type Orientation = 'radial' | 'taperedRadial' | 'stacked'
 type Style = Omit<SlicePart, 'content' | 'orientation' | 'band' | 'font' | 'color' | 'direction'>
 
 /** One piece of type: the wedge's own label unless `text` names a fragment of it. */
@@ -24,7 +27,7 @@ function set(
     color,
     ...rest,
     // `radial` only runs outward, so a glyph run is turned to match it.
-    ...(orientation === 'taperedRadial' ? { direction: 'hubOutward' as const } : {}),
+    ...(orientation === 'radial' ? {} : { direction: 'hubOutward' as const }),
   }
 }
 
@@ -77,35 +80,20 @@ function damascus(): Media {
 }
 
 const WORDS: Segment[] = [
-  word('DOOM', '#4a0d12', 'oil', composed(set('radial', FULL, 'pirata-one', '#e8d9b0'))),
+  word('DOOM', '#4a0d12', 'oil', composed(set('stacked', [0.3, 0.94], 'pirata-one', '#e8d9b0'))),
   word('DAMNATION', '#8a1c0c', 'gem', composed(set('taperedRadial', FULL, 'rye', '#ffb347'))),
-  word(
-    'DESTINY',
-    '#1c1f4a',
-    'carved',
-    composed(set('taperedRadial', [0.3, 0.94], 'cinzel', '#e9d8a6')),
-  ),
+  word('DESTINY', '#1c1f4a', 'carved', composed(set('stacked', [0.3, 0.94], 'cinzel', '#e9d8a6'))),
   word('DIVESTMENT', '#1f4d36', 'bezel', composed(set('radial', FULL, 'bodoni-moda', '#f3efe0'))),
   word('DIRIGIBLES', '#7fb2d9', 'chrome', composed(set('radial', FULL, 'limelight', '#1e2a3a'))),
   word(
     'DONUTS',
     '#ff6b1a',
     'glitter',
-    composed(set('taperedRadial', [0.3, 0.94], 'changa-one', '#e8197a')),
+    composed(set('stacked', [0.3, 0.94], 'changa-one', '#e8197a')),
   ),
   word('DRAGONS', '#0f3b2e', 'gem', composed(set('radial', FULL, 'pirata-one', '#e0b64a'))),
-  word(
-    'DISCO',
-    '#2a0a3a',
-    'sequin',
-    composed(set('taperedRadial', [0.34, 0.94], 'monoton', '#ff4fd8')),
-  ),
-  word(
-    'DYNAMITE',
-    '#c4161c',
-    'flake',
-    composed(set('taperedRadial', [0.3, 0.94], 'rye', '#f5e6c8')),
-  ),
+  word('DISCO', '#2a0a3a', 'sequin', composed(set('stacked', [0.34, 0.94], 'monoton', '#ff4fd8'))),
+  word('DYNAMITE', '#c4161c', 'flake', composed(set('stacked', [0.3, 0.94], 'rye', '#f5e6c8'))),
   word(
     'DREAD',
     '#2b2b2b',
@@ -124,12 +112,7 @@ const WORDS: Segment[] = [
     'glitter',
     composed(set('radial', FULL, 'satisfy', '#2d2150', { caps: false, text: 'Dreams' })),
   ),
-  word(
-    'DARKNESS',
-    '#08080a',
-    'neon',
-    composed(set('taperedRadial', [0.3, 0.94], 'monoton', '#24242e')),
-  ),
+  word('DARKNESS', '#08080a', 'neon', composed(set('stacked', [0.3, 0.94], 'monoton', '#24242e'))),
   word(
     'DEPRECATION',
     '#6b6f75',
@@ -188,8 +171,8 @@ const WORDS: Segment[] = [
     '#3b3b3b',
     'bezel',
     composed(
-      set('taperedRadial', INNER, 'archivo-black', '#ffcc00', { text: 'DEAD' }),
-      set('taperedRadial', OUTER, 'archivo-black', '#ffcc00', { text: 'LOCK' }),
+      set('stacked', INNER, 'archivo-black', '#ffcc00', { text: 'DEAD' }),
+      set('stacked', OUTER, 'archivo-black', '#ffcc00', { text: 'LOCK' }),
     ),
   ),
   word(
@@ -221,13 +204,13 @@ const WORDS: Segment[] = [
     'DANKNESS',
     '#2f3d1f',
     'velvet',
-    composed(set('taperedRadial', [0.3, 0.94], 'goblin-one', '#9bbf5a')),
+    composed(set('stacked', [0.3, 0.94], 'goblin-one', '#9bbf5a')),
   ),
   word(
     'DOGS',
     '#f2c14e',
     'gold',
-    composed(set('taperedRadial', [0.36, 0.94], 'luckiest-guy', '#5a3a1a')),
+    composed(set('stacked', [0.36, 0.94], 'luckiest-guy', '#5a3a1a')),
   ),
   word(
     'DAFFODILS',
@@ -239,7 +222,7 @@ const WORDS: Segment[] = [
     'DEADLIFTS',
     '#2a2a2a',
     'chrome',
-    composed(set('taperedRadial', [0.3, 0.94], 'anton', '#e8e8e8', { stretch: 'fill' })),
+    composed(set('stacked', [0.3, 0.94], 'anton', '#e8e8e8', { stretch: 'fill' })),
   ),
   word('DIPHTHERIA', '#d9cfb6', 'ice', composed(set('radial', FULL, 'special-elite', '#5a1f1f'))),
   word('DIABETES', '#f7f7f2', 'pave', composed(set('radial', FULL, 'bodoni-moda', '#2c5aa0'))),
@@ -253,7 +236,7 @@ const WORDS: Segment[] = [
     'DELIGHT',
     '#ff8fb1',
     'sequin',
-    composed(set('taperedRadial', [0.3, 0.94], 'luckiest-guy', '#fff6d6')),
+    composed(set('stacked', [0.3, 0.94], 'luckiest-guy', '#fff6d6')),
   ),
   word(
     'DAMASCUS',
@@ -393,10 +376,25 @@ const WORDS: Segment[] = [
     'piping',
     composed(set('radial', FULL, 'permanent-marker', '#2549b8')),
   ),
-  word('DICE', '#c4161c', 'gem', composed(set('radial', FULL, 'alfa-slab-one', '#ffffff'))),
+  word(
+    'DICE',
+    '#c4161c',
+    'gem',
+    composed(set('stacked', [0.32, 0.94], 'alfa-slab-one', '#ffffff')),
+  ),
   word('DOMINOES', '#111111', 'bezel', composed(set('radial', FULL, 'archivo-black', '#f5f5f5'))),
-  word('DUCKS', '#ffd23f', 'gold', composed(set('radial', FULL, 'luckiest-guy', '#e8641e'))),
-  word('DODOS', '#7b7f86', 'leather', composed(set('radial', FULL, 'goblin-one', '#ece4d0'))),
+  word(
+    'DUCKS',
+    '#ffd23f',
+    'gold',
+    composed(set('stacked', [0.32, 0.94], 'luckiest-guy', '#e8641e')),
+  ),
+  word(
+    'DODOS',
+    '#7b7f86',
+    'leather',
+    composed(set('stacked', [0.32, 0.94], 'goblin-one', '#ece4d0')),
+  ),
   word('DOLPHINS', '#1b6ca8', 'ice', composed(set('radial', FULL, 'righteous', '#dff3ff'))),
   word(
     'DANDELIONS',
