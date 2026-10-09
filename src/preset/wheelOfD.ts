@@ -3,8 +3,9 @@ import type { Media, Segment } from '../wheel/types'
 import type { Affinity, Pool, Preset } from './types'
 
 /**
- * Letters on their sides read from the hub out; upright letters read from the rim
- * in. Never both directions along one axis.
+ * A word runs the way its own letters read, never against them: upright letters
+ * run top to bottom, rim to hub; letters on their sides run along their baseline,
+ * hub to rim.
  */
 type Orientation = 'radial' | 'taperedRadial' | 'stacked'
 type Style = Omit<SlicePart, 'content' | 'orientation' | 'band' | 'font' | 'color' | 'direction'>
