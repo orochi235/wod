@@ -9,7 +9,7 @@
   width: 100%;
   max-width: 40rem;
   height: auto;
-  font-family: Bevan, system-ui, sans-serif;
+  font-family: "Bevan", system-ui, sans-serif;
 }
 
 .wheel__segment {

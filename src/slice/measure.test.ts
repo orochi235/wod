@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createMeasure, estimateWidth } from './measure'
+import { createMeasure, estimateWidth, familyStack } from './measure'
 
 describe('estimateWidth', () => {
   it('scales linearly with size', () => {
@@ -65,5 +65,11 @@ describe('createMeasure', () => {
     expect(measure('Rey McSriff', 12)).toBeCloseTo(estimateWidth('Rey McSriff', 12))
 
     vi.restoreAllMocks()
+  })
+})
+
+describe('familyStack', () => {
+  it('quotes the family, so a name with a word starting in a digit is valid CSS', () => {
+    expect(familyStack('Press Start 2P')).toBe('"Press Start 2P", system-ui, sans-serif')
   })
 })
