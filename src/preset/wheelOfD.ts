@@ -77,12 +77,7 @@ function damascus(): Media {
 }
 
 const WORDS: Segment[] = [
-  word(
-    'DOOM',
-    '#4a0d12',
-    'oil',
-    composed(set('radial', FULL, 'pirata-one', '#e8d9b0')),
-  ),
+  word('DOOM', '#4a0d12', 'oil', composed(set('radial', FULL, 'pirata-one', '#e8d9b0'))),
   word('DAMNATION', '#8a1c0c', 'gem', composed(set('taperedRadial', FULL, 'rye', '#ffb347'))),
   word(
     'DESTINY',
@@ -286,6 +281,68 @@ const WORDS: Segment[] = [
       set('taperedRadial', OUTER, 'overpass', '#ffd23f', { text: 'SYNDROME' }),
     ),
   ),
+  word(
+    'DRUNK DRIVING',
+    '#2b2b2b',
+    'flake',
+    composed(
+      set('taperedRadial', INNER, 'permanent-marker', '#ffb000', { text: 'DRUNK' }),
+      set('taperedRadial', OUTER, 'permanent-marker', '#ffb000', { text: 'DRIVING' }),
+    ),
+  ),
+  word(
+    'DEFENESTRATION',
+    '#6b2e2e',
+    'carved',
+    composed(set('radial', FULL, 'bodoni-moda', '#f4ead5')),
+  ),
+  word(
+    'DEFORESTATION',
+    '#4b3621',
+    'leather',
+    composed(set('radial', FULL, 'alfa-slab-one', '#d9c49a')),
+  ),
+  word('DAMOCLES', '#2a2a3a', 'chrome', composed(set('radial', FULL, 'cinzel', '#e8e8e8'))),
+  word('DIRECTIONS', '#00704a', 'bezel', composed(set('radial', FULL, 'overpass', '#ffffff'))),
+  // One helmet silver, one gold.
+  word(
+    'DAFT PUNK',
+    '#0a0a0a',
+    'chrome',
+    composed(
+      set('taperedRadial', INNER, 'press-start-2p', '#c0c4c8', { text: 'DAFT' }),
+      set('taperedRadial', OUTER, 'press-start-2p', '#d4af37', { text: 'PUNK' }),
+    ),
+  ),
+  word(
+    'DOPPLER RADAR',
+    '#06210f',
+    'neon',
+    composed(
+      set('taperedRadial', INNER, 'righteous', '#39ff14', { text: 'DOPPLER' }),
+      set('taperedRadial', OUTER, 'righteous', '#39ff14', { text: 'RADAR' }),
+    ),
+  ),
+  word('DALMATIANS', '#f7f7f7', 'piping', composed(set('radial', FULL, 'luckiest-guy', '#111111'))),
+  // The Donets coal basin: wheat-steppe ink on coal.
+  word('DONBAS', '#1f1f1f', 'leather', composed(set('radial', FULL, 'oswald', '#c9a85c'))),
+  word('DARDANELLES', '#1d4e89', 'ice', composed(set('radial', FULL, 'cinzel', '#f2e8cf'))),
+  word(
+    'DIRE STRAITS',
+    '#0b0b0b',
+    'chrome',
+    composed(
+      set('taperedRadial', INNER, 'oswald', '#e23b2e', { text: 'DIRE' }),
+      set('taperedRadial', OUTER, 'oswald', '#e23b2e', { text: 'STRAITS' }),
+    ),
+  ),
+  // The waltz, not the river: set in a ballroom script.
+  word(
+    'DANUBE',
+    '#2f6ea5',
+    'velvet',
+    composed(set('radial', FULL, 'great-vibes', '#f4f1e8', { caps: false, text: 'Danube' })),
+  ),
   word('DUNGEONS', '#2b2620', 'leather', composed(set('radial', FULL, 'pirata-one', '#d9c9a3'))),
 ]
 
@@ -296,6 +353,9 @@ const AFFINITIES: Affinity[] = [
   ['DIFFS', 'DEADLOCK', 'DEPRECATION', 'DOCUMENTATION'],
   ['DIVIDENDS', 'DIVESTMENT'],
   ['DIRIGIBLES', 'DOOM'],
+  ['DAFT PUNK', 'DIRE STRAITS', 'DISCO'],
+  ['DANUBE', 'DARDANELLES', 'DONBAS'],
+  ['DOPPLER RADAR', 'DROUGHT'],
 ].map((labels) => ({ ids: labels.map(id), boost: 6 }))
 
 export const WHEEL_OF_D_POOL: Pool = { segments: WORDS, draw: 24, affinities: AFFINITIES }
