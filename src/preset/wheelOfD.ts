@@ -81,7 +81,7 @@ const WORDS: Segment[] = [
     'DOOM',
     '#4a0d12',
     'oil',
-    composed(set('taperedRadial', [0.3, 0.94], 'pirata-one', '#e8d9b0', { stretch: 'fill' })),
+    composed(set('radial', FULL, 'pirata-one', '#e8d9b0')),
   ),
   word('DAMNATION', '#8a1c0c', 'gem', composed(set('taperedRadial', FULL, 'rye', '#ffb347'))),
   word(
@@ -184,8 +184,8 @@ const WORDS: Segment[] = [
     '#0d1117',
     'neon',
     composed(
-      set('taperedRadial', [0.32, 0.6], 'press-start-2p', '#f85149', { text: 'DIF' }),
-      set('taperedRadial', [0.62, 0.94], 'press-start-2p', '#3fb950', { text: 'FS' }),
+      set('taperedRadial', [0.26, 0.62], 'press-start-2p', '#f85149', { text: 'DIF' }),
+      set('taperedRadial', [0.64, 0.94], 'press-start-2p', '#3fb950', { text: 'FS' }),
     ),
   ),
   word(
