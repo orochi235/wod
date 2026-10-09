@@ -276,6 +276,48 @@ const outageWheel: Preset = {
   ],
 }
 
+/** Whatever the wheel is of, so long as it starts with a D. */
+const D_WORDS = [
+  'DESTINY',
+  'DOOM',
+  'DELIGHT',
+  'DESPAIR',
+  'DISCORD',
+  'DOUBT',
+  'DREAD',
+  'DESIRE',
+  'DANGER',
+  'DHARMA',
+  'DEATH',
+  'DINNER',
+]
+
+/** The grim ones are announced in the iridescent near-black the cash wheel keeps for BANKRUPT. */
+const GRIM = new Set(['DOOM', 'DEATH', 'DREAD', 'DESPAIR'])
+
+function dWords(): Segment[] {
+  let solvent = 0
+  return D_WORDS.map((label, index) => ({
+    id: `d${index + 1}`,
+    label,
+    weight: 1,
+    color: CASH_COLORS[index % CASH_COLORS.length],
+    look: GRIM.has(label) ? BANKRUPT_LOOK : SOLVENT_LOOKS[solvent++ % SOLVENT_LOOKS.length],
+  }))
+}
+
+/** The board's look and spin, twelve words wide, set one word down each wedge like the specimen. */
+const wheelOfD: Preset = {
+  ...cashWheel,
+  name: 'wheel of D',
+  segments: dWords(),
+  slice: SPECIMEN_SLICE,
+  spin: {
+    target: { kind: 'fair' },
+    motion: { durationMs: 5200, turns: 4, direction: 'cw', easing: [0.15, 0.85, 0.2, 1] },
+  },
+}
+
 export const SAMPLES: Sample[] = [
   {
     id: 'cash-wheel',
@@ -294,6 +336,12 @@ export const SAMPLES: Sample[] = [
     name: 'Outage',
     about: 'the cash wheel, shorting out mid-spin',
     preset: outageWheel,
+  },
+  {
+    id: 'wheel-of-d',
+    name: 'Wheel of D',
+    about: 'twelve words that could finish the name',
+    preset: wheelOfD,
   },
 ]
 
