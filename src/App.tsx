@@ -8,6 +8,7 @@ import type { FeedItem } from './feed/types'
 import type { CreateFx } from './outage/fx'
 import { useOutageFx } from './outage/useOutageFx'
 import { spinConfigOf } from './preset/motion'
+import { withPool } from './preset/pool'
 import { getSample } from './preset/samples'
 import { loadPreset, subscribePreset } from './preset/storage'
 import type { Preset } from './preset/types'
@@ -46,7 +47,8 @@ export type AppProps = {
 export function App({ chooseColor, createBanner, createFx, sample }: AppProps = {}) {
   const [stored, setStored] = useState<Preset>(loadPreset)
   const fixed = sample === undefined ? null : (getSample(sample)?.preset ?? null)
-  const preset = fixed ?? stored
+  // A pool is drawn once per preset, not per render, so the wheel holds still between spins.
+  const preset = useMemo(() => withPool(fixed ?? stored, Math.random), [fixed, stored])
 
   // An edit in the /edit window lands here without a reload. A sample is not
   // the stored wheel and does not follow it.

@@ -55,7 +55,7 @@ export type BranchNode = {
 
 /**
  * What sits on the hub cap. Preset state rather than theme state: the themes are
- * a closed registry of three looks, and an emblem is whose wheel this is rather
+ * a closed registry of looks, and an emblem is whose wheel this is rather
  * than what the wheel is made of.
  */
 export type Hub = {
@@ -66,6 +66,19 @@ export type Hub = {
    * wants the other one.
    */
   spins?: boolean
+}
+
+/** Wedges that pull each other in: once one is drawn, each of the rest is `boost` times as likely. */
+export type Affinity = { ids: string[]; boost: number }
+
+/**
+ * Candidates the wheel draws `draw` of each time it loads, joining `segments`.
+ * Drawn mates of an affinity sit side by side.
+ */
+export type Pool = {
+  segments: Segment[]
+  draw: number
+  affinities: Affinity[]
 }
 
 export type Preset = {
@@ -94,4 +107,6 @@ export type Preset = {
   hub?: Hub
   /** The show page's background as a hex color. Absent uses the look's, or none. */
   background?: string
+  /** Absent means every wedge is in `segments`. */
+  pool?: Pool
 }

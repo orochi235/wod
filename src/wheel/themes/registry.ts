@@ -1,13 +1,14 @@
 import type { Theme } from '../theme'
 import { board } from './board'
 import { flat } from './flat'
+import { poster } from './poster'
 import { wof } from './wof'
 
-export type ThemeId = 'flat' | 'wof' | 'board'
+export type ThemeId = 'flat' | 'wof' | 'board' | 'poster'
 
-export const THEMES: Record<ThemeId, Theme> = { flat, wof, board }
+export const THEMES: Record<ThemeId, Theme> = { flat, wof, board, poster }
 
-export const THEME_LIST: Theme[] = [flat, wof, board]
+export const THEME_LIST: Theme[] = [flat, wof, board, poster]
 
 /**
  * Returns null rather than throwing, matching getTransition: ids come out of

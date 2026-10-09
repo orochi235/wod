@@ -16,6 +16,7 @@ import { DEFAULT_SETTLE_CURVE, isSettleCurve, parseCurve } from '../wheel/curve'
 import { getTheme } from '../wheel/themes/registry'
 import type { Curve, Media, Reveal, Segment, Settle } from '../wheel/types'
 import { DEFAULT_PRESET } from './defaults'
+import { readPool } from './readPool'
 import type {
   BranchAction,
   BranchNode,
@@ -91,7 +92,7 @@ function readBreakpoints(value: unknown): Breakpoint[] | undefined {
   return points.length > 0 ? points : undefined
 }
 
-function readSegments(value: unknown): Segment[] {
+export function readSegments(value: unknown): Segment[] {
   if (!Array.isArray(value)) return []
   const segments: Segment[] = []
   for (const entry of value) {
@@ -584,6 +585,7 @@ export function parsePreset(raw: string | null): Preset {
 
   // Read before the tricks, which validate against the namespaces it defines.
   const feeds = readFeeds(data.feeds)
+  const pool = readPool(data.pool, segments)
 
   return {
     version: 5,
@@ -600,6 +602,7 @@ export function parsePreset(raw: string | null): Preset {
     theme: readTheme(data.theme),
     hub: readHub(data.hub),
     background: readBackground(data.background),
+    ...(pool ? { pool } : {}),
   }
 }
 
