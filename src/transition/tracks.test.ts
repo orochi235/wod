@@ -180,7 +180,7 @@ describe('advance', () => {
     const first = run(w)
     const before = { ...first.get('ana') }
     run(w, { tracks: first, segments: [{ ...segment('ana'), label: 'Ana L.' }], now: 1000 })
-    run(w, { tracks: first, segments: [], now: 100 })
+    run(w, { tracks: first, segments: [], now: 1100 })
     expect(first.size).toBe(1)
     expect(first.get('ana')).toEqual(before)
   })
