@@ -3,11 +3,11 @@ import {
   type Mix,
   type Ticker,
   type TickerOptions,
-  hex,
   kit,
   last,
   max,
   mix,
+  mixHex,
   sum,
   ticker,
 } from '@msb235/blits'
@@ -55,7 +55,7 @@ export type WedgePose = TrickPose & PresencePose
 const trickChannels: Kit<TrickPose> = kit<TrickPose>({
   // No bounds: a bound on the delta would clamp a vanish. The floor at 0 is wod's, in compose.
   weight: sum(),
-  color: hex(),
+  color: last<number>({ lerp: mixHex }),
   label: last<string>({ lerp: atStop }),
   media: last<Media>({ lerp: atStop }),
   reveal: last<Reveal>({ lerp: atStop }),
