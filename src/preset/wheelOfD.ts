@@ -546,6 +546,25 @@ const WORDS: Segment[] = [
     'flake',
     composed(set('radial', FULL, 'permanent-marker', '#ff7a59')),
   ),
+  word('DOVAHKIIN', '#2e3338', 'carved', composed(set('radial', FULL, 'cinzel', '#d9d4c7'))),
+  word(
+    'DR. DRE',
+    '#0d0d0d',
+    'gold',
+    composed(
+      set('taperedRadial', INNER, 'alfa-slab-one', '#c8a24a', { text: 'DR.' }),
+      set('taperedRadial', OUTER, 'alfa-slab-one', '#c8a24a', { text: 'DRE' }),
+    ),
+  ),
+  word(
+    'DR. DEMENTO',
+    '#4b1d6b',
+    'glitter',
+    composed(
+      set('taperedRadial', INNER, 'luckiest-guy', '#ffe14d', { text: 'DR.' }),
+      set('taperedRadial', OUTER, 'luckiest-guy', '#ffe14d', { text: 'DEMENTO' }),
+    ),
+  ),
 ]
 
 /** Drawing one of a group makes the rest of it six times as likely to be on the same wheel. */
