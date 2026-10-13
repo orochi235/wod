@@ -20,6 +20,9 @@ what's next, and the traps.
 
 1. Nothing reads the wheel mix's `dark` channel since the clicker kept ticking
    in the dark (`0934914`). Either something should paint it or the voice goes.
+2. `RecipeForm` shows a slider whose param is unset at the field's `min`, not at
+   the value the recipe runs with: a fly transition stored with `params: {}`
+   reads "Distance (radii)" as -1.
 
 ## Decisions made in conversation
 
