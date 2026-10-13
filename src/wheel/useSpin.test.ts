@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { segmentsAt } from '../clock/compose'
 import { type Motion, WHEEL } from '../clock/motion'
 import { fakeMotion } from '../clock/testing'

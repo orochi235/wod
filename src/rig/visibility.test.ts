@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { RIG_KEY, consumeRigParam, isRigVisible } from './visibility'
+import { consumeRigParam, isRigVisible, RIG_KEY } from './visibility'
 
 function at(hash: string) {
   window.history.replaceState(null, '', `/${hash}`)

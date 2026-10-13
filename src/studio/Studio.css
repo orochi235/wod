@@ -30,10 +30,6 @@
   min-width: 9rem;
 }
 
-.studio__slot--fill .studio__preview {
-  width: 100%;
-}
-
 /* Every box is the same height, so pinning the height pins px-per-unit for all
    of them at once — a wider wedge gets a wider box and a wider preview rather
    than the same wedge drawn smaller. Growing with the viewport scales the whole
@@ -43,6 +39,10 @@
   width: auto;
   background: var(--wheel-stage-fill, #14161c);
   border-radius: 0.35rem;
+}
+
+.studio__slot--fill .studio__preview {
+  width: 100%;
 }
 
 /* The room a part was given, not what took it — dotted so it never reads as

@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Probe } from './Probe'
 import { consumeTokenFromHash } from './launch'
+import { Probe } from './Probe'
 
 // Before the first render, so the token never reaches the address bar's history.
 const token = consumeTokenFromHash()

@@ -5,12 +5,12 @@ import type { Segment } from '../wheel/types'
 import { REDUCED_MOTION_MS } from '../wheel/useSpin'
 import {
   type AdvanceInput,
-  type Track,
-  type Wedges,
   advance,
   drawList,
   retire,
   settle,
+  type Track,
+  type Wedges,
 } from './tracks'
 import type { Transitions } from './types'
 import { RESTING } from './voices'

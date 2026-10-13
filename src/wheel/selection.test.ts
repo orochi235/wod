@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { forced, weightedRandom } from './selection'
 import type { Rng } from './selection'
+import { forced, weightedRandom } from './selection'
 
 /** Deterministic generator so weight fidelity is reproducible in tests. */
 function lcg(seed: number): Rng {

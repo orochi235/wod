@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NO_NAME, expand, nameFor, namesOf } from './template'
+import { expand, NO_NAME, nameFor, namesOf } from './template'
 
 describe('namesOf', () => {
   it('splits a two-part name at the space', () => {

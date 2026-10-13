@@ -23,8 +23,8 @@ import {
   MAX_ARC_DEG,
   MIN_ARC_DEG,
   PREVIEW_FILL,
-  WIDE_ARC_STEPS,
   previewHubRadius,
+  WIDE_ARC_STEPS,
 } from './wedge'
 
 /** What the studio previews when the preset carries no wedges of its own. */

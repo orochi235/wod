@@ -1,7 +1,7 @@
 import { type RefObject, useEffect, useRef } from 'react'
 import type { Motion } from '../clock/motion'
 import type { OutageRun } from '../wheel/useSpin'
-import { type CreateFx, type Fx, createFx } from './fx'
+import { type CreateFx, createFx, type Fx } from './fx'
 import { darkVoice } from './voices'
 
 export type UseOutageFxOptions = {

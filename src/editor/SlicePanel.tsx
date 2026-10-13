@@ -1,5 +1,5 @@
 import { PropertyPanel, SelectRow } from '@weasel-js/labkit'
-import { SLICE_LIST, getSlice } from '../slice/registry'
+import { getSlice, SLICE_LIST } from '../slice/registry'
 import type { SliceInstance, SliceParams } from '../slice/types'
 import { RecipeForm } from './RecipeForm'
 

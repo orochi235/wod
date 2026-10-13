@@ -3,8 +3,8 @@ import { WHEEL } from '../clock/motion'
 import { fakeMotion } from '../clock/testing'
 import { angleVoice } from './anglePatch'
 import { angleAt, withOutage } from './outage'
-import { rotationTrack } from './rotation'
 import type { RotationTrack } from './rotation'
+import { rotationTrack } from './rotation'
 
 const SETTLE = rotationTrack(30, 200, {
   durationMs: 4500,

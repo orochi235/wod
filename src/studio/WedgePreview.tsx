@@ -1,12 +1,12 @@
 import { useId } from 'react'
 import type { Measure, SliceInstance } from '../slice/types'
-import { SliceElements } from '../wheel/SliceElements'
 import { arcPath } from '../wheel/geometry'
 import { panelPath } from '../wheel/panel'
+import { SliceElements } from '../wheel/SliceElements'
 import type { Theme } from '../wheel/theme'
 import { styleOfTheme } from '../wheel/themeStyle'
 import type { Segment } from '../wheel/types'
-import { PREVIEW_RADIUS, bandsOf, drawWedge, previewArc, previewBox } from './wedge'
+import { bandsOf, drawWedge, PREVIEW_RADIUS, previewArc, previewBox } from './wedge'
 
 export type WedgePreviewProps = {
   instance: SliceInstance

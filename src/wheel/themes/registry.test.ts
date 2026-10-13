@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { THEMES, THEME_LIST, getTheme } from './registry'
+import { getTheme, THEME_LIST, THEMES } from './registry'
 
 describe('getTheme', () => {
   it('finds a theme by id', () => {

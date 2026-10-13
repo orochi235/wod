@@ -1,5 +1,5 @@
 import { PropertyPanel, SelectRow } from '@weasel-js/labkit'
-import { TRANSITION_LIST, getTransition } from '../transition/registry'
+import { getTransition, TRANSITION_LIST } from '../transition/registry'
 import type { Moment, TransitionParams, Transitions } from '../transition/types'
 import { RecipeForm } from './RecipeForm'
 

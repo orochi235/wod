@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTLE_CURVE } from './curve'
 import {
+  angleAt,
   COAST_SPEED,
   DARK_MS,
   LULL_PAST_LIGHTS_MS,
   SLOW_MS,
   WIND_UP_MS,
-  angleAt,
   withOutage,
 } from './outage'
 import { type RotationSpec, rotationTrack } from './rotation'

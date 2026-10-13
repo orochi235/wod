@@ -1,4 +1,4 @@
-import { DEFAULT_SETTLE_CURVE, cssCurve, initialSlope, isSettleCurve } from './curve'
+import { cssCurve, DEFAULT_SETTLE_CURVE, initialSlope, isSettleCurve } from './curve'
 import type { Curve, Direction, Settle } from './types'
 
 /** Everything about a spin's rotation. `SpinConfig` minus the morphs. */

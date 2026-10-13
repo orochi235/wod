@@ -58,10 +58,6 @@
   opacity: 0.55;
 }
 
-.segment-list__row--ghost .segment-list__weight-readout {
-  align-self: center;
-}
-
 .segment-list__ghost-button {
   /* One line, not stacked: the row's height comes from the input-bearing rows
      above it, and a second line just gets clipped. */
@@ -87,6 +83,10 @@
 .segment-list__weight-readout {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.segment-list__row--ghost .segment-list__weight-readout {
+  align-self: center;
 }
 
 .segment-list__row--active {

@@ -1,5 +1,5 @@
-import { FLAT_METRICS } from '../theme'
 import type { Theme } from '../theme'
+import { FLAT_METRICS } from '../theme'
 
 /** Today's wheel. Nothing is added, so a preset with no theme renders unchanged. */
 export const flat: Theme = {

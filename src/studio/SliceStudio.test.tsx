@@ -10,8 +10,8 @@ import {
   FALLBACK_HUB_RADIUS,
   PREVIEW_FILL,
   PREVIEW_RADIUS,
-  WIDE_ARC_STEPS,
   previewHubRadius,
+  WIDE_ARC_STEPS,
 } from './wedge'
 
 describe('SliceStudio', () => {

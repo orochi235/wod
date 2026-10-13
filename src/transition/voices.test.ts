@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { type WedgePose, wedgeKit } from '../clock/motion'
 import { TRANSITIONS } from './registry'
 import type { Presence, TransitionId } from './types'
-import { type PresencePlan, RESTING, presenceOf, presenceVoice, stopsOf } from './voices'
+import { type PresencePlan, presenceOf, presenceVoice, RESTING, stopsOf } from './voices'
 
 const planOf = (id: TransitionId, moment: 'enter' | 'exit'): PresencePlan => {
   const { keyframes, delayMs, easing } = TRANSITIONS[id].frames(

@@ -1,4 +1,4 @@
-import { type Patch, type VoiceSpec, keys } from '@msb235/blits'
+import { keys, type Patch, type VoiceSpec } from '@msb235/blits'
 import { WHEEL, type WheelPose } from '../clock/motion'
 import type { OutagePlan } from '../wheel/outage'
 import { blackoutKeyframes, blackoutMs } from './schedule'

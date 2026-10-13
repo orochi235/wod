@@ -3,7 +3,7 @@ import { type OutagePlan, withOutage } from './outage'
 import type { PegMode } from './pegs'
 import { type RotationTrack, rotationTrack } from './rotation'
 import { type Rng, type SelectionStrategy, weightedRandom } from './selection'
-import { type SpinPlan, planSpin } from './spin'
+import { planSpin, type SpinPlan } from './spin'
 import type { Morph, Segment, SpinConfig } from './types'
 
 export type ShowInput = {

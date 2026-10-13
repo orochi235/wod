@@ -5,11 +5,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { blackoutVoice } from '../outage/voices'
 import { manualMotion } from './manual'
 import {
-  WHEEL,
-  type WedgePose,
-  type WheelPose,
   createMotion,
   useMotionRoot,
+  type WedgePose,
+  WHEEL,
+  type WheelPose,
   wedgeKit,
 } from './motion'
 import { fakeMotion } from './testing'

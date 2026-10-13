@@ -1,4 +1,4 @@
-import { type Keyframe, type VoiceSpec, keys } from '@msb235/blits'
+import { type Keyframe, keys, type VoiceSpec } from '@msb235/blits'
 import type { WedgePose } from '../clock/motion'
 import { EASINGS } from '../keyframes/easing'
 import type { EasingName } from '../wheel/types'

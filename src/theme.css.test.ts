@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import app from './App.css?raw'
-import wheel from './wheel/Wheel.css?raw'
 import { wof } from './wheel/themes/wof'
+import wheel from './wheel/Wheel.css?raw'
 
 /**
  * A look dresses two things now — the wheel, and the page it is shown on — so

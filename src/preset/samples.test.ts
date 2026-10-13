@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { getSlice } from '../slice/registry'
 import { wantsInverseInk } from '../wheel/ink'
 import { getTheme } from '../wheel/themes/registry'
-import { SAMPLES, getSample } from './samples'
+import { getSample, SAMPLES } from './samples'
 import { parsePreset } from './storage'
 
 describe('samples', () => {

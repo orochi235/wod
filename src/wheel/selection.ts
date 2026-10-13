@@ -1,5 +1,5 @@
-import { arcs, normalizeWeights } from './geometry'
 import type { Weighted } from './geometry'
+import { arcs, normalizeWeights } from './geometry'
 
 /** Returns a float in [0, 1). */
 export type Rng = () => number

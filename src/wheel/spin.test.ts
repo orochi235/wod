@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { angleToSegment, arcs, pointerTurn, restingRotationDeg } from './geometry'
 import { landingSegments } from './morph'
-import { forced, weightedRandom } from './selection'
 import type { Rng } from './selection'
+import { forced, weightedRandom } from './selection'
 import { CATCH_REACH, caughtLandingTurn, planSpin } from './spin'
 import type { Morph, Segment, SpinConfig } from './types'
 

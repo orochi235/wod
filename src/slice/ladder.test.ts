@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createFit } from './fit'
-import { LADDERS, LADDER_OPTIONS, applyTransform, ellipsize, walkLadder } from './ladder'
+import { applyTransform, ellipsize, LADDER_OPTIONS, LADDERS, walkLadder } from './ladder'
 import type { FitSpec, Measure } from './types'
 
 const measure: Measure = (text, size) => text.length * 0.5 * size

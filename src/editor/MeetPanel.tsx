@@ -2,7 +2,7 @@ import { PropertyPanel, PropertyRow } from '@weasel-js/labkit'
 import { useEffect, useRef, useState } from 'react'
 import type { FeedItem, MeetFeedConfig } from '../feed/types'
 import { MeetApiError } from '../meet/api'
-import { type Token, clientId, isUsable, requestToken } from '../meet/auth'
+import { clientId, isUsable, requestToken, type Token } from '../meet/auth'
 import { MIN_POLL_INTERVAL_MS } from '../meet/poll'
 import { fetchRoster } from '../meet/roster'
 

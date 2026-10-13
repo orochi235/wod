@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Conflict } from '../tricks/conflicts'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
-import { TrickLibrary, reorder } from './TrickLibrary'
+import { reorder, TrickLibrary } from './TrickLibrary'
 
 const segments: Segment[] = [{ id: 'ana', label: 'Ana', weight: 1 }]
 

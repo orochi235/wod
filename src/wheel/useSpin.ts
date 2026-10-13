@@ -7,10 +7,10 @@ import type { Motion } from '../clock/motion'
 import { angleVoice } from './anglePatch'
 import type { OutagePlan } from './outage'
 import type { PegMode } from './pegs'
-import { type RotationTrack, invertTrack } from './rotation'
-import { cryptoRng, weightedRandom } from './selection'
+import { invertTrack, type RotationTrack } from './rotation'
 import type { SelectionStrategy } from './selection'
-import { type Show, planShow } from './show'
+import { cryptoRng, weightedRandom } from './selection'
+import { planShow, type Show } from './show'
 import type { Morph, Segment, SpinConfig } from './types'
 
 export const REDUCED_MOTION_MS = 300

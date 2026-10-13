@@ -125,7 +125,7 @@ describe('PartsField', () => {
 
     await userEvent.selectOptions(screen.getAllByLabelText('Stretch')[0], 'fill')
     expect(screen.queryAllByLabelText('Stretch amount')).toHaveLength(0)
-    expect((spy.mock.calls.at(-1)?.[0] as SlicePart[])[0].stretch).toBe('fill')
+    expect((spy.mock.lastCall as [SlicePart[]])[0][0].stretch).toBe('fill')
   })
 })
 

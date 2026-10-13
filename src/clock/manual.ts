@@ -1,4 +1,4 @@
-import { type Motion, type MotionOptions, createMotion } from './motion'
+import { createMotion, type Motion, type MotionOptions } from './motion'
 
 /** A motion on a clock that moves only when its owner steps it: tests, and the editor's recording. */
 export function manualMotion(options?: MotionOptions) {

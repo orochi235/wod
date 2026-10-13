@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createFit } from './fit'
 import { DEFAULT_FAMILY } from './fonts/registry'
-import type { GlyphSource } from './types'
-import type { Glyph, Measure, SliceContext, SlicePart } from './types'
+import type { Glyph, GlyphSource, Measure, SliceContext, SlicePart } from './types'
 import { typeset } from './typeset'
 
 /**

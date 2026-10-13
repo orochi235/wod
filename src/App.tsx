@@ -17,7 +17,6 @@ import { useReveal } from './reveal/useReveal'
 import { resolveFont } from './slice/fonts/registry'
 import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
-import { Wheel } from './wheel/Wheel'
 import type { ChooseColor } from './wheel/colors'
 import { hexNumber } from './wheel/ink'
 import { cryptoRng, forced } from './wheel/selection'
@@ -27,6 +26,7 @@ import { flat } from './wheel/themes/flat'
 import { getTheme } from './wheel/themes/registry'
 import type { SpinConfig } from './wheel/types'
 import { useSpin } from './wheel/useSpin'
+import { Wheel } from './wheel/Wheel'
 import './App.css'
 
 export type AppProps = {
@@ -226,6 +226,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
       }}
     >
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: the Spin button is this action's keyboard control; a second tab stop would announce the same spin twice. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: as above, the Spin button is the control. */}
       <div
         ref={stageRef}
         className={canSpin ? 'app__stage app__stage--live' : 'app__stage'}

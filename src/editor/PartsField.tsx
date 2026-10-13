@@ -11,10 +11,10 @@ import { DEFAULT_PADDING } from '../slice/glyphRun'
 import {
   DEFAULT_PART,
   LEADING_RANGE,
-  PADDING_RANGE,
   PAD_TAPER_RANGE,
-  TRACKING_RANGE,
+  PADDING_RANGE,
   readParts,
+  TRACKING_RANGE,
 } from '../slice/parts'
 import type { ContentTransform, Orientation, PartContent, SlicePart } from '../slice/types'
 import { FontField } from './FontField'

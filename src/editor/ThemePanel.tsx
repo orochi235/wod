@@ -1,5 +1,5 @@
 import { ColorRow, PropertyPanel, SelectRow } from '@weasel-js/labkit'
-import { THEME_LIST, getTheme } from '../wheel/themes/registry'
+import { getTheme, THEME_LIST } from '../wheel/themes/registry'
 
 export type ThemePanelProps = {
   theme: string | undefined

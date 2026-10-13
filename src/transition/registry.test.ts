@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TRANSITIONS, TRANSITION_LIST, getTransition } from './registry'
+import { getTransition, TRANSITION_LIST, TRANSITIONS } from './registry'
 
 describe('getTransition', () => {
   it('finds a transition by id', () => {

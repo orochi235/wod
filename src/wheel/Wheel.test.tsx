@@ -4,11 +4,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { WHEEL } from '../clock/motion'
 import { fakeMotion } from '../clock/testing'
 import type { SliceInstance } from '../slice/types'
-import { Wheel } from './Wheel'
 import { anglePatch } from './anglePatch'
 import { flat } from './themes/flat'
 import { wof } from './themes/wof'
 import type { Segment } from './types'
+import { Wheel } from './Wheel'
 
 // Never stepped: tests that watch a transition mid-flight use installClock().
 const { motion } = fakeMotion()

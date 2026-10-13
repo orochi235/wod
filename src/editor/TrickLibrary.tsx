@@ -1,6 +1,6 @@
 import { EffectCard, EffectCardList, PropertyPanel } from '@weasel-js/labkit'
 import { type Conflict, conflictText } from '../tricks/conflicts'
-import { RECIPE_LIST, getRecipe } from '../tricks/registry'
+import { getRecipe, RECIPE_LIST } from '../tricks/registry'
 import type { RecipeId, Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 import { RecipeForm } from './RecipeForm'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getFont } from '../slice/fonts/registry'
-import { FLAT_METRICS, partOn } from './theme'
 import type { Theme } from './theme'
+import { FLAT_METRICS, partOn } from './theme'
 import { flat } from './themes/flat'
 import { wof } from './themes/wof'
 

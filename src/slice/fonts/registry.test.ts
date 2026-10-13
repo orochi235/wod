@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CATALOG } from './catalog'
-import { DEFAULT_FONT_ID, FONTS, FONT_LIST, getFont, resolveFamily } from './registry'
+import { DEFAULT_FONT_ID, FONT_LIST, FONTS, getFont, resolveFamily } from './registry'
 
 describe('the font registry', () => {
   it('resolves a catalogue id to its family', () => {

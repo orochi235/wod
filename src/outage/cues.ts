@@ -1,5 +1,5 @@
 import type { OutagePlan } from '../wheel/outage'
-import { BLOW_MS, type Shot, escalation } from './schedule'
+import { BLOW_MS, escalation, type Shot } from './schedule'
 
 /** A shot more than this late is skipped: a hidden tab must not come back to a burst. */
 export const STALE_MS = 250

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import wheelCss from '../wheel/Wheel.css?raw'
 import { paintPresence, styleOf, transformOf } from './css'
 import { fly } from './transitions/fly'
-import { RESTING, presenceOf, stopsOf } from './voices'
+import { presenceOf, RESTING, stopsOf } from './voices'
 
 const target = { angle: 90, radius: 200, pivot: 120 }
 

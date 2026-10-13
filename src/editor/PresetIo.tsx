@@ -1,4 +1,4 @@
-import { SAMPLES, getSample } from '../preset/samples'
+import { getSample, SAMPLES } from '../preset/samples'
 import { parsePreset } from '../preset/storage'
 import type { Preset } from '../preset/types'
 
