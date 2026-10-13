@@ -143,7 +143,7 @@ describe('Editor integration', () => {
     // and labkit's card head (which trails its own Remove control) both match a
     // looser name.
     await userEvent.click(
-      screen.getByRole('button', { name: /^slow burn one wedge swallows the wheel$/i }),
+      screen.getByRole('button', { name: /^slow burn\s*one wedge swallows the wheel$/i }),
     )
     // Named, not counted: the transport's scrub readout is also an <output>,
     // so a bare role query would pass with no conflict at all.

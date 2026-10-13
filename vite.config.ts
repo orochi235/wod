@@ -26,13 +26,9 @@ export default defineConfig({
     // Vitest stubs CSS imports to '', including `?raw`. Scoped to raw imports so
     // a plain `import './Wheel.css'` stays stubbed for component tests.
     css: { include: [/\.css\?raw$/] },
-    poolOptions: {
-      forks: {
-        // Node 22+'s experimental global `localStorage` shadows jsdom's window.localStorage
-        // (jsdom/jsdom#3862-style conflict), leaving it undefined under Vitest. Disabling it
-        // lets jsdom provide the real implementation.
-        execArgv: ['--no-experimental-webstorage'],
-      },
-    },
+    // Node 22+'s experimental global `localStorage` shadows jsdom's window.localStorage
+    // (jsdom/jsdom#3862-style conflict), leaving it undefined under Vitest. Disabling it
+    // lets jsdom provide the real implementation.
+    execArgv: ['--no-experimental-webstorage'],
   },
 })

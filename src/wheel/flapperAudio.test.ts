@@ -23,7 +23,12 @@ function stubAudio() {
   }
   vi.stubGlobal(
     'AudioContext',
-    vi.fn(() => ctx),
+    class {
+      constructor() {
+        // biome-ignore lint/correctness/noConstructorReturn: hands `new` the shared stub
+        return ctx
+      }
+    },
   )
   return { ctx, osc, gain }
 }
