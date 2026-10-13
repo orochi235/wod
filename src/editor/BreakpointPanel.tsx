@@ -1,4 +1,4 @@
-import { PropertyPanel, SelectRow, Subpanel } from '@weasel-js/labkit'
+import { PropertyField, PropertyPanel, Subpanel } from '@weasel-js/labkit'
 import { useState } from 'react'
 import type { Breakpoint } from '../slice/breakpoints'
 import { DEFAULT_SLICE, getSlice, SLICE_LIST } from '../slice/registry'
@@ -77,7 +77,8 @@ export function BreakpointPanel({ breakpoints, wheelSlice, onChange }: Breakpoin
         <div className="lk-property-list__span bands__form">
           {point && source !== null ? (
             <>
-              <SelectRow
+              <PropertyField
+                kind="enum"
                 label="Layout"
                 value={point.slice.id}
                 options={SLICE_LIST.map((item) => ({ value: item.id, label: item.name }))}

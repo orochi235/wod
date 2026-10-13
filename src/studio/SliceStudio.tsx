@@ -1,4 +1,4 @@
-import { CheckboxRow, ColorRow, LabShell, PropertyPanel, SelectRow } from '@weasel-js/labkit'
+import { LabShell, PropertyField, PropertyPanel } from '@weasel-js/labkit'
 import { useCallback, useMemo, useState } from 'react'
 import { BreakpointPanel } from '../editor/BreakpointPanel'
 import { SlicePanel } from '../editor/SlicePanel'
@@ -156,15 +156,26 @@ export function SliceStudio() {
         </section>
         <section className="studio__controls">
           <PropertyPanel title="Wedge">
-            <SelectRow
+            <PropertyField
+              kind="enum"
               label="Preview on"
               value={segment.id}
               options={segments.map((entry) => ({ value: entry.id, label: entry.label }))}
               onChange={setSegmentId}
             />
-            <ColorRow label="Wedge color" value={fill} onChange={setChosenFill} />
-            <CheckboxRow label="Clip the hub" value={clipped} onChange={setClipHub} />
-            <CheckboxRow label="Show the room" value={showBands} onChange={setShowBands} />
+            <PropertyField kind="color" label="Wedge color" value={fill} onChange={setChosenFill} />
+            <PropertyField
+              kind="boolean"
+              label="Clip the hub"
+              value={clipped}
+              onChange={setClipHub}
+            />
+            <PropertyField
+              kind="boolean"
+              label="Show the room"
+              value={showBands}
+              onChange={setShowBands}
+            />
           </PropertyPanel>
           <SlicePanel slice={preset.slice} onChange={(slice) => update({ ...preset, slice })} />
           <BreakpointPanel

@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@msb235/blits": "^0.10.0",
-    "@weasel-js/labkit": "^1.0.2",
+    "@weasel-js/labkit": "^1.9.4",
     "klieg": "^0.16.7",
     "magicsmoke": "^0.5.0",
     "opentype.js": "^2.0.0",

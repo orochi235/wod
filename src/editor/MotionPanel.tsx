@@ -1,4 +1,4 @@
-import { NumberRow, PropertyPanel, PropertyRow, SelectRow } from '@weasel-js/labkit'
+import { PropertyField, PropertyPanel, PropertyRow } from '@weasel-js/labkit'
 import { useLayoutEffect, useRef } from 'react'
 import type { Motion } from '../preset/types'
 import { DEFAULT_SETTLE_CURVE } from '../wheel/curve'
@@ -52,7 +52,8 @@ export function MotionPanel({ motion, onChange }: MotionPanelProps) {
     <PropertyPanel title="Motion" className="editor__center-panel">
       {/* Floored at 1, not 0: Element.animate() throws synchronously on a
           negative duration, and the parser only guards data arriving by import. */}
-      <NumberRow
+      <PropertyField
+        kind="number"
         label="Duration (ms)"
         min={1}
         step={100}
@@ -62,7 +63,8 @@ export function MotionPanel({ motion, onChange }: MotionPanelProps) {
         }
       />
 
-      <NumberRow
+      <PropertyField
+        kind="number"
         label="Turns"
         min={0}
         value={motion.turns}
@@ -71,7 +73,8 @@ export function MotionPanel({ motion, onChange }: MotionPanelProps) {
         }
       />
 
-      <SelectRow
+      <PropertyField
+        kind="enum"
         label="Direction"
         value={motion.direction}
         options={DIRECTIONS}

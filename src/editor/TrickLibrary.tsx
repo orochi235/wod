@@ -1,4 +1,4 @@
-import { EffectCard, EffectCardList, PropertyPanel } from '@weasel-js/labkit'
+import { LayerList, type LayerMove, PropertyPanel } from '@weasel-js/labkit'
 import { type Conflict, conflictText } from '../tricks/conflicts'
 import { getRecipe, RECIPE_LIST } from '../tricks/registry'
 import type { RecipeId, Trick } from '../tricks/types'
@@ -21,20 +21,12 @@ function newTrickId(tricks: Trick[], recipe: RecipeId): string {
 }
 
 /** Order is the conflict resolution mechanism, so reordering is a real edit. */
-export function reorder(
-  tricks: Trick[],
-  sourceId: string | number,
-  targetId: string | number,
-  position: 'before' | 'after',
-): Trick[] {
-  const from = tricks.findIndex((trick) => trick.id === sourceId)
-  const moved = tricks[from]
-  if (!moved) return tricks
-  const without = tricks.filter((_, i) => i !== from)
-  const at = without.findIndex((trick) => trick.id === targetId)
-  if (at === -1) return tricks
-  const insertAt = position === 'before' ? at : at + 1
-  return [...without.slice(0, insertAt), moved, ...without.slice(insertAt)]
+export function reorder(tricks: Trick[], move: LayerMove): Trick[] {
+  const moving = new Set(move.ids)
+  const moved = tricks.filter((trick) => moving.has(trick.id))
+  if (moved.length === 0) return tricks
+  const rest = tricks.filter((trick) => !moving.has(trick.id))
+  return [...rest.slice(0, move.index), ...moved, ...rest.slice(move.index)]
 }
 
 export function TrickLibrary({
@@ -47,41 +39,24 @@ export function TrickLibrary({
 }: TrickLibraryProps) {
   const replace = (id: string, patch: Partial<Trick>) =>
     onChange(tricks.map((trick) => (trick.id === id ? { ...trick, ...patch } : trick)))
+  const conflictsOf = (id: string) => conflicts.filter((conflict) => conflict.trickIds.includes(id))
 
   return (
     <PropertyPanel title="Tricks" className="trick-library">
-      <EffectCardList
-        // EffectCardList seeds its expanded set once at mount and never
-        // re-syncs, so a selection made anywhere else — clicking a ghost row in
-        // the segment list — would call onSelect without ever showing the form.
-        // Keying on the selection remounts the list so the seed is re-read.
+      <LayerList
+        // LayerList stops reading defaultCollapsed once a card is folded by hand,
+        // so a selection made elsewhere (a ghost row in the segment list) would
+        // not open its form. Keying on the selection remounts the list.
         key={selectedId ?? 'none'}
-        items={tricks}
-        defaultExpandedIds={selectedId ? [selectedId] : []}
-        empty={<p>No tricks yet.</p>}
-        onReorder={(sourceId, targetId, position) =>
-          onChange(reorder(tricks, sourceId, targetId, position))
-        }
-        renderItem={(trick, { cardProps }) => {
+        label="Tricks"
+        items={tricks.map((trick) => {
           const recipe = getRecipe(trick.recipe)
-          const own = conflicts.filter((conflict) => conflict.trickIds.includes(trick.id))
-
-          return (
-            <EffectCard
-              {...cardProps}
-              accent={own.length > 0 ? '#e76f51' : undefined}
-              onRemove={() => onChange(tricks.filter((other) => other.id !== trick.id))}
-              title={
-                <button
-                  className="trick-card__title"
-                  type="button"
-                  onClick={() => onSelect(trick.id)}
-                >
-                  <span className="trick-card__name">{trick.name}</span>
-                  <span className="trick-card__recipe">{recipe?.name ?? trick.recipe}</span>
-                </button>
-              }
-              primary={
+          return {
+            id: trick.id,
+            label: trick.name,
+            // A card draws no `leading`; that slot holds its drag handle.
+            title: (
+              <span className="trick-card__title">
                 <label className="trick-card__enable">
                   <input
                     type="checkbox"
@@ -90,8 +65,28 @@ export function TrickLibrary({
                     onChange={(event) => replace(trick.id, { enabled: event.target.checked })}
                   />
                 </label>
-              }
-            >
+                <span className="trick-card__name">{trick.name}</span>
+                <span className="trick-card__recipe">{recipe?.name ?? trick.recipe}</span>
+              </span>
+            ),
+            tone: conflictsOf(trick.id).length > 0 ? '#e76f51' : undefined,
+            defaultCollapsed: trick.id !== selectedId,
+          }
+        })}
+        selectedIds={selectedId ? [selectedId] : []}
+        onSelect={(ids) => {
+          if (ids[0]) onSelect(ids[0])
+        }}
+        empty={<p>No tricks yet.</p>}
+        onReorder={(move) => onChange(reorder(tricks, move))}
+        onRemove={(id) => onChange(tricks.filter((other) => other.id !== id))}
+        renderBody={(item) => {
+          const trick = tricks.find((entry) => entry.id === item.id)
+          if (!trick) return null
+          const recipe = getRecipe(trick.recipe)
+          const own = conflictsOf(trick.id)
+          return (
+            <>
               {own.length > 0 && (
                 <output className="trick-card__conflict" aria-label={`${trick.name} conflicts`}>
                   ⚠ {conflictText(trick.id, own)}
@@ -115,7 +110,7 @@ export function TrickLibrary({
                   />
                 </>
               )}
-            </EffectCard>
+            </>
           )
         }}
       />

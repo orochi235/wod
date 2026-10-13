@@ -12,8 +12,9 @@ what's next, and the traps.
   (trick morphs as voices on the wedge mix), 5 (wedge transitions as voices
   on the wedge mix) and 6 (editor scrub over the whole show) are merged. `git log --oneline @{u}..HEAD` lists what is unpushed; pushing is
   the owner's call.
-- blits is pinned at exactly `0.6.0`. wod's frame loop is blits' `ticker()`,
-  and voices use `freeze` (0.4.0's `hold`, renamed in 0.6.0).
+- blits is pinned at exactly `0.10.0`. wod's frame loop is blits' `ticker()`,
+  and voices use `freeze` (0.4.0's `hold`, renamed in 0.6.0). klieg and
+  magicsmoke each pin their own blits, so the bundle carries three copies.
 
 ## Open items
 

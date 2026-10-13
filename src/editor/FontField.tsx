@@ -1,4 +1,4 @@
-import { SelectRow } from '@weasel-js/labkit'
+import { PropertyField } from '@weasel-js/labkit'
 import { CLASS_NAMES } from '../slice/fonts/catalog'
 import { FONT_LIST, getFont } from '../slice/fonts/registry'
 import { specimenText } from '../slice/fonts/specimen'
@@ -36,7 +36,8 @@ export function FontField({ label, value, onChange, specimen }: FontFieldProps) 
 
   return (
     <>
-      <SelectRow
+      <PropertyField
+        kind="enum"
         label={label}
         value={value ?? FOLLOW}
         options={OPTIONS}

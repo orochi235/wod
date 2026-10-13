@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { Breakpoint } from '../slice/breakpoints'
 import { BreakpointPanel } from './BreakpointPanel'
+import { choose, picker } from './testing'
 
 const at = (degrees: number, id: string): Breakpoint => ({
   from: degrees / 360,
@@ -46,7 +47,7 @@ describe('BreakpointPanel', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Cash' }))
 
-    expect(screen.getByLabelText('Layout')).toHaveValue('cash')
+    expect(picker('Layout')).toHaveTextContent('Cash')
     expect(screen.getByText('From 1/30')).toBeInTheDocument()
   })
 
@@ -55,7 +56,7 @@ describe('BreakpointPanel', () => {
     render(<BreakpointPanel breakpoints={[at(12, 'cash')]} onChange={onChange} />)
 
     await userEvent.click(screen.getByRole('button', { name: 'Cash' }))
-    await userEvent.selectOptions(screen.getByLabelText('Layout'), 'radial')
+    await choose('Layout', 'Radial')
 
     expect(onChange).toHaveBeenCalledWith([
       { from: 12 / 360, slice: { id: 'radial', params: expect.anything() } },

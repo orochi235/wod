@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Motion } from '../preset/types'
 import { MotionPanel } from './MotionPanel'
+import { choose, picker } from './testing'
 
 const motion: Motion = {
   durationMs: 4500,
@@ -40,9 +41,9 @@ function Harness({
 describe('MotionPanel', () => {
   it('renders a control per field', () => {
     render(<MotionPanel motion={motion} onChange={vi.fn()} />)
-    expect(screen.getByLabelText('Duration (ms)')).toHaveValue(4500)
-    expect(screen.getByLabelText('Turns')).toHaveValue(6)
-    expect(screen.getByLabelText('Direction')).toHaveValue('cw')
+    expect(screen.getByLabelText('Duration (ms)')).toHaveValue('4500')
+    expect(screen.getByLabelText('Turns')).toHaveValue('6')
+    expect(picker('Direction')).toHaveTextContent('Clockwise')
     expect(screen.getByLabelText('Settle (ms)')).toHaveValue(null)
   })
 
@@ -56,7 +57,7 @@ describe('MotionPanel', () => {
   it('turns the wheel the other way', async () => {
     const onChange = vi.fn()
     render(<MotionPanel motion={motion} onChange={onChange} />)
-    await userEvent.selectOptions(screen.getByLabelText('Direction'), 'ccw')
+    await choose('Direction', 'Counter-clockwise')
     expect(onChange).toHaveBeenCalledWith({ ...motion, direction: 'ccw' })
   })
 

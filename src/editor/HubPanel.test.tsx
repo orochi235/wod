@@ -2,13 +2,14 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { HubPanel } from './HubPanel'
+import { choose } from './testing'
 
 describe('HubPanel', () => {
   it('starts an emblem on the kind that was chosen', async () => {
     const onChange = vi.fn()
     render(<HubPanel hub={undefined} onChange={onChange} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Emblem'), 'emoji')
+    await choose('Emblem', 'An emoji')
 
     expect(onChange).toHaveBeenCalledWith({ emblem: { kind: 'emoji', value: '' } })
   })
@@ -17,7 +18,7 @@ describe('HubPanel', () => {
     const onChange = vi.fn()
     render(<HubPanel hub={{ emblem: { kind: 'image', value: '/logo.png' } }} onChange={onChange} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Emblem'), 'gif')
+    await choose('Emblem', 'An animation')
 
     expect(onChange).toHaveBeenCalledWith({ emblem: { kind: 'gif', value: '/logo.png' } })
   })
@@ -38,7 +39,7 @@ describe('HubPanel', () => {
     const onChange = vi.fn()
     render(<HubPanel hub={{ emblem: { kind: 'emoji', value: '🎡' } }} onChange={onChange} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Emblem'), '')
+    await choose('Emblem', 'None')
 
     expect(onChange).toHaveBeenCalledWith(undefined)
   })
