@@ -82,20 +82,6 @@ function damascus(): Media {
   return { kind: 'image', value: `data:image/svg+xml,${encodeURIComponent(svg)}` }
 }
 
-/** Old Spice's sea: swells of darker red rolling across the bottle's own red. */
-function oldSpiceSea(): Media {
-  const swells: string[] = []
-  for (let i = 0; i < 14; i++) {
-    const y = 8 + i * 14
-    const crest = (x: number) => `${x} ${y - 6} ${x + 12} ${y - 6} ${x + 20} ${y}`
-    let d = `M-20 ${y}`
-    for (let x = -20; x < 200; x += 20) d += ` C${crest(x)}`
-    swells.push(`<path d="${d}" stroke="#8c0f15" stroke-width="3" fill="none"/>`)
-  }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#b5121b"/>${swells.join('')}</svg>`
-  return { kind: 'image', value: `data:image/svg+xml,${encodeURIComponent(svg)}` }
-}
-
 const WORDS: Segment[] = [
   word('DOOM', '#4a0d12', 'oil', composed(set('stacked', [0.3, 0.94], 'pirata-one', '#e8d9b0'))),
   word('DAMNATION', '#8a1c0c', 'gem', composed(set('taperedRadial', FULL, 'rye', '#ffb347'))),
@@ -140,11 +126,7 @@ const WORDS: Segment[] = [
     'DEODORANT',
     '#b5121b',
     'gem',
-    composed(
-      { content: { from: 'media' }, orientation: 'stacked', band: [0, 1] },
-      set('radial', FULL, 'bevan', '#ffffff'),
-    ),
-    oldSpiceSea(),
+    composed(set('radial', FULL, 'lobster', '#ffffff', { caps: false, text: 'Deodorant' })),
   ),
   word('DENTISTRY', '#eef5f6', 'ice', composed(set('radial', FULL, 'overpass', '#2f8f9c'))),
   word('DIVIDENDS', '#2e6b3f', 'gold', composed(set('radial', FULL, 'bodoni-moda', '#e9d48a'))),
