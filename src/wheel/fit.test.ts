@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createScheduledConductor } from './conductor'
-import { angleAt, fitSpin, pegTimes, scheduleFor } from './fit'
+import { advanceAt, angleAt, angleOf, fitSpin, pegTimes, scheduleFor } from './fit'
 import { pegCrossings } from './flapper'
 import { rotationTrack } from './rotation'
 import type { SpinConfig } from './types'
@@ -84,6 +84,50 @@ describe('fitSpin', () => {
   it('starts the tune on the first peg and lands it on the last', () => {
     const fitted = fitSpin(config, pegs, units, unitS)
     const schedule = scheduleFor(rotationTrack(0, 77, fitted.config), pegs, units, fitted.threshold)
+    expect(schedule?.startUnits).toBeCloseTo(0)
+    if (!schedule) return
+    const conductor = createScheduledConductor(units, schedule)
+    const played = schedule.advance.map(() => conductor.peg())
+    expect(played[0]).toBe(0)
+    expect(played.at(-1)).toBe(units.length - 1)
+  })
+})
+
+describe('an accelerating fitted spin', () => {
+  const units = Array.from({ length: 160 }, (_, i) => (i % 4 === 0 ? 2 : 1))
+  const unitS = 0.15
+
+  it('hands its cruise speed to the settle without a jump', () => {
+    const { config: fitted } = fitSpin(config, pegs, units, unitS, 1.5)
+    const track = rotationTrack(0, 180, fitted)
+    const angle = angleOf(track)
+    const handover = fitted.durationMs - (fitted.settle?.ms ?? 0)
+    const before = angle(handover) - angle(handover - 5)
+    const after = angle(handover + 5) - angle(handover)
+    expect(after / before).toBeCloseTo(1, 1)
+  })
+
+  it('ends its cruise about as much faster as asked, on one grid step', () => {
+    const { config: fitted, threshold } = fitSpin(config, pegs, units, unitS, 1.5)
+    const times = pegTimes(rotationTrack(0, 180, fitted), pegs)
+    const cruiseEnds = (fitted.durationMs - (fitted.settle?.ms ?? 0)) / 1000
+    const cruise = times.filter((t) => t < cruiseEnds)
+    const early = cruise[11] - cruise[10]
+    const late = cruise[cruise.length - 1] - cruise[cruise.length - 2]
+    expect(early / late).toBeGreaterThan(1.35)
+    expect(early / late).toBeLessThan(1.65)
+    const steps = new Set(advanceAt(cruise, threshold).slice(1))
+    expect(steps.size).toBe(1)
+  })
+
+  it('still starts on the first peg and lands on the last', () => {
+    const fitted = fitSpin(config, pegs, units, unitS, 2)
+    const schedule = scheduleFor(
+      rotationTrack(0, 250, fitted.config),
+      pegs,
+      units,
+      fitted.threshold,
+    )
     expect(schedule?.startUnits).toBeCloseTo(0)
     if (!schedule) return
     const conductor = createScheduledConductor(units, schedule)

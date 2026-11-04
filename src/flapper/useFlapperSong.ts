@@ -10,6 +10,7 @@ import type { SpinConfig } from '../wheel/types'
 export function useFlapperSong() {
   const [songId, setSongId] = useState('')
   const [fit, setFit] = useState(false)
+  const [accelerate, setAccelerate] = useState(1)
   const [whole, setWhole] = useState<Melody | null>(null)
   const [bars, setBars] = useState<{ from: number; to: number } | null>(null)
   const scheduleRef = useRef<PegSchedule | null>(null)
@@ -49,7 +50,7 @@ export function useFlapperSong() {
       scheduleRef.current = null
       if (!fit || !melody || pegs.length === 0 || config.outage) return { config }
       const units = melodyUnits(melody)
-      const fitted = fitSpin(config, pegs, units, melody.unitS)
+      const fitted = fitSpin(config, pegs, units, melody.unitS, accelerate)
       return {
         config: fitted.config,
         onTrack: (track: RotationTrack) => {
@@ -57,11 +58,24 @@ export function useFlapperSong() {
         },
       }
     },
-    [fit, melody],
+    [fit, melody, accelerate],
   )
 
   const barCount = whole?.bars?.length ?? 0
-  return { songId, setSongId, fit, setFit, melody, bars, setBars, barCount, scheduleRef, shape }
+  return {
+    songId,
+    setSongId,
+    fit,
+    setFit,
+    accelerate,
+    setAccelerate,
+    melody,
+    bars,
+    setBars,
+    barCount,
+    scheduleRef,
+    shape,
+  }
 }
 
 /** Sixteen bars from the one the tune comes in on, a pickup included. */

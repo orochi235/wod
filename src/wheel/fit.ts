@@ -190,13 +190,19 @@ export function fitSpin(
   pegs: number[],
   units: number[],
   unitS: number,
+  accelerate = 1,
 ): { config: SpinConfig; threshold: number } {
-  const threshold = unitS * 0.95
+  const ratio = Math.min(Math.max(accelerate, 1), 2)
+  // Low enough that the grid never steps up mid-cruise: one step doubles the
+  // pegs per unit, which would halve the tempo the cruise is building.
+  const threshold = (unitS / ratio) * 0.95
   if (config.durationMs <= 0 || pegs.length === 0 || units.length === 0) {
     return { config, threshold }
   }
   const pegDeg = 360 / pegs.length
-  const authoredPegMs = pegDeg / ((config.fullSpins * 360 + 180) / config.durationMs)
+  // Compared against the cruise's average speed, which the ramp puts (1 + ratio) / 2 above its start.
+  const authoredPegMs =
+    (pegDeg / ((config.fullSpins * 360 + 180) / config.durationMs)) * ((1 + ratio) / 2)
   // The grid nearest the authored spin's speed, so a fitted wheel looks about as fast.
   const perUnit = PEGS_PER_UNIT.reduce((best, next) =>
     Math.abs(Math.log((unitS * 1000) / next / authoredPegMs)) <
@@ -204,6 +210,7 @@ export function fitSpin(
       ? next
       : best,
   )
+  // The cruise starts at the tune's own tempo and ends `ratio` times faster.
   const degPerMs = pegDeg / ((unitS * 1000) / perUnit)
   const settleMs = Math.max(config.settle?.ms ?? 0, 4000)
   const curve =
@@ -216,9 +223,13 @@ export function fitSpin(
     durationMs,
     fullSpins: Math.max(
       1,
-      Math.round((degPerMs * (durationMs - settleMs + k * settleMs) - 180) / 360),
+      Math.round(
+        (degPerMs * (((1 + ratio) / 2) * (durationMs - settleMs) + ratio * k * settleMs) - 180) /
+          360,
+      ),
     ),
     settle: { ms: settleMs, curve },
+    ...(ratio > 1 ? { accelerate: ratio } : {}),
   })
   const fits = (durationMs: number) =>
     beforeLast(advanceAt(pegTimes(rotationTrack(0, 180, shaped(durationMs)), pegs), threshold)) >=

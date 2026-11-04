@@ -2,11 +2,21 @@ import { SONGS } from '../wheel/songs'
 
 type Bars = { from: number; to: number }
 
+const SPEED_UPS: [number, string][] = [
+  [1, 'Steady tempo'],
+  [1.25, 'Speed up ×1.25'],
+  [1.5, 'Speed up ×1.5'],
+  [2, 'Speed up ×2'],
+]
+
 type FlapperControlsProps = {
   songId: string
   onSong: (id: string) => void
   fit: boolean
   onFit: (fit: boolean) => void
+  /** How much faster a fitted spin's cruise ends than it starts. */
+  accelerate: number
+  onAccelerate: (ratio: number) => void
   /** The bars played; null for a tune that has none. */
   bars: Bars | null
   barCount: number
@@ -18,6 +28,8 @@ export function FlapperControls({
   onSong,
   fit,
   onFit,
+  accelerate,
+  onAccelerate,
   bars,
   barCount,
   onBars,
@@ -76,6 +88,20 @@ export function FlapperControls({
           <input type="checkbox" checked={fit} onChange={(event) => onFit(event.target.checked)} />
           Fit spin to song
         </label>
+      )}
+      {songId !== '' && fit && (
+        <select
+          className="app__button"
+          aria-label="Speed up"
+          value={accelerate}
+          onChange={(event) => onAccelerate(Number(event.target.value))}
+        >
+          {SPEED_UPS.map(([ratio, label]) => (
+            <option key={ratio} value={ratio}>
+              {label}
+            </option>
+          ))}
+        </select>
       )}
     </>
   )
