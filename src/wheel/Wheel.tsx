@@ -16,6 +16,7 @@ import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
 import { HubEmblem } from './HubEmblem'
 import { wantsInverseInk } from './ink'
+import type { Song } from './melody'
 import { panelPath } from './panel'
 import { SliceElements } from './SliceElements'
 import type { Theme } from './theme'
@@ -65,6 +66,8 @@ export type WheelProps = {
   theme?: Theme
   /** Silences the flapper without changing the look. */
   muted?: boolean
+  /** A tune the flapper plays one note per peg, in place of its tick. */
+  flapperSong?: Song | null
   /** What sits on the hub cap. Absent leaves it the bare cap the look paints. */
   hub?: Hub
   /** Registers the hub group so a spin can turn it from outside the rotor. */
@@ -117,6 +120,7 @@ export function Wheel({
   retainedRef,
   theme = flat,
   muted = false,
+  flapperSong = null,
   hub,
   riderRef,
   flapperDeg,
@@ -144,8 +148,17 @@ export function Wheel({
   const clickerRef = useRef<ReturnType<typeof createClicker> | null>(null)
   // On demand and never during render, so a caller after a cleanup gets a live
   // clicker rather than the retired one a render had already handed out.
+  const soundRef = useRef({ muted, flapperSong })
+  soundRef.current = { muted, flapperSong }
   const clicker = useCallback(() => {
-    if (clickerRef.current === null) clickerRef.current = createClicker()
+    if (clickerRef.current === null) {
+      // A clicker rebuilt after a cleanup never sees the effects that already
+      // ran, so it takes the current sound settings here.
+      const fresh = createClicker()
+      fresh.setMuted(soundRef.current.muted)
+      fresh.setSong(soundRef.current.flapperSong)
+      clickerRef.current = fresh
+    }
     return clickerRef.current
   }, [])
 
@@ -184,6 +197,10 @@ export function Wheel({
   useEffect(() => {
     clicker().setMuted(muted)
   }, [muted, clicker])
+
+  useEffect(() => {
+    clicker().setSong(flapperSong)
+  }, [flapperSong, clicker])
 
   // Every face a wedge is set in is a webfont, so the first render measures
   // whatever the fallback is. Every breakpoint's faces, not just the resolved

@@ -20,6 +20,7 @@ import { resolveTricks } from './tricks/resolve'
 import type { ChooseColor } from './wheel/colors'
 import { hexNumber } from './wheel/ink'
 import { cryptoRng, forced } from './wheel/selection'
+import { getSong, SONGS } from './wheel/songs'
 import { partOn } from './wheel/theme'
 import { styleOfTheme } from './wheel/themeStyle'
 import { flat } from './wheel/themes/flat'
@@ -59,6 +60,8 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
 
   const [items, setItems] = useState<Record<string, FeedItem[]>>({})
   const [muted, setMuted] = useState(false)
+  const [songId, setSongId] = useState('')
+  const flapperSong = getSong(songId) ?? null
   const theme = getTheme(preset.theme ?? '') ?? flat
 
   // The editor window owns the clock; this one only renders what arrives. With
@@ -248,6 +251,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
           theme={theme}
           // The clicker is mechanical: pegs still strike the flapper in the dark.
           muted={muted}
+          flapperSong={flapperSong}
         />
       </div>
       <div className="app__controls">
@@ -266,6 +270,21 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
           <button type="button" className="app__button" onClick={() => setMuted((on) => !on)}>
             {muted ? 'Unmute' : 'Mute'}
           </button>
+        )}
+        {theme.flapper !== 'silent' && (
+          <select
+            className="app__button"
+            aria-label="Flapper sound"
+            value={songId}
+            onChange={(event) => setSongId(event.target.value)}
+          >
+            <option value="">Tick</option>
+            {SONGS.map((song) => (
+              <option key={song.id} value={song.id}>
+                {song.name}
+              </option>
+            ))}
+          </select>
         )}
         <a className="app__button" href="#/edit">
           Edit
