@@ -152,7 +152,9 @@ describe('Editor integration', () => {
 
   it('persists a motion edit to localStorage', async () => {
     render(<Editor />)
-    fireEvent.change(screen.getByLabelText('Duration (ms)'), { target: { value: '30000' } })
+    const duration = screen.getByLabelText('Duration (ms)')
+    fireEvent.change(duration, { target: { value: '30000' } })
+    fireEvent.blur(duration)
     fireEvent.change(screen.getByLabelText('Settle (ms)'), { target: { value: '700' } })
 
     const stored = parsePreset(window.localStorage.getItem(PRESET_KEY))

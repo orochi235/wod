@@ -130,6 +130,7 @@ describe('TransitionPanel', () => {
     render(<TransitionPanel transitions={armed} onChange={onChange} />)
 
     await userEvent.type(screen.getByLabelText('Duration (ms)'), '0')
+    await userEvent.tab()
 
     expect(onChange).toHaveBeenLastCalledWith({
       exit: { id: 'shrink', params: { durationMs: 5000 } },

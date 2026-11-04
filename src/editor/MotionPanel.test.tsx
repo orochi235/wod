@@ -50,7 +50,9 @@ describe('MotionPanel', () => {
   it('writes numbers, not strings', () => {
     const onChange = vi.fn()
     render(<MotionPanel motion={motion} onChange={onChange} />)
-    fireEvent.change(screen.getByLabelText('Duration (ms)'), { target: { value: '30000' } })
+    const duration = screen.getByLabelText('Duration (ms)')
+    fireEvent.change(duration, { target: { value: '30000' } })
+    fireEvent.blur(duration)
     expect(onChange).toHaveBeenCalledWith({ ...motion, durationMs: 30000 })
   })
 
@@ -101,7 +103,9 @@ describe('MotionPanel', () => {
     // Element.animate() throws synchronously on a negative duration.
     const onChange = vi.fn()
     render(<MotionPanel motion={motion} onChange={onChange} />)
-    fireEvent.change(screen.getByLabelText('Duration (ms)'), { target: { value: '-100' } })
+    const duration = screen.getByLabelText('Duration (ms)')
+    fireEvent.change(duration, { target: { value: '-100' } })
+    fireEvent.blur(duration)
     expect(onChange).toHaveBeenCalledWith({ ...motion, durationMs: 1 })
   })
 

@@ -64,6 +64,7 @@ describe('RecipeForm', () => {
     const input = screen.getByLabelText('Wedge label')
     await userEvent.clear(input)
     await userEvent.type(input, 'X')
+    await userEvent.tab()
     expect(onChange.mock.calls.at(-1)?.[0]).toMatchObject({ wedgeLabel: 'X' })
   })
 
