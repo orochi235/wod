@@ -284,6 +284,9 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
             onSong={song.setSongId}
             fit={song.fit}
             onFit={song.setFit}
+            bars={song.bars}
+            barCount={song.barCount}
+            onBars={song.setBars}
           />
         )}
         <a className="app__button" href="#/edit">

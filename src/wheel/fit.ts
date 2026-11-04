@@ -23,13 +23,21 @@ function parseEasing(value: unknown): Curve {
 
 const ANGLE = /rotate\((-?[\d.e+-]+)deg\)/
 
-/** The wheel's angle over a track, read the way the Web Animations API plays it: `ms` in, degrees out. */
-export function angleOf(track: RotationTrack): (ms: number) => number {
-  const frames = track.keyframes.map((frame, i, all) => ({
+type Frame = { offset: number; angle: number; easing: Curve }
+
+function framesOf(track: RotationTrack): Frame[] {
+  return track.keyframes.map((frame, i, all) => ({
     offset: typeof frame.offset === 'number' ? frame.offset : i / Math.max(1, all.length - 1),
     angle: Number(ANGLE.exec(String(frame.transform ?? ''))?.[1] ?? 0),
     easing: parseEasing(frame.easing),
   }))
+}
+
+const isLinear = ([x1, y1, x2, y2]: Curve) => x1 === y1 && x2 === y2
+
+/** The wheel's angle over a track, read the way the Web Animations API plays it: `ms` in, degrees out. */
+export function angleOf(track: RotationTrack): (ms: number) => number {
+  const frames = framesOf(track)
   const timeline = parseEasing(track.easing)
   return (ms) => {
     const progress = curveAt(timeline, Math.min(Math.max(ms / track.durationMs, 0), 1))
@@ -70,16 +78,34 @@ export function pegTimes(track: RotationTrack, pegs: number[]): number[] {
     }
   }
   angles.sort((x, y) => (forward ? x - y : y - x))
-  return angles.map((target) => {
-    let lo = 0
-    let hi = track.durationMs
-    for (let i = 0; i < 22; i++) {
+
+  // On a linear timeline, a peg on a linear interval is one division away; only
+  // a curved interval (the settle) needs searching, and only across itself.
+  const frames = framesOf(track)
+  const direct = isLinear(parseEasing(track.easing))
+  const D = track.durationMs
+  const search = (target: number, lo: number, hi: number) => {
+    for (let i = 0; i < 30; i++) {
       const mid = (lo + hi) / 2
       const reached = forward ? angle(mid) >= target : angle(mid) <= target
       if (reached) hi = mid
       else lo = mid
     }
-    return hi / 1000
+    return hi
+  }
+  let interval = 0
+  return angles.map((target) => {
+    if (!direct) return search(target, 0, D) / 1000
+    const past = (f: Frame) => (forward ? f.angle < target : f.angle > target)
+    while (interval < frames.length - 2 && past(frames[interval + 1])) interval++
+    const a = frames[interval]
+    const b = frames[interval + 1] ?? a
+    if (b.angle === a.angle) return (a.offset * D) / 1000
+    if (isLinear(a.easing)) {
+      const local = (target - a.angle) / (b.angle - a.angle)
+      return ((a.offset + local * (b.offset - a.offset)) * D) / 1000
+    }
+    return search(target, a.offset * D, b.offset * D) / 1000
   })
 }
 

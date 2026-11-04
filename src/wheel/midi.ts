@@ -93,5 +93,29 @@ export function melodyFromMidi(bytes: ArrayBuffer, track?: number): Melody {
   if (!chosen || chosen.notes.length === 0) throw new Error('no melodic track in this MIDI file')
   const bpm = midi.header.tempos[0]?.bpm ?? 120
   const unitS = 60 / bpm / 4
-  return { tones: toneLine(chosen.notes, unitS), unitS }
+  const firstOnset = Math.min(...chosen.notes.map((note) => note.time))
+  return {
+    tones: toneLine(chosen.notes, unitS),
+    unitS,
+    bars: barStarts(midi).map((at) => at - firstOnset),
+  }
+}
+
+/** When each bar begins, in seconds, through the end of the file, by its time signatures. */
+export function barStarts(midi: Midi): number[] {
+  const { ppq } = midi.header
+  const signatures = midi.header.timeSignatures.length
+    ? [...midi.header.timeSignatures].sort((a, b) => a.ticks - b.ticks)
+    : [{ ticks: 0, timeSignature: [4, 4] }]
+  const end = midi.durationTicks
+  const starts: number[] = []
+  let tick = 0
+  let index = 0
+  while (tick <= end && starts.length < 10_000) {
+    while (index + 1 < signatures.length && signatures[index + 1].ticks <= tick) index++
+    starts.push(midi.header.ticksToSeconds(tick))
+    const [beats, value] = signatures[index].timeSignature
+    tick += Math.round((ppq * 4 * beats) / value)
+  }
+  return starts
 }

@@ -10,6 +10,11 @@ export type Melody = {
   tones: Tone[]
   /** The rhythmic unit: every slice is a whole number of these, and a peg is worth at most one. */
   unitS: number
+  /**
+   * Where each bar starts, in seconds from the first tone; earlier bars are
+   * negative. Absent when the source says nothing about bars.
+   */
+  bars?: number[]
 }
 
 /** Anything the picker can offer. Loading is deferred: a MIDI file is fetched and parsed only once chosen. */
@@ -54,6 +59,38 @@ export function melodyOfText(song: TextSong): Melody {
     seconds: note.beats * beat,
   }))
   return { tones, unitS: Math.min(...tones.map((tone) => tone.seconds)) }
+}
+
+/**
+ * Bars `from` to `to` (counted from 1, both included) as a melody of their own.
+ * A note held over from before `from` is not replayed: its remainder is a rest,
+ * and leading rests drop, so the excerpt starts on its first note.
+ */
+export function excerpt(melody: Melody, from: number, to: number): Melody {
+  const bars = melody.bars
+  if (!bars || bars.length === 0) return melody
+  const total = melody.tones.reduce((sum, tone) => sum + tone.seconds, 0)
+  const start = bars[Math.max(0, from - 1)] ?? total
+  const end = bars[Math.max(from, to)] ?? total
+  const tones: Tone[] = []
+  let at = 0
+  for (const tone of melody.tones) {
+    const toneEnd = at + tone.seconds
+    const kept = Math.min(toneEnd, end) - Math.max(at, start)
+    if (kept > 1e-9) {
+      const sounded = tone.midi !== null && at >= start - 1e-9
+      tones.push({ midi: sounded ? tone.midi : null, seconds: kept })
+    }
+    at = toneEnd
+  }
+  const first = tones.findIndex((tone) => tone.midi !== null)
+  if (first === -1) return { ...melody, tones: [], bars: [] }
+  const lead = tones.slice(0, first).reduce((sum, tone) => sum + tone.seconds, 0)
+  return {
+    tones: tones.slice(first),
+    unitS: melody.unitS,
+    bars: bars.slice(from - 1, to).map((bar) => bar - start - lead),
+  }
 }
 
 export function textSong(song: TextSong): Song {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { melodyOfText, melodyUnits, midiToHz, parseNotes, sliceTimes } from './melody'
+import { excerpt, melodyOfText, melodyUnits, midiToHz, parseNotes, sliceTimes } from './melody'
 import { SONGS } from './songs'
 
 describe('parseNotes', () => {
@@ -76,5 +76,39 @@ describe('SONGS', () => {
     SONGS.filter((song) => !song.id.startsWith('midi:')).map((song) => [song.name, song] as const),
   )('%s loads', async (_, song) => {
     expect((await song.load()).tones.length).toBeGreaterThan(0)
+  })
+})
+
+describe('excerpt', () => {
+  const tone = (midi: number | null, seconds: number) => ({ midi, seconds })
+  // Two-second bars: C D | E | F
+  const melody = {
+    tones: [tone(60, 1), tone(62, 1), tone(64, 2), tone(65, 1)],
+    unitS: 0.5,
+    bars: [0, 2, 4],
+  }
+
+  it('keeps just the bars asked for', () => {
+    expect(excerpt(melody, 1, 1).tones).toEqual([tone(60, 1), tone(62, 1)])
+    expect(excerpt(melody, 2, 3).tones).toEqual([tone(64, 2), tone(65, 1)])
+  })
+
+  it('rebases the bars onto the excerpt', () => {
+    expect(excerpt(melody, 2, 3).bars).toEqual([0, 2])
+  })
+
+  it('does not replay a note held over the first bar line', () => {
+    const held = { tones: [tone(60, 3), tone(62, 1)], unitS: 0.5, bars: [0, 2] }
+    expect(excerpt(held, 2, 2).tones).toEqual([tone(62, 1)])
+  })
+
+  it('keeps a pickup in the bar it sits in', () => {
+    const pickup = { tones: [tone(67, 0.5), tone(72, 2)], unitS: 0.5, bars: [-1.5, 0.5] }
+    expect(excerpt(pickup, 1, 1).tones).toEqual([tone(67, 0.5)])
+  })
+
+  it('leaves a melody without bars whole', () => {
+    const plain = { tones: [tone(60, 1)], unitS: 1 }
+    expect(excerpt(plain, 3, 4)).toBe(plain)
   })
 })

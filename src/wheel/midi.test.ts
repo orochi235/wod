@@ -96,3 +96,25 @@ describe('melodyFromMidi', () => {
     expect(() => melodyFromMidi(file([{ channel: 9, notes: scale(36, 4) }]))).toThrow(/no melodic/)
   })
 })
+
+describe('barStarts', () => {
+  it('lays bars out by tempo and time signature, from the first note', () => {
+    const melody = melodyFromMidi(
+      file(
+        [
+          {
+            name: 'Melody',
+            notes: [
+              [60, 1, 0.5],
+              [62, 3, 0.5],
+            ],
+          },
+        ],
+        120,
+      ),
+    )
+    // 4/4 at 120 bpm: a bar every 2 s, counted from the first note at 1 s, and
+    // none starting after the file's last note ends at 3.5 s.
+    expect(melody.bars).toEqual([-1, 1])
+  })
+})

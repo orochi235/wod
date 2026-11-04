@@ -73,3 +73,9 @@
   gap: 0.4rem;
   cursor: pointer;
 }
+
+.app__bar {
+  width: 4ch;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
