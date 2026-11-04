@@ -32,6 +32,8 @@ export type SpinOverride = {
   resolveLate?: (winnerId: string) => Morph[]
   /** Set only by a look whose flapper can catch. Absent means it cannot. */
   catchPegs?: PegMode
+  /** Hears the rotation this spin will play, once the winner is drawn and before the wheel moves. */
+  onTrack?: (track: RotationTrack) => void
 }
 
 /** A resolved spin. `id` is fresh per landing, so the same winner twice is two landings. */
@@ -275,6 +277,7 @@ export function useSpin(segments: Segment[], config: SpinConfig, motion: Motion)
       })
       if (!show) return
       const { plan, morphs, landedFrame, track, outagePlan } = show
+      override.onTrack?.(track)
 
       stopTracks()
       spinningRef.current = true

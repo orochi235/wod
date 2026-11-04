@@ -523,7 +523,8 @@ describe('parts', () => {
     vi.spyOn(module, 'createClicker').mockImplementation(() => ({
       unlock,
       setMuted: () => undefined,
-      setSong: () => undefined,
+      setMelody: () => undefined,
+      setSchedule: () => undefined,
       click: () => undefined,
       close: () => undefined,
     }))

@@ -1,5 +1,19 @@
-import { type Conductor, createConductor, MIN_UNIT_S, unitsOf } from './conductor'
-import { renderSong, type Slice, type Song } from './melody'
+import {
+  type Conductor,
+  createConductor,
+  createScheduledConductor,
+  MIN_UNIT_S,
+  type PegSchedule,
+} from './conductor'
+import {
+  type Melody,
+  melodyUnits,
+  pitchesOf,
+  renderVoices,
+  sliceTimes,
+  VOICE_S,
+  type Voices,
+} from './melody'
 
 /** A frame that passed more pegs than this was a stall, not a spin. */
 const MAX_PER_FRAME = 8
@@ -12,7 +26,13 @@ export type Clicker = {
   unlock(): void
   setMuted(muted: boolean): void
   /** Play a tune on the pegs instead of the tick, at a tempo that follows the wheel; null goes back to the tick. */
-  setSong(song: Song | null): void
+  setMelody(melody: Melody | null): void
+  /**
+   * Play the next spin's pegs from a schedule worked out ahead, so the tune ends
+   * as the wheel lands; null goes back to following the wheel. Takes effect from
+   * the next peg, so set it before the spin's first one.
+   */
+  setSchedule(schedule: PegSchedule | null): void
   /** `count` pegs went by, at `speed` degrees per millisecond. */
   click(count: number, speed: number): void
   close(): void
@@ -22,9 +42,13 @@ export function createClicker(): Clicker {
   let ctx: AudioContext | null = null
   let unlocked = false
   let muted = false
-  let tune: { buffer: AudioBuffer; slices: Slice[] } | null = null
-  let wanted: Song | null = null
+  // The tune's notes are known at once; only its voices wait on a render.
+  let notes: { midi: number; duration: number }[] = []
+  let voices: Voices | null = null
+  let wanted: Melody | null = null
+  let units: number[] = []
   let conductor: Conductor | null = null
+  let scheduled: ReturnType<typeof createScheduledConductor> | null = null
   let lastFrameAt = -Infinity
   // Seconds between pegs, smoothed over frames: a single frame's timing jitters.
   let pegInterval = MIN_UNIT_S
@@ -58,20 +82,25 @@ export function createClicker(): Clicker {
 
   const note = (at: number, index: number) => {
     const audio = context()
-    if (!audio || !tune) return
+    const played = notes[index]
+    const offset = played && voices?.offsetOf.get(played.midi)
+    if (!audio || !voices || offset === undefined) return
     // The next note cuts the one before it, so a note never outlasts its share of the tempo.
     if (ringing) {
       ringing.gain.gain.cancelScheduledValues(at)
       ringing.gain.gain.setTargetAtTime(0, at, 0.004)
       ringing.source.stop(at + 0.04)
     }
-    const slice = tune.slices[index]
+    const length = Math.min(played.duration, VOICE_S)
     const source = audio.createBufferSource()
     const gain = audio.createGain()
-    source.buffer = tune.buffer
+    source.buffer = voices.buffer
+    // A note shorter than the strike fades out by its end rather than stopping dead.
+    gain.gain.setValueAtTime(1, at)
+    gain.gain.exponentialRampToValueAtTime(0.001, at + length)
     source.connect(gain)
     gain.connect(audio.destination)
-    source.start(at, slice.offset, slice.duration)
+    source.start(at, offset, length)
     ringing = { source, gain }
   }
 
@@ -83,17 +112,30 @@ export function createClicker(): Clicker {
     setMuted(next: boolean) {
       muted = next
     },
-    setSong(song: Song | null) {
-      wanted = song
-      tune = null
-      conductor = null
-      if (!song) return
-      void renderSong(song).then((rendered) => {
+    setMelody(melody: Melody | null) {
+      wanted = melody
+      voices = null
+      scheduled = null
+      if (!melody) {
+        notes = []
+        units = []
+        conductor = null
+        return
+      }
+      const pitches = pitchesOf(melody)
+      notes = sliceTimes(melody.tones).map((slice, i) => ({
+        midi: pitches[i],
+        duration: slice.duration,
+      }))
+      units = melodyUnits(melody)
+      conductor = units.length > 0 ? createConductor(units) : null
+      void renderVoices(melody).then((rendered) => {
         // A later choice, or a close, may have landed while this one rendered.
-        if (wanted !== song || !rendered || rendered.slices.length === 0) return
-        tune = rendered
-        conductor = createConductor(unitsOf(rendered.slices))
+        if (wanted === melody) voices = rendered
       })
+    },
+    setSchedule(schedule: PegSchedule | null) {
+      scheduled = schedule && units.length > 0 ? createScheduledConductor(units, schedule) : null
     },
     click(count: number, speed: number) {
       if (!unlocked || muted || count <= 0) return
@@ -101,7 +143,7 @@ export function createClicker(): Clicker {
       if (!audio) return
       const fires = Math.min(count, MAX_PER_FRAME)
       const now = audio.currentTime
-      if (tune && conductor) {
+      if (conductor) {
         const gap = now - lastFrameAt
         lastFrameAt = now
         if (gap > RESTART_AFTER_S) {
@@ -113,6 +155,14 @@ export function createClicker(): Clicker {
         }
         // The frame's pegs went by over the frame just ended; replaying them at
         // the measured spacing keeps the tune's rhythm even across frames.
+        if (scheduled) {
+          // Every peg, not just the first few: the schedule counts them all.
+          for (let i = 0; i < count; i++) {
+            const index = scheduled.peg()
+            if (index !== null) note(now + Math.min(i, fires) * pegInterval, index)
+          }
+          return
+        }
         for (let i = 0; i < fires; i++) {
           const index = conductor.peg(pegInterval)
           if (index !== null) note(now + i * pegInterval, index)
@@ -127,8 +177,11 @@ export function createClicker(): Clicker {
       ctx?.close()
       ctx = null
       wanted = null
-      tune = null
+      voices = null
+      notes = []
+      units = []
       conductor = null
+      scheduled = null
       ringing = null
     },
   }

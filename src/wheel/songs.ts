@@ -1,6 +1,7 @@
-import type { Song } from './melody'
+import { type Song, type TextSong, textSong } from './melody'
+import { melodyFromMidi } from './midi'
 
-const PUBLIC: Song[] = [
+const PUBLIC: TextSong[] = [
   {
     id: 'mountain-king',
     name: 'In the Hall of the Mountain King',
@@ -33,13 +34,34 @@ const PUBLIC: Song[] = [
   },
 ]
 
-// Songs that are fine to play privately but not to publish live in a
-// gitignored `songs.local.ts` exporting `songs: Song[]`.
-const local = Object.values(
-  import.meta.glob<{ songs: Song[] }>('./songs.local.ts', { eager: true }),
+// Songs that are fine to play privately but not to publish live in gitignored
+// files: `songs.local.ts` exporting `songs: TextSong[]`, and MIDI files in
+// `songs.local/`. A file named `tune@2.mid` reads track 2 instead of guessing.
+const localText = Object.values(
+  import.meta.glob<{ songs: TextSong[] }>('./songs.local.ts', { eager: true }),
 ).flatMap((module) => module.songs)
 
-export const SONGS: Song[] = [...local, ...PUBLIC]
+const localMidi = Object.entries(
+  import.meta.glob<string>('./songs.local/*.{mid,midi}', {
+    query: '?url',
+    import: 'default',
+    eager: true,
+  }),
+).map(([path, url]): Song => {
+  const file = path.slice(path.lastIndexOf('/') + 1).replace(/\.midi?$/i, '')
+  const [name, track] = file.split('@')
+  return {
+    id: `midi:${file}`,
+    name,
+    load: async () => {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`${file}: ${response.status}`)
+      return melodyFromMidi(await response.arrayBuffer(), track ? Number(track) : undefined)
+    },
+  }
+})
+
+export const SONGS: Song[] = [...localMidi, ...localText.map(textSong), ...PUBLIC.map(textSong)]
 
 export function getSong(id: string): Song | undefined {
   return SONGS.find((song) => song.id === id)

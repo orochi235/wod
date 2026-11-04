@@ -5,6 +5,8 @@ import { useMotionRoot } from './clock/motion'
 import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
+import { FlapperControls } from './flapper/FlapperControls'
+import { useFlapperSong } from './flapper/useFlapperSong'
 import type { CreateFx } from './outage/fx'
 import { useOutageFx } from './outage/useOutageFx'
 import { spinConfigOf } from './preset/motion'
@@ -18,10 +20,10 @@ import { resolveFont } from './slice/fonts/registry'
 import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
 import type { ChooseColor } from './wheel/colors'
+import { arcs } from './wheel/geometry'
 import { hexNumber } from './wheel/ink'
 import { cryptoRng, forced } from './wheel/selection'
-import { getSong, SONGS } from './wheel/songs'
-import { partOn } from './wheel/theme'
+import { partOn, pegsOn } from './wheel/theme'
 import { styleOfTheme } from './wheel/themeStyle'
 import { flat } from './wheel/themes/flat'
 import { getTheme } from './wheel/themes/registry'
@@ -60,8 +62,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
 
   const [items, setItems] = useState<Record<string, FeedItem[]>>({})
   const [muted, setMuted] = useState(false)
-  const [songId, setSongId] = useState('')
-  const flapperSong = getSong(songId) ?? null
+  const song = useFlapperSong()
   const theme = getTheme(preset.theme ?? '') ?? flat
 
   // The editor window owns the clock; this one only renders what arrives. With
@@ -188,9 +189,14 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
       { previous: colorsRef.current, retained: retainedRef.current, choose: chooseColor },
     )
     if (!resolution) return
+    const shaped = song.shape(
+      spinConfigOf(resolution.motion, resolution.morphs, resolution.outage),
+      pegsOn(theme, arcs(resolution.segments)),
+    )
     spin({
       segments: resolution.segments,
-      config: spinConfigOf(resolution.motion, resolution.morphs, resolution.outage),
+      config: shaped.config,
+      onTrack: shaped.onTrack,
       // Resolution already decided who wins; planSpin still decides where in
       // the arc to stop. forced() degrades to a fair draw if that segment's arc
       // collapsed, which is the safety net for a branch that zeroes its winner.
@@ -198,7 +204,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
       resolveLate: resolution.resolveLate,
       catchPegs: theme.flapper === 'catch' ? theme.pegs : undefined,
     })
-  }, [base, preset, spin, theme, chooseColor])
+  }, [base, preset, spin, theme, chooseColor, song.shape])
 
   // Nothing to land on. planSpin would return null and the click would quietly
   // do nothing, which reads as a broken button rather than an empty wheel. Read
@@ -251,7 +257,8 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
           theme={theme}
           // The clicker is mechanical: pegs still strike the flapper in the dark.
           muted={muted}
-          flapperSong={flapperSong}
+          flapperMelody={song.melody}
+          flapperScheduleRef={song.scheduleRef}
         />
       </div>
       <div className="app__controls">
@@ -272,19 +279,12 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
           </button>
         )}
         {theme.flapper !== 'silent' && (
-          <select
-            className="app__button"
-            aria-label="Flapper sound"
-            value={songId}
-            onChange={(event) => setSongId(event.target.value)}
-          >
-            <option value="">Tick</option>
-            {SONGS.map((song) => (
-              <option key={song.id} value={song.id}>
-                {song.name}
-              </option>
-            ))}
-          </select>
+          <FlapperControls
+            songId={song.songId}
+            onSong={song.setSongId}
+            fit={song.fit}
+            onFit={song.setFit}
+          />
         )}
         <a className="app__button" href="#/edit">
           Edit

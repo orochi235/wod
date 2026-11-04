@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { midiToHz, parseNotes, sliceTimes } from './melody'
+import { melodyOfText, melodyUnits, midiToHz, parseNotes, sliceTimes } from './melody'
 import { SONGS } from './songs'
 
 describe('parseNotes', () => {
@@ -28,25 +28,53 @@ describe('midiToHz', () => {
   })
 })
 
-describe('sliceTimes', () => {
-  it('cuts one slice per note at its onset', () => {
-    expect(sliceTimes(parseNotes('C4 D4:2 E4'), 60)).toEqual([
-      { offset: 0, duration: 1 },
-      { offset: 1, duration: 2 },
-      { offset: 3, duration: 1 },
-    ])
+describe('melodyOfText', () => {
+  it('times each tone at the tempo and takes the shortest as the unit', () => {
+    expect(melodyOfText({ id: 's', name: 'S', bpm: 120, notes: 'C4 D4:0.5 -:1.5' })).toEqual({
+      tones: [
+        { midi: 60, seconds: 0.5 },
+        { midi: 62, seconds: 0.25 },
+        { midi: null, seconds: 0.75 },
+      ],
+      unitS: 0.25,
+    })
   })
+})
 
-  it('lets a rest ring on in the note before it', () => {
-    expect(sliceTimes(parseNotes('C4 -:2 D4'), 120)).toEqual([
+describe('sliceTimes', () => {
+  it('cuts one slice per note at its onset, folding a rest into the note before it', () => {
+    expect(
+      sliceTimes([
+        { midi: 60, seconds: 1 },
+        { midi: null, seconds: 0.5 },
+        { midi: 62, seconds: 2 },
+      ]),
+    ).toEqual([
       { offset: 0, duration: 1.5 },
-      { offset: 1.5, duration: 0.5 },
+      { offset: 1.5, duration: 2 },
     ])
   })
 })
 
+describe('melodyUnits', () => {
+  it('measures each slice in the melody unit, never below one', () => {
+    expect(
+      melodyUnits({
+        tones: [
+          { midi: 60, seconds: 0.25 },
+          { midi: 62, seconds: 0.5 },
+          { midi: 64, seconds: 0.1 },
+        ],
+        unitS: 0.25,
+      }),
+    ).toEqual([1, 2, 1])
+  })
+})
+
 describe('SONGS', () => {
-  it.each(SONGS.map((song) => [song.name, song] as const))('%s parses', (_, song) => {
-    expect(parseNotes(song.notes).length).toBeGreaterThan(0)
+  it.each(
+    SONGS.filter((song) => !song.id.startsWith('midi:')).map((song) => [song.name, song] as const),
+  )('%s loads', async (_, song) => {
+    expect((await song.load()).tones.length).toBeGreaterThan(0)
   })
 })

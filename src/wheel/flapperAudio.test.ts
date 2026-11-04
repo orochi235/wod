@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createClicker } from './flapperAudio'
-import type { Song } from './melody'
+import type { Melody } from './melody'
 
 function stubAudio() {
   const gain = {
@@ -70,7 +70,14 @@ function stubOffline() {
   )
 }
 
-const song: Song = { id: 'scale', name: 'Scale', bpm: 60, notes: 'C4 D4:2 E4' }
+const song: Melody = {
+  tones: [
+    { midi: 60, seconds: 1 },
+    { midi: 62, seconds: 2 },
+    { midi: 64, seconds: 1 },
+  ],
+  unitS: 1,
+}
 
 /** Lets the song's render settle before the clicker is asked to play it. */
 const rendered = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -139,15 +146,16 @@ describe('createClicker', () => {
       const { ctx, sources } = stubAudio()
       const clicker = createClicker()
       clicker.unlock()
-      clicker.setSong(song)
+      clicker.setMelody(song)
       await rendered()
       strike(clicker, ctx, [0, 0.5, 1, 1.5, 2])
       expect(ctx.createOscillator).not.toHaveBeenCalled()
       // C4 D4:2 E4 — the long D holds through the third peg.
+      // Each pitch's strike sits in its own 1.2 s slot of the bank.
       expect(sources.map((source) => source.start.mock.calls[0].slice(1))).toEqual([
         [0, 1],
-        [1, 2],
-        [3, 1],
+        [1.2, 1.2],
+        [2.4, 1],
         [0, 1],
       ])
     })
@@ -157,7 +165,7 @@ describe('createClicker', () => {
       const { ctx, sources } = stubAudio()
       const clicker = createClicker()
       clicker.unlock()
-      clicker.setSong(song)
+      clicker.setMelody(song)
       await rendered()
       for (let frame = 0; frame < 30; frame++) {
         ctx.currentTime = frame / 60
@@ -172,7 +180,7 @@ describe('createClicker', () => {
       const { ctx, sources } = stubAudio()
       const clicker = createClicker()
       clicker.unlock()
-      clicker.setSong(song)
+      clicker.setMelody(song)
       await rendered()
       strike(clicker, ctx, [0, 0.5])
       expect(sources[0].stop).toHaveBeenCalled()
@@ -184,10 +192,23 @@ describe('createClicker', () => {
       const { ctx, sources } = stubAudio()
       const clicker = createClicker()
       clicker.unlock()
-      clicker.setSong(song)
+      clicker.setMelody(song)
       await rendered()
       strike(clicker, ctx, [0, 0.5, 10])
       expect(sources[2].start.mock.calls[0][1]).toBe(0)
+    })
+
+    it('plays a schedule instead of following the wheel, then stops', async () => {
+      stubOffline()
+      const { ctx, sources } = stubAudio()
+      const clicker = createClicker()
+      clicker.unlock()
+      clicker.setMelody(song)
+      await rendered()
+      clicker.setSchedule({ advance: [0.5, 0.5, 1, 1, 1, 1], startUnits: -1 })
+      strike(clicker, ctx, [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06])
+      // Silent lead-in, then C on the third peg, D on the fourth, E on the sixth.
+      expect(sources.map((source) => source.start.mock.calls[0][1])).toEqual([0, 1.2, 2.4])
     })
 
     it('goes back to the tick when the song is cleared', async () => {
@@ -195,9 +216,9 @@ describe('createClicker', () => {
       const { ctx } = stubAudio()
       const clicker = createClicker()
       clicker.unlock()
-      clicker.setSong(song)
+      clicker.setMelody(song)
       await rendered()
-      clicker.setSong(null)
+      clicker.setMelody(null)
       clicker.click(1, 0.5)
       expect(ctx.createOscillator).toHaveBeenCalledTimes(1)
       expect(ctx.createBufferSource).not.toHaveBeenCalled()
