@@ -122,15 +122,28 @@ describe('createClicker', () => {
   })
 
   describe('with a song', () => {
-    it('plays the next note on each peg, then wraps', async () => {
+    /** One peg per call, `gapS` apart: a slow wheel, one unit per peg. */
+    const strike = (
+      clicker: ReturnType<typeof createClicker>,
+      ctx: { currentTime: number },
+      times: number[],
+    ) => {
+      for (const at of times) {
+        ctx.currentTime = at
+        clicker.click(1, 0.1)
+      }
+    }
+
+    it('plays the tune in its own rhythm on a slow wheel, then wraps', async () => {
       stubOffline()
       const { ctx, sources } = stubAudio()
       const clicker = createClicker()
       clicker.unlock()
       clicker.setSong(song)
       await rendered()
-      for (let i = 0; i < 4; i++) clicker.click(1, 0.5)
+      strike(clicker, ctx, [0, 0.5, 1, 1.5, 2])
       expect(ctx.createOscillator).not.toHaveBeenCalled()
+      // C4 D4:2 E4 — the long D holds through the third peg.
       expect(sources.map((source) => source.start.mock.calls[0].slice(1))).toEqual([
         [0, 1],
         [1, 2],
@@ -139,14 +152,29 @@ describe('createClicker', () => {
       ])
     })
 
-    it('cuts the ringing note when the next peg strikes', async () => {
+    it('skips pegs on a fast wheel rather than rattling through the tune', async () => {
       stubOffline()
-      const { sources } = stubAudio()
+      const { ctx, sources } = stubAudio()
       const clicker = createClicker()
       clicker.unlock()
       clicker.setSong(song)
       await rendered()
-      clicker.click(2, 0.5)
+      for (let frame = 0; frame < 30; frame++) {
+        ctx.currentTime = frame / 60
+        clicker.click(8, 3)
+      }
+      expect(sources.length).toBeGreaterThan(0)
+      expect(sources.length).toBeLessThan((30 * 8) / 4)
+    })
+
+    it('cuts the ringing note when the next one starts', async () => {
+      stubOffline()
+      const { ctx, sources } = stubAudio()
+      const clicker = createClicker()
+      clicker.unlock()
+      clicker.setSong(song)
+      await rendered()
+      strike(clicker, ctx, [0, 0.5])
       expect(sources[0].stop).toHaveBeenCalled()
       expect(sources[1].stop).not.toHaveBeenCalled()
     })
@@ -158,9 +186,7 @@ describe('createClicker', () => {
       clicker.unlock()
       clicker.setSong(song)
       await rendered()
-      clicker.click(2, 0.5)
-      ctx.currentTime = 10
-      clicker.click(1, 0.5)
+      strike(clicker, ctx, [0, 0.5, 10])
       expect(sources[2].start.mock.calls[0][1]).toBe(0)
     })
 
