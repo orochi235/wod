@@ -23,6 +23,10 @@ what's next, and the traps.
 2. `RecipeForm` shows a slider whose param is unset at the field's `min`, not at
    the value the recipe runs with: a fly transition stored with `params: {}`
    reads "Distance (radii)" as -1.
+3. blits 0.20.0 renamed a voice's `locus` to `role` and warns on the old name
+   (`blits: locus is renamed role`) all through the test run (2026-11-06). wod
+   still emits `locus` in `src/transition/voices.ts` and
+   `src/clock/morphVoices.ts`.
 
 ## Decisions made in conversation
 
