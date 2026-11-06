@@ -45,3 +45,7 @@ a sound directly.
   another. Wanted: several flapper sounds to choose from (more synthesized voices, samples, or both),
   chosen per preset or theme in the editor. Picking the sounds is the maintainer's ear.
   Closes when the editor offers at least three flapper sounds and the chosen one plays on spin.
+- **(P2) [maintainer] Flapper songs are hidden behind a flag.** The show page only offers them with
+  `songs` in the hash query (`#/?songs`), via `songsEnabled()` in `src/flapper/enabled.ts`, so the
+  meeting screen keeps its controls while the feature is unfinished (2026-11-05). Closes when the
+  feature is done and the flag is removed.

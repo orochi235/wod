@@ -47,6 +47,21 @@ describe('App', () => {
     })
   })
 
+  it('offers flapper songs only with the songs flag in the hash', () => {
+    window.localStorage.setItem(PRESET_KEY, JSON.stringify({ ...DEFAULT_PRESET, theme: 'wof' }))
+    const { unmount } = render(<App />)
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Flapper sound')).not.toBeInTheDocument()
+    unmount()
+    window.location.hash = '#/?songs'
+    try {
+      render(<App />)
+      expect(screen.getByLabelText('Flapper sound')).toBeInTheDocument()
+    } finally {
+      window.location.hash = ''
+    }
+  })
+
   it('does not show the trick-owned wedge while its trick is disabled', () => {
     render(<App />)
     expect(screen.queryByText('free beer')).not.toBeInTheDocument()

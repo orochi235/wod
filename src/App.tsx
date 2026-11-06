@@ -5,6 +5,7 @@ import { useMotionRoot } from './clock/motion'
 import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
+import { songsEnabled } from './flapper/enabled'
 import { FlapperControls } from './flapper/FlapperControls'
 import { useFlapperSong } from './flapper/useFlapperSong'
 import type { CreateFx } from './outage/fx'
@@ -278,7 +279,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
             {muted ? 'Unmute' : 'Mute'}
           </button>
         )}
-        {theme.flapper !== 'silent' && (
+        {theme.flapper !== 'silent' && songsEnabled() && (
           <FlapperControls
             songId={song.songId}
             onSong={song.setSongId}
