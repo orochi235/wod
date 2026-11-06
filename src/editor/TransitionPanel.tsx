@@ -1,5 +1,5 @@
-import { PropertyPanel, SelectRow } from '@weasel-js/labkit'
-import { TRANSITION_LIST, getTransition } from '../transition/registry'
+import { PropertyField, PropertyPanel } from '@weasel-js/labkit'
+import { getTransition, TRANSITION_LIST } from '../transition/registry'
 import type { Moment, TransitionParams, Transitions } from '../transition/types'
 import { RecipeForm } from './RecipeForm'
 
@@ -45,7 +45,8 @@ export function TransitionPanel({ transitions, onChange }: TransitionPanelProps)
         const transition = armed ? getTransition(armed.id) : null
         return (
           <div key={moment}>
-            <SelectRow
+            <PropertyField
+              kind="enum"
               label={label}
               value={armed?.id ?? NONE}
               options={[

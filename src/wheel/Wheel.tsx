@@ -11,15 +11,17 @@ import { getSlice, instancesUsed, resolveInstance } from '../slice/registry'
 import type { SliceInstance } from '../slice/types'
 import type { Transitions } from '../transition/types'
 import { usePresence } from '../transition/usePresence'
-import { HubEmblem } from './HubEmblem'
-import { SliceElements } from './SliceElements'
 import type { RetainedIds } from './colors'
+import type { PegSchedule } from './conductor'
 import { createClicker } from './flapperAudio'
 import { type Arc, arcPath, arcs, pointAt } from './geometry'
+import { HubEmblem } from './HubEmblem'
 import { wantsInverseInk } from './ink'
+import type { Melody } from './melody'
 import { panelPath } from './panel'
-import { partOn, pegsOn } from './theme'
+import { SliceElements } from './SliceElements'
 import type { Theme } from './theme'
+import { partOn, pegsOn } from './theme'
 import { styleOfTheme } from './themeStyle'
 import { flat } from './themes/flat'
 import { trackFlapper } from './trackFlapper'
@@ -65,6 +67,13 @@ export type WheelProps = {
   theme?: Theme
   /** Silences the flapper without changing the look. */
   muted?: boolean
+  /** A tune the flapper plays on the pegs, in place of its tick. */
+  flapperMelody?: Melody | null
+  /**
+   * The current spin's pegs mapped onto the tune, read at each peg. Set it before
+   * the spin's first peg; a new object starts the tune over.
+   */
+  flapperScheduleRef?: { current: PegSchedule | null }
   /** What sits on the hub cap. Absent leaves it the bare cap the look paints. */
   hub?: Hub
   /** Registers the hub group so a spin can turn it from outside the rotor. */
@@ -117,6 +126,8 @@ export function Wheel({
   retainedRef,
   theme = flat,
   muted = false,
+  flapperMelody = null,
+  flapperScheduleRef,
   hub,
   riderRef,
   flapperDeg,
@@ -144,10 +155,23 @@ export function Wheel({
   const clickerRef = useRef<ReturnType<typeof createClicker> | null>(null)
   // On demand and never during render, so a caller after a cleanup gets a live
   // clicker rather than the retired one a render had already handed out.
+  const soundRef = useRef({ muted, flapperMelody })
+  soundRef.current = { muted, flapperMelody }
   const clicker = useCallback(() => {
-    if (clickerRef.current === null) clickerRef.current = createClicker()
+    if (clickerRef.current === null) {
+      // A clicker rebuilt after a cleanup never sees the effects that already
+      // ran, so it takes the current sound settings here.
+      const fresh = createClicker()
+      fresh.setMuted(soundRef.current.muted)
+      fresh.setMelody(soundRef.current.flapperMelody)
+      clickerRef.current = fresh
+    }
     return clickerRef.current
   }, [])
+
+  const scheduleRef = useRef(flapperScheduleRef)
+  scheduleRef.current = flapperScheduleRef
+  const appliedScheduleRef = useRef<PegSchedule | null>(null)
 
   // Read each frame, so a roster change or a look change reaches a running arm.
   const pegsRef = useRef(pegs)
@@ -161,7 +185,13 @@ export function Wheel({
       pegs: () => pegsRef.current,
       write: writeArm,
       click: (count, speed) => {
-        if (!silentRef.current) clicker().click(count, speed)
+        if (silentRef.current) return
+        const schedule = scheduleRef.current?.current ?? null
+        if (schedule !== appliedScheduleRef.current) {
+          appliedScheduleRef.current = schedule
+          clicker().setSchedule(schedule)
+        }
+        clicker().click(count, speed)
       },
     })
   }, [motion, hasFlapper, clicker, writeArm])
@@ -184,6 +214,10 @@ export function Wheel({
   useEffect(() => {
     clicker().setMuted(muted)
   }, [muted, clicker])
+
+  useEffect(() => {
+    clicker().setMelody(flapperMelody)
+  }, [flapperMelody, clicker])
 
   // Every face a wedge is set in is a webfont, so the first render measures
   // whatever the fallback is. Every breakpoint's faces, not just the resolved

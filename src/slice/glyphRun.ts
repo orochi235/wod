@@ -1,5 +1,5 @@
 import { pointAt } from '../wheel/geometry'
-import { ARC_FILL, DEFAULT_LEADING, DEFAULT_TRACKING, arcLength, chord } from './fit'
+import { ARC_FILL, arcLength, chord, DEFAULT_LEADING, DEFAULT_TRACKING } from './fit'
 import { DEFAULT_MAX_SIZE, MIN_SIZE } from './layouts/shared'
 import type { Glyph, PlacedRun, SliceContext, SlicePart } from './types'
 

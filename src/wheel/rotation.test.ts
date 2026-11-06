@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTLE_CURVE, parseCurve } from './curve'
-import { type RotationSpec, type RotationTrack, invertTrack, rotationTrack } from './rotation'
+import { invertTrack, type RotationSpec, type RotationTrack, rotationTrack } from './rotation'
 import type { Curve } from './types'
 
 const SPEC: RotationSpec = {

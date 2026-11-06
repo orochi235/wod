@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createClicker } from './flapperAudio'
+import type { Melody } from './melody'
 
 function stubAudio() {
   const gain = {
-    gain: { value: 0, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+    gain: {
+      value: 0,
+      setValueAtTime: vi.fn(),
+      exponentialRampToValueAtTime: vi.fn(),
+      cancelScheduledValues: vi.fn(),
+      setTargetAtTime: vi.fn(),
+    },
     connect: vi.fn(),
   }
   const osc = {
@@ -13,6 +20,7 @@ function stubAudio() {
     start: vi.fn(),
     stop: vi.fn(),
   }
+  const sources: { start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }[] = []
   const ctx = {
     state: 'running',
     currentTime: 0,
@@ -20,13 +28,59 @@ function stubAudio() {
     resume: vi.fn(),
     createGain: vi.fn(() => gain),
     createOscillator: vi.fn(() => osc),
+    createBufferSource: vi.fn(() => {
+      const source = { buffer: null, connect: vi.fn(), start: vi.fn(), stop: vi.fn() }
+      sources.push(source)
+      return source
+    }),
   }
   vi.stubGlobal(
     'AudioContext',
-    vi.fn(() => ctx),
+    class {
+      constructor() {
+        // biome-ignore lint/correctness/noConstructorReturn: hands `new` the shared stub
+        return ctx
+      }
+    },
   )
-  return { ctx, osc, gain }
+  return { ctx, osc, gain, sources }
 }
+
+/** Renders nothing real: the clicker only needs a buffer and the slice times. */
+function stubOffline() {
+  const param = {
+    setValueAtTime: vi.fn(),
+    linearRampToValueAtTime: vi.fn(),
+    exponentialRampToValueAtTime: vi.fn(),
+  }
+  vi.stubGlobal(
+    'OfflineAudioContext',
+    class {
+      destination = {}
+      createOscillator() {
+        return { frequency: { value: 0 }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() }
+      }
+      createGain() {
+        return { gain: param, connect: vi.fn() }
+      }
+      async startRendering() {
+        return {}
+      }
+    },
+  )
+}
+
+const song: Melody = {
+  tones: [
+    { midi: 60, seconds: 1 },
+    { midi: 62, seconds: 2 },
+    { midi: 64, seconds: 1 },
+  ],
+  unitS: 1,
+}
+
+/** Lets the song's render settle before the clicker is asked to play it. */
+const rendered = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 describe('createClicker', () => {
   beforeEach(() => {
@@ -72,5 +126,102 @@ describe('createClicker', () => {
     clicker.unlock()
     clicker.click(500, 0.5)
     expect(ctx.createOscillator.mock.calls.length).toBeLessThanOrEqual(8)
+  })
+
+  describe('with a song', () => {
+    /** One peg per call, `gapS` apart: a slow wheel, one unit per peg. */
+    const strike = (
+      clicker: ReturnType<typeof createClicker>,
+      ctx: { currentTime: number },
+      times: number[],
+    ) => {
+      for (const at of times) {
+        ctx.currentTime = at
+        clicker.click(1, 0.1)
+      }
+    }
+
+    it('plays the tune in its own rhythm on a slow wheel, then wraps', async () => {
+      stubOffline()
+      const { ctx, sources } = stubAudio()
+      const clicker = createClicker()
+      clicker.unlock()
+      clicker.setMelody(song)
+      await rendered()
+      strike(clicker, ctx, [0, 0.5, 1, 1.5, 2])
+      expect(ctx.createOscillator).not.toHaveBeenCalled()
+      // C4 D4:2 E4 — the long D holds through the third peg.
+      // Each pitch's strike sits in its own 1.2 s slot of the bank.
+      expect(sources.map((source) => source.start.mock.calls[0].slice(1))).toEqual([
+        [0, 1],
+        [1.2, 1.2],
+        [2.4, 1],
+        [0, 1],
+      ])
+    })
+
+    it('skips pegs on a fast wheel rather than rattling through the tune', async () => {
+      stubOffline()
+      const { ctx, sources } = stubAudio()
+      const clicker = createClicker()
+      clicker.unlock()
+      clicker.setMelody(song)
+      await rendered()
+      for (let frame = 0; frame < 30; frame++) {
+        ctx.currentTime = frame / 60
+        clicker.click(8, 3)
+      }
+      expect(sources.length).toBeGreaterThan(0)
+      expect(sources.length).toBeLessThan((30 * 8) / 4)
+    })
+
+    it('cuts the ringing note when the next one starts', async () => {
+      stubOffline()
+      const { ctx, sources } = stubAudio()
+      const clicker = createClicker()
+      clicker.unlock()
+      clicker.setMelody(song)
+      await rendered()
+      strike(clicker, ctx, [0, 0.5])
+      expect(sources[0].stop).toHaveBeenCalled()
+      expect(sources[1].stop).not.toHaveBeenCalled()
+    })
+
+    it('starts the tune over after the wheel has been quiet', async () => {
+      stubOffline()
+      const { ctx, sources } = stubAudio()
+      const clicker = createClicker()
+      clicker.unlock()
+      clicker.setMelody(song)
+      await rendered()
+      strike(clicker, ctx, [0, 0.5, 10])
+      expect(sources[2].start.mock.calls[0][1]).toBe(0)
+    })
+
+    it('plays a schedule instead of following the wheel, then stops', async () => {
+      stubOffline()
+      const { ctx, sources } = stubAudio()
+      const clicker = createClicker()
+      clicker.unlock()
+      clicker.setMelody(song)
+      await rendered()
+      clicker.setSchedule({ advance: [0.5, 0.5, 1, 1, 1, 1], startUnits: -1 })
+      strike(clicker, ctx, [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06])
+      // Silent lead-in, then C on the third peg, D on the fourth, E on the sixth.
+      expect(sources.map((source) => source.start.mock.calls[0][1])).toEqual([0, 1.2, 2.4])
+    })
+
+    it('goes back to the tick when the song is cleared', async () => {
+      stubOffline()
+      const { ctx } = stubAudio()
+      const clicker = createClicker()
+      clicker.unlock()
+      clicker.setMelody(song)
+      await rendered()
+      clicker.setMelody(null)
+      clicker.click(1, 0.5)
+      expect(ctx.createOscillator).toHaveBeenCalledTimes(1)
+      expect(ctx.createBufferSource).not.toHaveBeenCalled()
+    })
   })
 })

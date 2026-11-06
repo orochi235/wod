@@ -67,6 +67,11 @@ export type SpinConfig = {
   easing: Curve
   /** Absent: one curve for the whole rotation. Present: cruise, then break. */
   settle?: Settle
+  /**
+   * How much faster the cruise ends than it starts, as a ratio. Only a spin with
+   * a settle has a cruise to speed up; absent or 1 holds it steady.
+   */
+  accelerate?: number
   morphs: Morph[]
   /** Absent: the spin runs uninterrupted. */
   outage?: Outage

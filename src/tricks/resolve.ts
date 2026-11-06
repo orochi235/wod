@@ -1,6 +1,6 @@
 import type { Composition, Origin } from '../compose/types'
-import { EMPTY_COLOR_STATE, assignColors } from '../wheel/colors'
 import type { ColorState } from '../wheel/colors'
+import { assignColors, EMPTY_COLOR_STATE } from '../wheel/colors'
 import type { Morph, Outage, Segment } from '../wheel/types'
 import { getRecipe } from './registry'
 import type { Trick } from './types'

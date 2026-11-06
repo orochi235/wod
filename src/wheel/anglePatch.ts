@@ -1,4 +1,4 @@
-import { type Patch, type VoiceSpec, patch } from '@msb235/blits'
+import { type Patch, patch, type VoiceSpec } from '@msb235/blits'
 import { WHEEL, type WheelPose } from '../clock/motion'
 import { angleAt } from './outage'
 import type { RotationTrack } from './rotation'

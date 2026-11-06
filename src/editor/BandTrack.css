@@ -24,7 +24,10 @@
   border-right: 1px solid var(--lk-border, #c9bba5);
   background: color-mix(in srgb, var(--lk-accent, #a86f3c) 22%, transparent);
   color: var(--lk-text, #2a2018);
-  font: 500 0.65rem / 1 ui-sans-serif, system-ui, sans-serif;
+  font:
+    500 0.65rem / 1 ui-sans-serif,
+    system-ui,
+    sans-serif;
   white-space: nowrap;
   text-overflow: ellipsis;
   cursor: pointer;

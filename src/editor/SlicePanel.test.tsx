@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { SlicePanel } from './SlicePanel'
+import { choose } from './testing'
 
 describe('SlicePanel', () => {
   it('starts a chosen layout on its defaults', async () => {
     const onChange = vi.fn()
     render(<SlicePanel slice={undefined} onChange={onChange} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Layout'), 'curved')
+    await choose('Layout', 'Curved')
 
     expect(onChange).toHaveBeenCalledWith({
       id: 'curved',
@@ -25,7 +25,7 @@ describe('SlicePanel', () => {
     const onChange = vi.fn()
     render(<SlicePanel slice={{ id: 'curved', params: {} }} onChange={onChange} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Layout'), '')
+    await choose('Layout', 'Name plate (default)')
 
     expect(onChange).toHaveBeenCalledWith(undefined)
   })

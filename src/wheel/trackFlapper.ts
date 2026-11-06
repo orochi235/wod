@@ -1,6 +1,6 @@
 import { spring } from '@msb235/blits'
 import { type Motion, WHEEL, type WheelPose } from '../clock/motion'
-import { STILL_SPEED, deflectionDeg, pegCrossings } from './flapper'
+import { deflectionDeg, pegCrossings, STILL_SPEED } from './flapper'
 
 /** Critically damped and stiff: the arm follows a peg closely and falls in about 100 ms. */
 const STIFFNESS = 2000

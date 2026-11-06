@@ -3,7 +3,7 @@ import type { SimulatedFeedConfig } from '../feed/types'
 import { MIN_POLL_INTERVAL_MS } from '../meet/poll'
 import { readParts } from '../slice/parts'
 import { DEFAULT_PRESET } from './defaults'
-import { PRESET_KEY, loadPreset, parsePreset, savePreset } from './storage'
+import { loadPreset, PRESET_KEY, parsePreset, savePreset } from './storage'
 
 describe('parsePreset', () => {
   it('returns the default for null', () => {
@@ -1010,7 +1010,7 @@ describe('slice layouts', () => {
         parts: [{ content: { from: 'label' }, orientation: 'stacked', band: [1.4, -0.2] }],
       },
     }).slice
-    expect((slice?.params.parts as { band: number[] }[])[0].band).toEqual([0, 1])
+    expect((slice?.params.parts as { band: number[] }[] | undefined)?.[0].band).toEqual([0, 1])
   })
 
   it('drops a part whose orientation names nothing', () => {

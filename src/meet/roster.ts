@@ -1,9 +1,9 @@
 import type { FeedItem } from '../feed/types'
 import {
-  type Participant,
   activeParticipants,
   liveConferences,
   matchesPin,
+  type Participant,
   pickConference,
 } from './api'
 import { isBot, itemsForPeople, personOf } from './identity'

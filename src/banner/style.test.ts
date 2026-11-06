@@ -139,13 +139,13 @@ describe('rollStyle', () => {
   })
 
   it('never drives the word with the effect that recolors it', () => {
-    // Math.random, not the sweep: the effect roll and the piece are adjacent
-    // draws, so a periodic rng correlates them and reaches only one piece.
+    // Math.random, not the sweep: the effect roll and the patch are adjacent
+    // draws, so a periodic rng correlates them and reaches only one patch.
     const rolls = Array.from({ length: 600 }, () => rollStyle(Math.random))
-    const pieces = new Set(rolls.flatMap((style) => style.effects ?? []).map((e) => e.piece))
+    const patches = new Set(rolls.flatMap((style) => style.effects ?? []).map((e) => e.patch))
     // `hue` would walk the word away from the wedge's own color.
-    expect(pieces).not.toContain('hue')
-    expect(pieces.size).toBe(EFFECT_NAMES.length - 1)
+    expect(patches).not.toContain('hue')
+    expect(patches.size).toBe(EFFECT_NAMES.length - 1)
   })
 
   it('does not repeat the roll it was handed', () => {

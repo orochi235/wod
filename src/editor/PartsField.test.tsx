@@ -6,6 +6,16 @@ import { DEFAULT_SPECIMEN } from '../slice/fonts/specimen'
 import { MAX_PARTS } from '../slice/parts'
 import type { SlicePart } from '../slice/types'
 import { PartsField } from './PartsField'
+import { choose, picker } from './testing'
+
+/** The `index`th select labeled `label`, for the slots that repeat each label. */
+const pickerAt = (label: string, index: number) =>
+  screen.getAllByLabelText(label, { selector: 'button' })[index]
+
+async function chooseAt(label: string, index: number, option: string | RegExp) {
+  await userEvent.click(pickerAt(label, index))
+  await userEvent.click(await screen.findByRole('option', { name: option }))
+}
 
 function Controlled({ initial, spy }: { initial: unknown; spy: (parts: SlicePart[]) => void }) {
   const [parts, setParts] = useState<unknown>(initial)
@@ -59,7 +69,7 @@ describe('PartsField', () => {
     const spy = vi.fn()
     render(<Controlled initial={onePart} spy={spy} />)
 
-    await userEvent.selectOptions(screen.getAllByLabelText('Content')[1], 'label')
+    await chooseAt('Content', 1, 'The wedge label')
 
     expect(spy).toHaveBeenCalledWith([
       onePart[0],
@@ -71,7 +81,7 @@ describe('PartsField', () => {
     const spy = vi.fn()
     render(<Controlled initial={onePart} spy={spy} />)
 
-    await userEvent.selectOptions(screen.getAllByLabelText('Content')[0], '')
+    await chooseAt('Content', 0, 'None')
 
     expect(spy).toHaveBeenCalledWith([])
     expect(screen.queryByLabelText('Orientation')).toBeNull()
@@ -85,7 +95,7 @@ describe('PartsField', () => {
     ]
     render(<Controlled initial={two} spy={spy} />)
 
-    await userEvent.selectOptions(screen.getAllByLabelText('Orientation')[1], 'taperedRadial')
+    await chooseAt('Orientation', 1, /^Tapered/)
 
     expect(spy).toHaveBeenCalledWith([two[0], { ...two[1], orientation: 'taperedRadial' }])
   })
@@ -98,7 +108,7 @@ describe('PartsField', () => {
     ]
     render(<Controlled initial={two} spy={spy} />)
 
-    await userEvent.selectOptions(screen.getAllByLabelText('Content')[0], '')
+    await chooseAt('Content', 0, 'None')
 
     // The stored list is dense: a part's place on the wedge is its band, not its
     // slot, so there is nothing for a hole to mean.
@@ -120,19 +130,19 @@ describe('PartsField', () => {
     const spy = vi.fn()
     render(<Controlled initial={onePart} spy={spy} />)
 
-    await userEvent.selectOptions(screen.getAllByLabelText('Stretch')[0], 'custom')
+    await chooseAt('Stretch', 0, 'A chosen amount')
     expect(screen.queryAllByLabelText('Stretch amount')).not.toHaveLength(0)
 
-    await userEvent.selectOptions(screen.getAllByLabelText('Stretch')[0], 'fill')
+    await chooseAt('Stretch', 0, 'Fill the wedge')
     expect(screen.queryAllByLabelText('Stretch amount')).toHaveLength(0)
-    expect((spy.mock.calls.at(-1)?.[0] as SlicePart[])[0].stretch).toBe('fill')
+    expect((spy.mock.lastCall as [SlicePart[]])[0][0].stretch).toBe('fill')
   })
 })
 
 describe('the face a part is set in', () => {
   it('follows the look until a face is chosen', () => {
     render(<PartsField label="Part" max={MAX_PARTS} value={onePart} onChange={vi.fn()} />)
-    expect(screen.getByLabelText('Face')).toHaveValue('')
+    expect(picker('Face')).toHaveTextContent("The look's face")
     expect(screen.queryByRole('img')).toBeNull()
   })
 
@@ -140,7 +150,7 @@ describe('the face a part is set in', () => {
     const spy = vi.fn()
     render(<Controlled initial={onePart} spy={spy} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Face'), 'rye')
+    await choose('Face', /— Rye$/)
 
     expect(spy).toHaveBeenCalledWith([expect.objectContaining({ font: 'rye' })])
     // Set live in the face itself, and only the face that was picked is asked for.
@@ -153,7 +163,7 @@ describe('the face a part is set in', () => {
     const spy = vi.fn()
     render(<Controlled initial={[{ ...onePart[0], font: 'rye' }]} spy={spy} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Face'), '')
+    await choose('Face', "The look's face")
 
     expect(spy).toHaveBeenCalledWith([expect.not.objectContaining({ font: expect.anything() })])
   })
@@ -162,8 +172,8 @@ describe('the face a part is set in', () => {
     const spy = vi.fn()
     render(<Controlled initial={onePart} spy={spy} />)
 
-    expect(screen.getByLabelText('Drawn as')).toHaveValue('glyphs')
-    await userEvent.selectOptions(screen.getByLabelText('Drawn as'), 'outline')
+    expect(picker('Drawn as')).toHaveTextContent('Letter by letter')
+    await choose('Drawn as', 'One warped shape')
 
     expect(spy).toHaveBeenCalledWith([expect.objectContaining({ shape: 'outline' })])
   })

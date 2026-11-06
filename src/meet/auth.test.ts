@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { RENEW_MARGIN_MS, isUsable, tokenOf } from './auth'
+import { isUsable, RENEW_MARGIN_MS, tokenOf } from './auth'
 
 function loadedScript(calls: unknown[][], index: number): HTMLScriptElement {
   return calls[index][0] as HTMLScriptElement

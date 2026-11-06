@@ -2,17 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { DARK_MS } from '../wheel/outage'
 import {
   BLOW_MS,
+  blackoutKeyframes,
+  blackoutMs,
   CHORD,
   CLANKS,
   DEAD_HUM,
   DRONE,
-  FLICKERS,
+  escalation,
   FLICKER_MS,
+  FLICKERS,
   HITS,
   SWOOPS,
-  blackoutKeyframes,
-  blackoutMs,
-  escalation,
 } from './schedule'
 
 describe('the passage', () => {

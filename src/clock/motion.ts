@@ -1,14 +1,14 @@
 import {
   type Kit,
-  type Mix,
-  type Ticker,
-  type TickerOptions,
   kit,
   last,
+  type Mix,
   max,
   mix,
   mixHex,
   sum,
+  type Ticker,
+  type TickerOptions,
   ticker,
 } from '@msb235/blits'
 import { useEffect, useState } from 'react'

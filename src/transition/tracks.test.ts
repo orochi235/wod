@@ -5,12 +5,12 @@ import type { Segment } from '../wheel/types'
 import { REDUCED_MOTION_MS } from '../wheel/useSpin'
 import {
   type AdvanceInput,
-  type Track,
-  type Wedges,
   advance,
   drawList,
   retire,
   settle,
+  type Track,
+  type Wedges,
 } from './tracks'
 import type { Transitions } from './types'
 import { RESTING } from './voices'
@@ -180,7 +180,7 @@ describe('advance', () => {
     const first = run(w)
     const before = { ...first.get('ana') }
     run(w, { tracks: first, segments: [{ ...segment('ana'), label: 'Ana L.' }], now: 1000 })
-    run(w, { tracks: first, segments: [], now: 100 })
+    run(w, { tracks: first, segments: [], now: 1100 })
     expect(first.size).toBe(1)
     expect(first.get('ana')).toEqual(before)
   })

@@ -112,7 +112,7 @@ export function BandTrack({
     <div className="bands">
       <Slider<Stop>
         thumbs={stops}
-        onChange={write}
+        onInput={write}
         min={AXIS_MIN}
         max={AXIS_MAX}
         constraint="ordered"

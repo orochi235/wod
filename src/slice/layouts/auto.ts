@@ -1,4 +1,4 @@
-import { LADDERS, LADDER_OPTIONS, isLadderId, walkLadder } from '../ladder'
+import { isLadderId, LADDER_OPTIONS, LADDERS, walkLadder } from '../ladder'
 import type { SliceLayout } from '../types'
 import { typeset } from '../typeset'
 import { COMMON_DEFAULTS, COMMON_FIELDS, legacyPart, specOf } from './shared'

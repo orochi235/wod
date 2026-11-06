@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SETTLE_CURVE, cssCurve, initialSlope, isSettleCurve, parseCurve } from './curve'
+import { cssCurve, DEFAULT_SETTLE_CURVE, initialSlope, isSettleCurve, parseCurve } from './curve'
 import type { Curve } from './types'
 
 describe('parseCurve', () => {

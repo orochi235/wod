@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EasingName } from '../wheel/types'
-import { EASINGS, EASING_INVERSES } from './easing'
+import { EASING_INVERSES, EASINGS } from './easing'
 
 describe('EASING_INVERSES', () => {
   for (const name of Object.keys(EASINGS) as EasingName[]) {

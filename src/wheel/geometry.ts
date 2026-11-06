@@ -19,7 +19,7 @@ function safeWeights(items: Weighted[]): { safe: number[]; total: number } {
   const total = safe.reduce((sum, w) => sum + w, 0)
   if (Number.isFinite(total)) return { safe, total }
 
-  const max = safe.reduce((m, w) => (w > m ? w : m), 0)
+  const max = safe.reduce((m, w) => Math.max(m, w), 0)
   const scaled = safe.map((w) => w / max)
   return { safe: scaled, total: scaled.reduce((sum, w) => sum + w, 0) }
 }

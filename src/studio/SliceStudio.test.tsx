@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { choose, picker } from '../editor/testing'
 import { loadPreset, savePreset } from '../preset/storage'
 import { cash } from '../slice/layouts/cash'
 import { getTheme } from '../wheel/themes/registry'
@@ -10,8 +11,8 @@ import {
   FALLBACK_HUB_RADIUS,
   PREVIEW_FILL,
   PREVIEW_RADIUS,
-  WIDE_ARC_STEPS,
   previewHubRadius,
+  WIDE_ARC_STEPS,
 } from './wedge'
 
 describe('SliceStudio', () => {
@@ -166,7 +167,7 @@ describe('SliceStudio', () => {
   it('persists a layout change the way the editor does', async () => {
     render(<SliceStudio />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Layout'), 'curved')
+    await choose('Layout', 'Curved')
 
     expect(loadPreset().slice?.id).toBe('curved')
   })
@@ -180,7 +181,7 @@ describe('SliceStudio', () => {
 
     render(<SliceStudio />)
 
-    expect(screen.getByLabelText('Preview on')).toHaveValue('only')
+    expect(picker('Preview on')).toHaveTextContent('Bobson Dugnutt')
   })
 })
 
@@ -218,7 +219,10 @@ describe('SliceStudio wedge color', () => {
     })
     render(<SliceStudio />)
 
-    fireEvent.change(screen.getByLabelText('Wedge color'), { target: { value: '#00ff00' } })
+    // A pick is a gesture: the picker streams input, then commits as it closes.
+    const field = screen.getByLabelText('Wedge color')
+    fireEvent.input(field, { target: { value: '#00ff00' } })
+    fireEvent.change(field, { target: { value: '#00ff00' } })
 
     expect(document.querySelector('.wheel__segment')?.getAttribute('fill')).toBe('#00ff00')
   })

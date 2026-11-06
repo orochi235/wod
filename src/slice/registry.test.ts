@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readParts } from './parts'
-import { DEFAULT_SLICE, SLICE_LIST, getSlice, instancesUsed, resolveInstance } from './registry'
+import { DEFAULT_SLICE, getSlice, instancesUsed, resolveInstance, SLICE_LIST } from './registry'
 
 describe('getSlice', () => {
   it('resolves a known id', () => {

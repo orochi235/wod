@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Motion } from '../preset/types'
 import { MotionPanel } from './MotionPanel'
+import { choose, picker } from './testing'
 
 const motion: Motion = {
   durationMs: 4500,
@@ -40,23 +41,25 @@ function Harness({
 describe('MotionPanel', () => {
   it('renders a control per field', () => {
     render(<MotionPanel motion={motion} onChange={vi.fn()} />)
-    expect(screen.getByLabelText('Duration (ms)')).toHaveValue(4500)
-    expect(screen.getByLabelText('Turns')).toHaveValue(6)
-    expect(screen.getByLabelText('Direction')).toHaveValue('cw')
+    expect(screen.getByLabelText('Duration (ms)')).toHaveValue('4500')
+    expect(screen.getByLabelText('Turns')).toHaveValue('6')
+    expect(picker('Direction')).toHaveTextContent('Clockwise')
     expect(screen.getByLabelText('Settle (ms)')).toHaveValue(null)
   })
 
   it('writes numbers, not strings', () => {
     const onChange = vi.fn()
     render(<MotionPanel motion={motion} onChange={onChange} />)
-    fireEvent.change(screen.getByLabelText('Duration (ms)'), { target: { value: '30000' } })
+    const duration = screen.getByLabelText('Duration (ms)')
+    fireEvent.change(duration, { target: { value: '30000' } })
+    fireEvent.blur(duration)
     expect(onChange).toHaveBeenCalledWith({ ...motion, durationMs: 30000 })
   })
 
   it('turns the wheel the other way', async () => {
     const onChange = vi.fn()
     render(<MotionPanel motion={motion} onChange={onChange} />)
-    await userEvent.selectOptions(screen.getByLabelText('Direction'), 'ccw')
+    await choose('Direction', 'Counter-clockwise')
     expect(onChange).toHaveBeenCalledWith({ ...motion, direction: 'ccw' })
   })
 
@@ -100,7 +103,9 @@ describe('MotionPanel', () => {
     // Element.animate() throws synchronously on a negative duration.
     const onChange = vi.fn()
     render(<MotionPanel motion={motion} onChange={onChange} />)
-    fireEvent.change(screen.getByLabelText('Duration (ms)'), { target: { value: '-100' } })
+    const duration = screen.getByLabelText('Duration (ms)')
+    fireEvent.change(duration, { target: { value: '-100' } })
+    fireEvent.blur(duration)
     expect(onChange).toHaveBeenCalledWith({ ...motion, durationMs: 1 })
   })
 

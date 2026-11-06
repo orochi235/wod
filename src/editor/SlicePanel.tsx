@@ -1,5 +1,5 @@
-import { PropertyPanel, SelectRow } from '@weasel-js/labkit'
-import { SLICE_LIST, getSlice } from '../slice/registry'
+import { PropertyField, PropertyPanel } from '@weasel-js/labkit'
+import { getSlice, SLICE_LIST } from '../slice/registry'
 import type { SliceInstance, SliceParams } from '../slice/types'
 import { RecipeForm } from './RecipeForm'
 
@@ -37,7 +37,8 @@ export function SlicePanel({ slice, onChange }: SlicePanelProps) {
   return (
     <>
       <PropertyPanel title="Slice layout" className="editor__center-panel">
-        <SelectRow
+        <PropertyField
+          kind="enum"
           label="Layout"
           value={layout?.id ?? NONE}
           options={[

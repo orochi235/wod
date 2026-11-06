@@ -8,6 +8,7 @@ import { takeover } from '../tricks/recipes/takeover'
 import type { TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 import { RecipeForm } from './RecipeForm'
+import { choose, picker } from './testing'
 
 const segments: Segment[] = [{ id: 'ana', label: 'Ana', weight: 1 }]
 
@@ -49,8 +50,12 @@ describe('RecipeForm', () => {
       />,
     )
     expect(screen.getByLabelText('Wedge label')).toBeInTheDocument()
-    expect(screen.getByLabelText('Holds until')).toBeInTheDocument()
-    expect(screen.getByLabelText('Final share')).toBeInTheDocument()
+    expect(
+      screen.getByLabelText('Holds until', { selector: 'input[type="range"]' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByLabelText('Final share', { selector: 'input[type="range"]' }),
+    ).toBeInTheDocument()
   })
 
   it('reports a text change', async () => {
@@ -59,6 +64,7 @@ describe('RecipeForm', () => {
     const input = screen.getByLabelText('Wedge label')
     await userEvent.clear(input)
     await userEvent.type(input, 'X')
+    await userEvent.tab()
     expect(onChange.mock.calls.at(-1)?.[0]).toMatchObject({ wedgeLabel: 'X' })
   })
 
@@ -72,7 +78,7 @@ describe('RecipeForm', () => {
         onChange={onChange}
       />,
     )
-    // SliderRow's wrapping <label> also contains an editable text readout,
+    // The slider row's wrapping <label> also contains an editable text readout,
     // which sits before the range input in DOM order — jsdom associates a
     // wrapping label with only the first labelable descendant, so a plain
     // getByLabelText('Final share') resolves to the readout, not the slider.
@@ -125,7 +131,7 @@ describe('RecipeForm', () => {
         onChange={onChange}
       />,
     )
-    await userEvent.selectOptions(screen.getByLabelText('Existing wedge'), 'ana')
+    await choose('Existing wedge', 'Ana')
 
     const next = onChange.mock.calls.at(-1)?.[0]
     expect(next?.wedgeSegmentId).toBe('ana')
@@ -143,7 +149,7 @@ describe('RecipeForm', () => {
         onChange={vi.fn()}
       />,
     )
-    expect(screen.getByLabelText('Existing wedge')).toHaveValue('')
+    expect(picker('Existing wedge')).toHaveTextContent('Choose a wedge…')
   })
 
   it('renders from a bare field list, with no recipe in sight', () => {
@@ -156,6 +162,7 @@ describe('RecipeForm', () => {
         onChange={onChange}
       />,
     )
-    expect(screen.getByLabelText('Stagger (ms)')).toHaveValue(40)
+    // The kit's number field is a text input, so its value reads back as a string.
+    expect(screen.getByLabelText('Stagger (ms)')).toHaveValue('40')
   })
 })

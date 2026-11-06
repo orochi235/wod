@@ -1,24 +1,23 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ThemePanel } from './ThemePanel'
+import { choose, optionsOf, picker } from './testing'
 
 describe('ThemePanel', () => {
-  it('offers every registered look', () => {
+  it('offers every registered look', async () => {
     render(<ThemePanel theme={undefined} onChange={() => {}} />)
-    expect(screen.getByRole('option', { name: 'Fortunate' })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Flat' })).toBeInTheDocument()
+    expect(await optionsOf('Wheel')).toEqual(expect.arrayContaining(['Fortunate', 'Flat']))
   })
 
   it('reports the look that was picked', async () => {
     const onChange = vi.fn()
     render(<ThemePanel theme={undefined} onChange={onChange} />)
-    await userEvent.selectOptions(screen.getByRole('combobox'), 'wof')
+    await choose('Wheel', 'Fortunate')
     expect(onChange).toHaveBeenCalledWith('wof')
   })
 
   it('shows the flat look when a show names none', () => {
     render(<ThemePanel theme={undefined} onChange={() => {}} />)
-    expect(screen.getByRole('combobox')).toHaveValue('flat')
+    expect(picker('Wheel')).toHaveTextContent('Flat')
   })
 })

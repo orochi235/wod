@@ -30,7 +30,7 @@ export function Reveal({ segment, reveal, onDismiss }: RevealProps) {
     <div
       className="reveal"
       ref={ref}
-      // biome-ignore lint/a11y/useSemanticElements: a native <dialog> owns its
+      // Not a native <dialog>: it owns its
       // own open state, which would compete with useReveal for the same answer.
       role="dialog"
       aria-modal="true"

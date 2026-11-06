@@ -26,7 +26,7 @@
   table { margin-top: 20px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   td { padding: 2px 14px 2px 0; } td.num { text-align: right; font-family: ui-monospace, Menlo, monospace; }
 </style>
-<button id="play">Play the outage</button> <button id="solo">Unmute all</button>
+<button type="button" id="play">Play the outage</button> <button type="button" id="solo">Unmute all</button>
 <label style="margin-left:16px"><input type="checkbox" id="lights" checked /> Blackout</label>
 <label style="margin-left:12px"><input type="checkbox" id="editor" checked /> Editor depth (60%)</label>
 <span style="color:#888;margin-left:12px">Click a block, a legend row, or a row name to mute it. Changes apply on the next Play.</span>
@@ -35,10 +35,10 @@
 <div class="ticks" id="ticks"></div>
 <table id="legend"></table>
 <script type="module">
-  import { playOutage } from '/src/outage/sound.ts'
   import { playBlackout } from '/src/outage/blackout.ts'
   import { loadKit } from '/src/outage/kit.ts'
   import { CHIME, CHORD, CLANKS, DEAD_HUM, DRONE, FLICKERS, HITS, SWOOPS } from '/src/outage/schedule.ts'
+  import { playOutage } from '/src/outage/sound.ts'
 
   const END = CHORD.at + CHORD.holdMs + CHORD.fadeMs + 200
   const pct = (ms) => `${(ms / END) * 100}%`

@@ -7,7 +7,7 @@ import { blackoutVoice, darkVoice } from '../outage/voices'
 import { angleVoice } from '../wheel/anglePatch'
 import { arcs } from '../wheel/geometry'
 import type { Show } from '../wheel/show'
-import { type Theme, partOn, pegsOn } from '../wheel/theme'
+import { partOn, pegsOn, type Theme } from '../wheel/theme'
 import { trackFlapper } from '../wheel/trackFlapper'
 import type { Segment } from '../wheel/types'
 

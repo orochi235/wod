@@ -1,4 +1,4 @@
-import { RUN_BAND, createFit } from '../slice/fit'
+import { createFit, RUN_BAND } from '../slice/fit'
 import { sourceFor } from '../slice/fonts/load'
 import { getSlice } from '../slice/registry'
 import type { FontId, Measure, SliceElement, SliceInstance } from '../slice/types'

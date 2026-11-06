@@ -1,5 +1,5 @@
-import { type Handle, type Keyframe, type Mix, type VoiceSpec, keys } from '@msb235/blits'
-import { EASINGS, EASING_INVERSES } from '../keyframes/easing'
+import { type Handle, type Keyframe, keys, type Mix, type VoiceSpec } from '@msb235/blits'
+import { EASING_INVERSES, EASINGS } from '../keyframes/easing'
 import { hexNumber } from '../wheel/hex'
 import type { Morph, MorphKeyframe, Segment } from '../wheel/types'
 import type { WedgePose } from './motion'

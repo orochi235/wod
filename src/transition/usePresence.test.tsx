@@ -2,9 +2,9 @@ import { act, render } from '@testing-library/react'
 import { Profiler } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { fakeMotion } from '../clock/testing'
-import { Wheel } from '../wheel/Wheel'
 import type { Segment } from '../wheel/types'
 import { REDUCED_MOTION_MS } from '../wheel/useSpin'
+import { Wheel } from '../wheel/Wheel'
 import type { Transitions } from './types'
 
 const segment = (id: string, color?: string): Segment =>

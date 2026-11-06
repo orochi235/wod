@@ -4,10 +4,10 @@ import { turnFraction } from '../slice/turns'
 import {
   AXIS_MAX_DEG,
   AXIS_MIN_DEG,
-  STOPS,
   bandsOf,
   fromAxis,
   removeBand,
+  STOPS,
   snapDegrees,
   splitBand,
   stopAbove,

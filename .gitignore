@@ -7,3 +7,5 @@ dist
 .claude/worktrees/
 .playwright-mcp/
 CLAUDE.local.md
+*.local.ts
+src/wheel/songs.local/

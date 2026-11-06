@@ -62,6 +62,9 @@ export function cssCurve([x1, y1, x2, y2]: Curve): string {
 export function curveAt([x1, y1, x2, y2]: Curve, x: number): number {
   if (x <= 0) return 0
   if (x >= 1) return 1
+  // With its x handles at the thirds, the curve's parameter is x itself.
+  if (x1 === 1 / 3 && x2 === 2 / 3)
+    return 3 * (1 - x) ** 2 * x * y1 + 3 * (1 - x) * x ** 2 * y2 + x ** 3
   const at = (a: number, b: number, t: number) =>
     3 * (1 - t) ** 2 * t * a + 3 * (1 - t) * t ** 2 * b + t ** 3
   let lo = 0

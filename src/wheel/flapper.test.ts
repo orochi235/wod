@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_DEFLECTION_DEG, deflectionDeg, pegCrossings } from './flapper'
+import { deflectionDeg, MAX_DEFLECTION_DEG, pegCrossings } from './flapper'
 
 // Four pegs, at 12, 3, 6 and 9 o'clock in wheel-local turns.
 const pegs = [0, 0.25, 0.5, 0.75]

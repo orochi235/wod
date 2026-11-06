@@ -4,17 +4,18 @@ import { describe, expect, it, vi } from 'vitest'
 import { fade } from '../transition/transitions/fade'
 import type { Transition } from '../transition/types'
 import { TransitionPanel } from './TransitionPanel'
+import { choose, optionsOf, picker } from './testing'
 
 describe('TransitionPanel', () => {
   it('starts at none, which is the behavior that predates transitions', () => {
     render(<TransitionPanel transitions={undefined} onChange={vi.fn()} />)
-    expect(screen.getByLabelText('Wedges arriving')).toHaveValue('')
+    expect(picker('Wedges arriving')).toHaveTextContent('None')
   })
 
   it('arms a transition with its defaults', async () => {
     const onChange = vi.fn()
     render(<TransitionPanel transitions={undefined} onChange={onChange} />)
-    await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), 'fly')
+    await choose('Wedges arriving', 'Wedges fly in from outside')
     expect(onChange).toHaveBeenCalledWith({
       enter: { id: 'fly', params: expect.objectContaining({ distance: 1.6 }) },
     })
@@ -24,7 +25,7 @@ describe('TransitionPanel', () => {
     render(
       <TransitionPanel transitions={{ enter: { id: 'fly', params: {} } }} onChange={vi.fn()} />,
     )
-    expect(screen.getByLabelText('Distance (radii)')).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: 'Distance (radii)' })).toBeInTheDocument()
   })
 
   it('disarms back to none', async () => {
@@ -32,7 +33,7 @@ describe('TransitionPanel', () => {
     render(
       <TransitionPanel transitions={{ enter: { id: 'fade', params: {} } }} onChange={onChange} />,
     )
-    await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), '')
+    await choose('Wedges arriving', 'None')
     expect(onChange).toHaveBeenCalledWith(undefined)
   })
 
@@ -43,7 +44,7 @@ describe('TransitionPanel', () => {
       spin: { id: 'fly' as const, params: {} },
     }
     render(<TransitionPanel transitions={transitions} onChange={onChange} />)
-    await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), 'fly')
+    await choose('Wedges arriving', 'Wedges fly in from outside')
     expect(onChange).toHaveBeenCalledWith({
       spin: { id: 'fly', params: {} },
       enter: { id: 'fly', params: expect.objectContaining({ distance: 1.6 }) },
@@ -57,14 +58,14 @@ describe('TransitionPanel', () => {
       spin: { id: 'fly' as const, params: {} },
     }
     render(<TransitionPanel transitions={transitions} onChange={onChange} />)
-    await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), '')
+    await choose('Wedges arriving', 'None')
     expect(onChange).toHaveBeenCalledWith({ spin: { id: 'fly', params: {} } })
     cleanup()
 
     render(
       <TransitionPanel transitions={{ enter: { id: 'fade', params: {} } }} onChange={onChange} />,
     )
-    await userEvent.selectOptions(screen.getByLabelText('Wedges arriving'), '')
+    await choose('Wedges arriving', 'None')
     expect(onChange).toHaveBeenLastCalledWith(undefined)
   })
 
@@ -72,7 +73,7 @@ describe('TransitionPanel', () => {
     const onChange = vi.fn()
     render(<TransitionPanel transitions={undefined} onChange={onChange} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Wedges leaving'), 'shrink')
+    await choose('Wedges leaving', 'Wedges open and close')
 
     expect(onChange).toHaveBeenCalledWith({
       exit: { id: 'shrink', params: expect.objectContaining({ durationMs: 500 }) },
@@ -87,15 +88,19 @@ describe('TransitionPanel', () => {
     }
     render(<TransitionPanel transitions={armed} onChange={onChange} />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Wedges leaving'), '')
+    await choose('Wedges leaving', 'None')
 
     expect(onChange).toHaveBeenCalledWith({ enter: { id: 'fade', params: {} } })
   })
 
-  it('offers only transitions that serve the moment', () => {
+  it('offers only transitions that serve the moment', async () => {
     render(<TransitionPanel transitions={undefined} onChange={vi.fn()} />)
-    const options = [...screen.getByLabelText('Wedges leaving').querySelectorAll('option')]
-    expect(options.map((option) => option.value)).toEqual(['', 'fade', 'fly', 'shrink'])
+    expect(await optionsOf('Wedges leaving')).toEqual([
+      'None',
+      'Wedges fade in',
+      'Wedges fly in from outside',
+      'Wedges open and close',
+    ])
   })
 
   // Every registered transition serves both membership moments, so the test
@@ -112,8 +117,8 @@ describe('TransitionPanel', () => {
 
     render(<Panel transitions={undefined} onChange={vi.fn()} />)
 
-    expect([...screen.getByLabelText('Wedges arriving').querySelectorAll('option')]).toHaveLength(2)
-    expect([...screen.getByLabelText('Wedges leaving').querySelectorAll('option')]).toHaveLength(1)
+    expect(await optionsOf('Wedges arriving')).toHaveLength(2)
+    expect(await optionsOf('Wedges leaving')).toHaveLength(1)
     vi.doUnmock('../transition/registry')
   })
 
@@ -125,6 +130,7 @@ describe('TransitionPanel', () => {
     render(<TransitionPanel transitions={armed} onChange={onChange} />)
 
     await userEvent.type(screen.getByLabelText('Duration (ms)'), '0')
+    await userEvent.tab()
 
     expect(onChange).toHaveBeenLastCalledWith({
       exit: { id: 'shrink', params: { durationMs: 5000 } },

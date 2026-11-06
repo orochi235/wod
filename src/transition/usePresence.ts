@@ -4,7 +4,7 @@ import type { RetainedIds } from '../wheel/colors'
 import type { Arc } from '../wheel/geometry'
 import type { Segment } from '../wheel/types'
 import { type EmitTarget, paintPresence, styleOf } from './css'
-import { type Drawn, type Track, advance, drawList, release, retire, settle } from './tracks'
+import { advance, type Drawn, drawList, release, retire, settle, type Track } from './tracks'
 import type { Transitions } from './types'
 
 export type WedgeRef = (id: string, target: EmitTarget) => (element: SVGGElement | null) => void

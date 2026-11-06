@@ -1,4 +1,4 @@
-import { CheckboxRow, PropertyPanel, SelectRow, TextRow } from '@weasel-js/labkit'
+import { PropertyField, PropertyPanel } from '@weasel-js/labkit'
 import type { Hub } from '../preset/types'
 import type { Media } from '../wheel/types'
 
@@ -34,20 +34,23 @@ export function HubPanel({ hub, onChange }: HubPanelProps) {
 
   return (
     <PropertyPanel title="Hub" className="editor__center-panel">
-      <SelectRow
+      <PropertyField
+        kind="enum"
         label="Emblem"
         value={emblem?.kind ?? NONE}
         options={[{ value: NONE, label: 'None' }, ...KINDS]}
         onChange={setKind}
       />
       {emblem ? (
-        <TextRow
+        <PropertyField
+          kind="string"
           label={emblem.kind === 'emoji' ? 'Character' : 'Address'}
           value={emblem.value}
           onChange={(value) => onChange({ ...hub, emblem: { ...emblem, value } })}
         />
       ) : null}
-      <CheckboxRow
+      <PropertyField
+        kind="boolean"
         label="Turns with the wheel"
         value={hub?.spins ?? false}
         onChange={(spins) => onChange(settle({ ...hub, spins: spins || undefined }))}

@@ -1,23 +1,17 @@
-import {
-  CheckboxRow,
-  ColorRow,
-  PropertyGroup,
-  SelectRow,
-  SliderRow,
-  TextRow,
-} from '@weasel-js/labkit'
+import { PropertyField, PropertyGroup } from '@weasel-js/labkit'
 import { DEFAULT_LEADING, DEFAULT_TRACKING } from '../slice/fit'
 import { DEFAULT_PADDING } from '../slice/glyphRun'
 import {
   DEFAULT_PART,
   LEADING_RANGE,
-  PADDING_RANGE,
   PAD_TAPER_RANGE,
-  TRACKING_RANGE,
+  PADDING_RANGE,
   readParts,
+  TRACKING_RANGE,
 } from '../slice/parts'
 import type { ContentTransform, Orientation, PartContent, SlicePart } from '../slice/types'
 import { FontField } from './FontField'
+import { SliderField } from './SliderField'
 
 export type PartsFieldProps = {
   label: string
@@ -152,7 +146,8 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
           title={`${label} ${index + 1}`}
           pack="pairs"
         >
-          <SelectRow
+          <PropertyField
+            kind="enum"
             label="Content"
             value={part ? contentValue(part.content) : NONE}
             options={[
@@ -162,14 +157,16 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
             onChange={(next) => setContent(index, next)}
           />
           {part?.content.from === 'text' ? (
-            <TextRow
+            <PropertyField
+              kind="string"
               label="Word"
               value={part.content.value}
               onChange={(next) => edit(index, { content: { from: 'text', value: next } })}
             />
           ) : null}
           {part?.content.from === 'label' ? (
-            <SelectRow
+            <PropertyField
+              kind="enum"
               label="Shorten"
               value={part.content.transform ?? 'full'}
               options={TRANSFORMS}
@@ -180,13 +177,14 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
           ) : null}
           {part ? (
             <>
-              <SelectRow
+              <PropertyField
+                kind="enum"
                 label="Orientation"
                 value={part.orientation}
                 options={ORIENTATIONS}
                 onChange={(next) => edit(index, { orientation: next as Orientation })}
               />
-              <SliderRow
+              <SliderField
                 label="Inner edge"
                 min={0}
                 max={1}
@@ -194,7 +192,7 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 value={part.band[0]}
                 onChange={(next) => setBand(index, 0, next)}
               />
-              <SliderRow
+              <SliderField
                 label="Outer edge"
                 min={0}
                 max={1}
@@ -202,7 +200,8 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 value={part.band[1]}
                 onChange={(next) => setBand(index, 1, next)}
               />
-              <SelectRow
+              <PropertyField
+                kind="enum"
                 label="Direction"
                 value={part.direction ?? 'rimInward'}
                 options={[
@@ -211,24 +210,27 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 ]}
                 onChange={(next) => edit(index, { direction: next as 'rimInward' | 'hubOutward' })}
               />
-              <CheckboxRow
+              <PropertyField
+                kind="boolean"
                 label="Grow toward the rim"
                 value={part.fan ?? true}
                 onChange={(next) => edit(index, { fan: next })}
               />
-              <CheckboxRow
+              <PropertyField
+                kind="boolean"
                 label="All caps"
                 value={part.caps ?? false}
                 onChange={(next) => edit(index, { caps: next })}
               />
-              <SelectRow
+              <PropertyField
+                kind="enum"
                 label="Stretch"
                 value={stretchValue(part)}
                 options={STRETCHES}
                 onChange={(next) => setStretch(index, next)}
               />
               {typeof part.stretch === 'number' ? (
-                <SliderRow
+                <SliderField
                   label="Stretch amount"
                   min={1}
                   max={3}
@@ -237,13 +239,14 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                   onChange={(next) => edit(index, { stretch: next })}
                 />
               ) : null}
-              <SelectRow
+              <PropertyField
+                kind="enum"
                 label="When it must shrink"
                 value={part.shrink ?? 'proportional'}
                 options={SHRINKS}
                 onChange={(next) => edit(index, { shrink: next as SlicePart['shrink'] })}
               />
-              <SliderRow
+              <SliderField
                 label="Max size"
                 min={10}
                 max={48}
@@ -251,7 +254,7 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 value={part.maxSize ?? 40}
                 onChange={(next) => edit(index, { maxSize: next })}
               />
-              <SliderRow
+              <SliderField
                 label="Side padding"
                 min={PADDING_RANGE[0]}
                 max={PADDING_RANGE[1]}
@@ -259,7 +262,7 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 value={part.padding ?? DEFAULT_PADDING}
                 onChange={(next) => edit(index, { padding: next })}
               />
-              <SliderRow
+              <SliderField
                 label="Padding taper"
                 min={PAD_TAPER_RANGE[0]}
                 max={PAD_TAPER_RANGE[1]}
@@ -267,7 +270,7 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 value={part.padTaper ?? 0}
                 onChange={(next) => edit(index, { padTaper: next })}
               />
-              <SliderRow
+              <SliderField
                 label="Tracking"
                 min={TRACKING_RANGE[0]}
                 max={TRACKING_RANGE[1]}
@@ -275,7 +278,7 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 value={part.tracking ?? DEFAULT_TRACKING}
                 onChange={(next) => edit(index, { tracking: next })}
               />
-              <SliderRow
+              <SliderField
                 label="Leading"
                 min={LEADING_RANGE[0]}
                 max={LEADING_RANGE[1]}
@@ -283,20 +286,23 @@ export function PartsField({ label, max, value, onChange }: PartsFieldProps) {
                 value={part.leading ?? DEFAULT_LEADING}
                 onChange={(next) => edit(index, { leading: next })}
               />
-              <CheckboxRow
+              <PropertyField
+                kind="boolean"
                 label="Its own color"
                 value={part.color !== undefined}
                 onChange={(next) => setColor(index, next ? '#ffffff' : undefined)}
               />
               {part.color !== undefined ? (
-                <ColorRow
+                <PropertyField
+                  kind="color"
                   label="Color"
                   value={part.color}
                   onChange={(next) => setColor(index, next)}
                 />
               ) : null}
               <FontField label="Face" value={part.font} onChange={(next) => setFont(index, next)} />
-              <SelectRow
+              <PropertyField
+                kind="enum"
                 label="Drawn as"
                 value={part.shape ?? 'glyphs'}
                 options={SHAPES}

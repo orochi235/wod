@@ -5,6 +5,9 @@ import { useMotionRoot } from './clock/motion'
 import { composeBase } from './compose/compose'
 import { requestFeeds, subscribeFeed } from './feed/bus'
 import type { FeedItem } from './feed/types'
+import { songsEnabled } from './flapper/enabled'
+import { FlapperControls } from './flapper/FlapperControls'
+import { useFlapperSong } from './flapper/useFlapperSong'
 import type { CreateFx } from './outage/fx'
 import { useOutageFx } from './outage/useOutageFx'
 import { spinConfigOf } from './preset/motion'
@@ -17,16 +20,17 @@ import { useReveal } from './reveal/useReveal'
 import { resolveFont } from './slice/fonts/registry'
 import { resolveScriptedSpin } from './spin/resolve'
 import { resolveTricks } from './tricks/resolve'
-import { Wheel } from './wheel/Wheel'
 import type { ChooseColor } from './wheel/colors'
+import { arcs } from './wheel/geometry'
 import { hexNumber } from './wheel/ink'
 import { cryptoRng, forced } from './wheel/selection'
-import { partOn } from './wheel/theme'
+import { partOn, pegsOn } from './wheel/theme'
 import { styleOfTheme } from './wheel/themeStyle'
 import { flat } from './wheel/themes/flat'
 import { getTheme } from './wheel/themes/registry'
 import type { SpinConfig } from './wheel/types'
 import { useSpin } from './wheel/useSpin'
+import { Wheel } from './wheel/Wheel'
 import './App.css'
 
 export type AppProps = {
@@ -59,6 +63,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
 
   const [items, setItems] = useState<Record<string, FeedItem[]>>({})
   const [muted, setMuted] = useState(false)
+  const song = useFlapperSong()
   const theme = getTheme(preset.theme ?? '') ?? flat
 
   // The editor window owns the clock; this one only renders what arrives. With
@@ -185,9 +190,14 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
       { previous: colorsRef.current, retained: retainedRef.current, choose: chooseColor },
     )
     if (!resolution) return
+    const shaped = song.shape(
+      spinConfigOf(resolution.motion, resolution.morphs, resolution.outage),
+      pegsOn(theme, arcs(resolution.segments)),
+    )
     spin({
       segments: resolution.segments,
-      config: spinConfigOf(resolution.motion, resolution.morphs, resolution.outage),
+      config: shaped.config,
+      onTrack: shaped.onTrack,
       // Resolution already decided who wins; planSpin still decides where in
       // the arc to stop. forced() degrades to a fair draw if that segment's arc
       // collapsed, which is the safety net for a branch that zeroes its winner.
@@ -195,7 +205,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
       resolveLate: resolution.resolveLate,
       catchPegs: theme.flapper === 'catch' ? theme.pegs : undefined,
     })
-  }, [base, preset, spin, theme, chooseColor])
+  }, [base, preset, spin, theme, chooseColor, song.shape])
 
   // Nothing to land on. planSpin would return null and the click would quietly
   // do nothing, which reads as a broken button rather than an empty wheel. Read
@@ -226,6 +236,7 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
       }}
     >
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: the Spin button is this action's keyboard control; a second tab stop would announce the same spin twice. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: as above, the Spin button is the control. */}
       <div
         ref={stageRef}
         className={canSpin ? 'app__stage app__stage--live' : 'app__stage'}
@@ -247,6 +258,8 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
           theme={theme}
           // The clicker is mechanical: pegs still strike the flapper in the dark.
           muted={muted}
+          flapperMelody={song.melody}
+          flapperScheduleRef={song.scheduleRef}
         />
       </div>
       <div className="app__controls">
@@ -265,6 +278,19 @@ export function App({ chooseColor, createBanner, createFx, sample }: AppProps = 
           <button type="button" className="app__button" onClick={() => setMuted((on) => !on)}>
             {muted ? 'Unmute' : 'Mute'}
           </button>
+        )}
+        {theme.flapper !== 'silent' && songsEnabled() && (
+          <FlapperControls
+            songId={song.songId}
+            onSong={song.setSongId}
+            fit={song.fit}
+            onFit={song.setFit}
+            accelerate={song.accelerate}
+            onAccelerate={song.setAccelerate}
+            bars={song.bars}
+            barCount={song.barCount}
+            onBars={song.setBars}
+          />
         )}
         <a className="app__button" href="#/edit">
           Edit

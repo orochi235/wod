@@ -66,3 +66,16 @@
   color: inherit;
   text-decoration: none;
 }
+
+.app__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.app__bar {
+  width: 4ch;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}

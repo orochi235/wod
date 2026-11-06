@@ -1,4 +1,4 @@
-import { DEFAULT_SETTLE_CURVE, cssCurve, initialSlope, isSettleCurve } from './curve'
+import { cssCurve, DEFAULT_SETTLE_CURVE, initialSlope, isSettleCurve } from './curve'
 import type { Curve, Direction, Settle } from './types'
 
 /** Everything about a spin's rotation. `SpinConfig` minus the morphs. */
@@ -8,6 +8,7 @@ export type RotationSpec = {
   direction: Direction
   easing: Curve
   settle?: Settle
+  accelerate?: number
 }
 
 export type RotationTrack = {
@@ -44,6 +45,18 @@ export function invertTrack(track: RotationTrack, restingDeg: number): Keyframe[
 }
 
 const LINEAR: Curve = [0, 0, 1, 1]
+
+/**
+ * A cruise whose speed ramps linearly from one value to `ratio` times it. Its x
+ * handles sit at the thirds, so time runs linearly through it, and the y handles
+ * set the start and end speeds relative to the average.
+ */
+export function cruiseCurve(ratio: number): Curve {
+  if (ratio <= 1) return LINEAR
+  const start = 2 / (1 + ratio)
+  const end = (2 * ratio) / (1 + ratio)
+  return [1 / 3, start / 3, 2 / 3, 1 - end / 3]
+}
 
 /**
  * The rotation for one spin, as keyframes.
@@ -89,12 +102,17 @@ export function rotationTrack(
   const curve = isSettleCurve(spec.settle.curve) ? spec.settle.curve : DEFAULT_SETTLE_CURVE
   const k = 1 / initialSlope(curve)
   const cruiseMs = durationMs - settleMs
-  const speed = delta / (cruiseMs + k * settleMs)
-  const mid = from + speed * cruiseMs
+  // The cruise's speed ramps linearly, ending `ratio` times faster than it
+  // starts; `endSlope` is that end speed relative to the cruise's average, and
+  // it is the end speed the settle has to pick up.
+  const ratio = Math.max(1, spec.accelerate ?? 1)
+  const endSlope = (2 * ratio) / (1 + ratio)
+  const speed = delta / (cruiseMs / endSlope + k * settleMs)
+  const mid = from + (speed * cruiseMs) / endSlope
 
   return {
     keyframes: [
-      { offset: 0, transform: `rotate(${from}deg)`, easing: cssCurve(LINEAR) },
+      { offset: 0, transform: `rotate(${from}deg)`, easing: cssCurve(cruiseCurve(ratio)) },
       { offset: cruiseMs / durationMs, transform: `rotate(${mid}deg)`, easing: cssCurve(curve) },
       { offset: 1, transform: `rotate(${to}deg)` },
     ],

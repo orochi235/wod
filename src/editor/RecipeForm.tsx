@@ -1,19 +1,11 @@
-import {
-  CheckboxRow,
-  ColorRow,
-  NumberRow,
-  PropertyList,
-  PropertyRow,
-  SelectRow,
-  SliderRow,
-  TextRow,
-} from '@weasel-js/labkit'
+import { PropertyField, PropertyList, PropertyRow } from '@weasel-js/labkit'
 import type { Field } from '../form/fields'
 import { SELECTOR_TOKENS, type SelectorToken } from '../tricks/targets'
 import type { TrickParams } from '../tricks/types'
 import type { Segment } from '../wheel/types'
 import { FontField } from './FontField'
 import { PartsField } from './PartsField'
+import { SliderField } from './SliderField'
 
 /**
  * Operator-facing wording. The tokens themselves are internal.
@@ -47,7 +39,7 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
     switch (field.kind) {
       case 'slider':
         return (
-          <SliderRow
+          <SliderField
             key={field.key}
             label={field.label}
             min={field.min}
@@ -59,7 +51,8 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
         )
       case 'number':
         return (
-          <NumberRow
+          <PropertyField
+            kind="number"
             key={field.key}
             label={field.label}
             min={field.min}
@@ -70,7 +63,8 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
         )
       case 'color':
         return (
-          <ColorRow
+          <PropertyField
+            kind="color"
             key={field.key}
             label={field.label}
             value={typeof value === 'string' && value !== '' ? value : '#888888'}
@@ -79,7 +73,8 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
         )
       case 'text':
         return (
-          <TextRow
+          <PropertyField
+            kind="string"
             key={field.key}
             label={field.label}
             value={typeof value === 'string' ? value : ''}
@@ -97,7 +92,8 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
         )
       case 'toggle':
         return (
-          <CheckboxRow
+          <PropertyField
+            kind="boolean"
             key={field.key}
             label={field.label}
             value={value === true}
@@ -106,7 +102,8 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
         )
       case 'select':
         return (
-          <SelectRow
+          <PropertyField
+            kind="enum"
             key={field.key}
             label={field.label}
             options={field.options}
@@ -116,7 +113,8 @@ export function RecipeForm({ fields, params, segments, onChange }: RecipeFormPro
         )
       case 'segment':
         return (
-          <SelectRow
+          <PropertyField
+            kind="enum"
             key={field.key}
             label={field.label}
             // The empty choice is not padding: '' is what an unchosen field

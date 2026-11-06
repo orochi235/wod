@@ -8,6 +8,7 @@ import { DEFAULT_PRESET } from '../preset/defaults'
 import { PRESET_KEY, parsePreset } from '../preset/storage'
 import { RIG_KEY } from '../rig/visibility'
 import { Editor } from './Editor'
+import { choose } from './testing'
 
 /** The default preset draws its cast at random, so tests read it rather than name it. */
 const [FIRST, SECOND] = DEFAULT_PRESET.segments
@@ -116,15 +117,16 @@ describe('Editor integration', () => {
   it('opens the owning trick in the right column when its ghost row is clicked', async () => {
     render(<Editor />)
     await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
-    // Adding a trick selects the new one, which closes the takeover's form.
+    // Adding a trick selects the new one, which folds the takeover's card.
     // 'Wedge label' is a takeover-only field, so it stands in for that form.
     await userEvent.selectOptions(screen.getByLabelText(/add a trick/i), 'vanish')
-    expect(screen.queryByLabelText('Wedge label')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Wedge label')).not.toBeVisible()
 
     await userEvent.click(screen.getByRole('button', { name: /owned by slow burn/i }))
 
     // Crossing columns is the part only the Editor wires up: the segment list
     // reports the selection and the trick library has to re-seed to honor it.
+    expect(screen.getByLabelText('Wedge label')).toBeVisible()
     expect(screen.getByLabelText('Wedge label')).toHaveValue('free beer')
   })
 
@@ -138,13 +140,9 @@ describe('Editor integration', () => {
       screen.getByRole('checkbox', { name: /Enable Named wedges shrink away/i }),
     )
     // The badge lives in the card body, so the card has to be open to see it —
-    // adding a trick selected the new one, which leaves slow burn collapsed.
-    // Anchored at both ends: the segment list's ghost row ("Owned by slow burn")
-    // and labkit's card head (which trails its own Remove control) both match a
-    // looser name.
-    await userEvent.click(
-      screen.getByRole('button', { name: /^slow burn one wedge swallows the wheel$/i }),
-    )
+    // adding a trick selected the new one, which leaves slow burn folded.
+    const card = screen.getByRole('group', { name: /slow burn\s*one wedge swallows the wheel$/i })
+    await userEvent.click(within(card).getByRole('button', { expanded: false }))
     // Named, not counted: the transport's scrub readout is also an <output>,
     // so a bare role query would pass with no conflict at all.
     expect(screen.getByRole('status', { name: /slow burn conflicts/i })).toHaveTextContent(
@@ -154,7 +152,9 @@ describe('Editor integration', () => {
 
   it('persists a motion edit to localStorage', async () => {
     render(<Editor />)
-    fireEvent.change(screen.getByLabelText('Duration (ms)'), { target: { value: '30000' } })
+    const duration = screen.getByLabelText('Duration (ms)')
+    fireEvent.change(duration, { target: { value: '30000' } })
+    fireEvent.blur(duration)
     fireEvent.change(screen.getByLabelText('Settle (ms)'), { target: { value: '700' } })
 
     const stored = parsePreset(window.localStorage.getItem(PRESET_KEY))
@@ -439,7 +439,7 @@ describe('Editor spin', () => {
     try {
       render(<Editor />)
       await userEvent.selectOptions(screen.getByLabelText(/add a trick/i), 'swap')
-      await userEvent.selectOptions(screen.getByLabelText('Trades with'), SECOND.id)
+      await choose('Trades with', SECOND.label)
       await userEvent.click(
         screen.getByRole('checkbox', { name: /enable two wedges trade identities/i }),
       )
@@ -517,7 +517,7 @@ describe('Editor preview', () => {
     render(<Editor />)
     expect(wheel().querySelector('.wheel__rim')).toBeNull()
 
-    await userEvent.selectOptions(screen.getByLabelText('Wheel'), 'wof')
+    await choose('Wheel', 'Fortunate')
 
     expect(wheel().querySelector('.wheel__rim')).not.toBeNull()
   })
@@ -527,14 +527,14 @@ describe('Editor preview', () => {
     render(<Editor />)
     expect(hasCurved()).toBe(false)
 
-    await userEvent.selectOptions(screen.getByLabelText('Layout'), 'curved')
+    await choose('Layout', 'Curved')
 
     expect(hasCurved()).toBe(true)
   })
 
   it('runs the armed exit on a wedge that leaves', async () => {
     render(<Editor />)
-    await userEvent.selectOptions(screen.getByLabelText('Wedges leaving'), 'shrink')
+    await choose('Wedges leaving', 'Wedges open and close')
 
     await userEvent.click(screen.getByRole('button', { name: `Join ${JOINABLE}` }))
     expect(wheelHas(JOINABLE)).toBe(true)
@@ -550,8 +550,8 @@ describe('Editor preview', () => {
     const harness = installSpinHarness()
     try {
       render(<Editor />)
-      await userEvent.selectOptions(screen.getByLabelText('Layout'), 'curved')
-      await userEvent.selectOptions(screen.getByLabelText('Frame'), 'level')
+      await choose('Layout', 'Curved')
+      await choose('Frame', /^Level/)
       await userEvent.click(screen.getByRole('button', { name: /spin/i }))
 
       // The rotor's own track, plus one counter-rotation per level group. Only

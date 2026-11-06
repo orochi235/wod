@@ -7,7 +7,7 @@ import { REDUCED_MOTION_MS } from '../wheel/useSpin'
 import { getTransition } from './registry'
 import { fade } from './transitions/fade'
 import type { Moment, Presence, Transitions } from './types'
-import { type PresencePlan, RESTING, presenceOf, presenceVoice } from './voices'
+import { type PresencePlan, presenceOf, presenceVoice, RESTING } from './voices'
 
 export type Phase = 'entering' | 'present' | 'exiting'
 

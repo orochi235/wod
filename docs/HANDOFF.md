@@ -12,13 +12,17 @@ what's next, and the traps.
   (trick morphs as voices on the wedge mix), 5 (wedge transitions as voices
   on the wedge mix) and 6 (editor scrub over the whole show) are merged. `git log --oneline @{u}..HEAD` lists what is unpushed; pushing is
   the owner's call.
-- blits is pinned at exactly `0.6.0`. wod's frame loop is blits' `ticker()`,
-  and voices use `freeze` (0.4.0's `hold`, renamed in 0.6.0).
+- blits is pinned at exactly `0.10.0`. wod's frame loop is blits' `ticker()`,
+  and voices use `freeze` (0.4.0's `hold`, renamed in 0.6.0). klieg and
+  magicsmoke each pin their own blits, so the bundle carries three copies.
 
 ## Open items
 
 1. Nothing reads the wheel mix's `dark` channel since the clicker kept ticking
    in the dark (`0934914`). Either something should paint it or the voice goes.
+2. `RecipeForm` shows a slider whose param is unset at the field's `min`, not at
+   the value the recipe runs with: a fly transition stored with `params: {}`
+   reads "Distance (radii)" as -1.
 
 ## Decisions made in conversation
 

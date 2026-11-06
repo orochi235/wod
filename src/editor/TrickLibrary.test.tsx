@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Conflict } from '../tricks/conflicts'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
-import { TrickLibrary, reorder } from './TrickLibrary'
+import { reorder, TrickLibrary } from './TrickLibrary'
 
 const segments: Segment[] = [{ id: 'ana', label: 'Ana', weight: 1 }]
 
@@ -95,21 +95,19 @@ describe('TrickLibrary', () => {
 
   it('deletes a trick', async () => {
     const props = renderLibrary()
-    // EffectCard labels every remove button "Remove"; the first card is beer.
-    await userEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    await userEvent.click(screen.getByRole('button', { name: 'Remove slow burn' }))
     expect(props.onChange).toHaveBeenCalledWith([tricks[1]])
   })
 
   it('renders the param form only for the expanded trick', () => {
-    // EffectCard renders its body only when expanded, and defaultExpandedIds
-    // comes from selectedId — so the unselected trick's fields stay unmounted.
-    // `vanish` (the unselected 'v' trick) has its own "Wedges" field, so
-    // checking for its absence — not just an unrelated recipe's field —
-    // actually proves the collapsed card's form never mounted.
+    // Only the selected trick's card starts open. LayerList keeps a folded
+    // card's body mounted but hidden, so this checks visibility. `vanish` (the
+    // unselected 'v' trick) has its own "Wedges" field, so its being hidden —
+    // not just an unrelated recipe's field — proves that card is folded.
     renderLibrary({ selectedId: 'beer' })
-    expect(screen.getByLabelText('Wedge label')).toBeInTheDocument()
+    expect(screen.getByLabelText('Wedge label')).toBeVisible()
     expect(screen.queryByLabelText('New label')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Wedges')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Wedges')).not.toBeVisible()
   })
 
   it('renames a trick', async () => {
@@ -132,14 +130,16 @@ describe('TrickLibrary', () => {
 
 describe('reorder', () => {
   it('moves a trick after another', () => {
-    expect(reorder(tricks, 'beer', 'v', 'after').map((trick) => trick.id)).toEqual(['v', 'beer'])
+    const next = reorder(tricks, { ids: ['beer'], parentId: null, index: 1 })
+    expect(next.map((trick) => trick.id)).toEqual(['v', 'beer'])
   })
 
   it('moves a trick before another', () => {
-    expect(reorder(tricks, 'v', 'beer', 'before').map((trick) => trick.id)).toEqual(['v', 'beer'])
+    const next = reorder(tricks, { ids: ['v'], parentId: null, index: 0 })
+    expect(next.map((trick) => trick.id)).toEqual(['v', 'beer'])
   })
 
   it('leaves the list alone when the source is unknown', () => {
-    expect(reorder(tricks, 'ghost', 'v', 'after')).toEqual(tricks)
+    expect(reorder(tricks, { ids: ['ghost'], parentId: null, index: 0 })).toEqual(tricks)
   })
 })

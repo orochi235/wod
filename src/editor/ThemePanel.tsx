@@ -1,5 +1,5 @@
-import { ColorRow, PropertyPanel, SelectRow } from '@weasel-js/labkit'
-import { THEME_LIST, getTheme } from '../wheel/themes/registry'
+import { PropertyField, PropertyPanel } from '@weasel-js/labkit'
+import { getTheme, THEME_LIST } from '../wheel/themes/registry'
 
 export type ThemePanelProps = {
   theme: string | undefined
@@ -12,7 +12,8 @@ export type ThemePanelProps = {
 export function ThemePanel({ theme, onChange, background, onBackground }: ThemePanelProps) {
   return (
     <PropertyPanel title="Look" className="editor__center-panel">
-      <SelectRow
+      <PropertyField
+        kind="enum"
         label="Wheel"
         value={getTheme(theme ?? '')?.id ?? 'flat'}
         options={THEME_LIST.map((item) => ({ value: item.id, label: item.name }))}
@@ -20,7 +21,8 @@ export function ThemePanel({ theme, onChange, background, onBackground }: ThemeP
       />
       {onBackground ? (
         <>
-          <ColorRow
+          <PropertyField
+            kind="color"
             label="Page background"
             value={background ?? '#ffffff'}
             onChange={(next) => onBackground(next)}

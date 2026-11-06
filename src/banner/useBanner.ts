@@ -1,4 +1,4 @@
-import { type FireOptions, type Klieg, createKlieg } from 'klieg'
+import { createKlieg, type FireOptions, type Klieg } from 'klieg'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cryptoRng } from '../wheel/selection'
 import type { Landing } from '../wheel/useSpin'

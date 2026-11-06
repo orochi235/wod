@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { FLAT_METRICS } from './theme'
 import type { Theme } from './theme'
+import { FLAT_METRICS } from './theme'
 import { styleOfTheme } from './themeStyle'
 
 const theme = (tokens: Record<string, string>): Theme => ({

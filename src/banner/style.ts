@@ -2,14 +2,14 @@ import {
   ACTIVE_NAMES,
   type ActiveName,
   EFFECT_NAMES,
-  ENTER_NAMES,
-  EXIT_NAMES,
   type EffectSpec,
+  ENTER_NAMES,
   type EnterName,
+  EXIT_NAMES,
   type ExitName,
   LIGHTING_NAMES,
-  LOOK_NAMES,
   type LightingSlot,
+  LOOK_NAMES,
   type Look,
   type LookName,
   type LookSpec,
@@ -147,7 +147,7 @@ export function rollStyle(rng: Rng, look?: string, previous?: BannerStyle): Bann
   // names the other slots can reach then turns on an unrelated coin.
   const bloomRoll = rng()
   const effectRoll = rng()
-  const piece = pick(EFFECTS_PLAYED, rng)
+  const patch = pick(EFFECTS_PLAYED, rng)
 
   const drawn = COMPOSED[material] ?? material
   return {
@@ -163,7 +163,7 @@ export function rollStyle(rng: Rng, look?: string, previous?: BannerStyle): Bann
     bloom: !wantsBloom(undefined, drawn) && bloomRoll < BLOOM_CHANCE ? true : undefined,
     effects:
       effectRoll < EFFECT_CHANCE
-        ? [{ piece, target: { kind: 'run', by: 'seed', amount: EFFECT_SHARE } }]
+        ? [{ patch, target: { kind: 'run', by: 'seed', amount: EFFECT_SHARE } }]
         : undefined,
   }
 }

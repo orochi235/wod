@@ -1,6 +1,6 @@
 import { PropertyPanel, PropertyRow } from '@weasel-js/labkit'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { MIN_CHURN_INTERVAL_MS, churn } from '../feed/simulated'
+import { churn, MIN_CHURN_INTERVAL_MS } from '../feed/simulated'
 import type { SimulatedFeedConfig } from '../feed/types'
 import { cryptoRng } from '../wheel/selection'
 
