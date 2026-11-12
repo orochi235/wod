@@ -21,12 +21,14 @@ export type FlapperArm = {
  * the clicker. Returns the cleanup.
  */
 export function trackFlapper({ ticker, wheel }: Motion, arm: FlapperArm): () => void {
-  const swing = spring<string, WheelPose>('deflection', {
-    to: 0,
-    stiffness: STIFFNESS,
-    damping: DAMPING,
+  const voice = wheel.cue({
+    patch: spring<string, WheelPose>('deflection', {
+      to: 0,
+      stiffness: STIFFNESS,
+      damping: DAMPING,
+    }),
+    subjects: [WHEEL],
   })
-  const voice = wheel.cue({ patch: swing, subjects: [WHEEL] })
   let aim = 0
   let lastAngle: number | null = null
   let shown = 0
@@ -40,7 +42,7 @@ export function trackFlapper({ ticker, wheel }: Motion, arm: FlapperArm): () => 
     const target = Math.abs(speed) > STILL_SPEED ? deflectionDeg(angle, pegs, speed) : 0
     if (target !== aim) {
       aim = target
-      swing.to(WHEEL, target)
+      voice.to(WHEEL, target)
     }
 
     if (lastAngle !== null && angle !== lastAngle) {
