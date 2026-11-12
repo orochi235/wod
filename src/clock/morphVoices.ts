@@ -47,7 +47,7 @@ function stopsFor(
 /** One morph as up to three voices, each only for the channels it touches. */
 export function morphVoices(morph: Morph, base: Segment, startAt: number, rate = 1): Spec[] {
   const period = Math.max(1, morph.durationMs)
-  const voice = (stops: Stop[], locus?: string): Spec => ({
+  const voice = (stops: Stop[], role?: string): Spec => ({
     patch: keys<string, WedgePose>(period, stops),
     subjects: [morph.segmentId],
     // A zero-length morph is over the moment it starts.
@@ -55,7 +55,7 @@ export function morphVoices(morph: Morph, base: Segment, startAt: number, rate =
     rate,
     loop: false,
     freeze: 'after',
-    ...(locus ? { locus } : {}),
+    ...(role ? { role } : {}),
   })
 
   const weight = stopsFor(
