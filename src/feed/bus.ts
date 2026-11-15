@@ -5,6 +5,21 @@ export const FEED_CHANNEL = 'wod:feed'
 export type FeedMessage = { feedId: string; items: FeedItem[] }
 
 /**
+ * This window's name on the channel. Every editor tab publishes its own
+ * roster — two simulated meetings churn independently — so a reader that
+ * took everything would flicker between them on each tick.
+ */
+const self = randomId()
+
+function randomId(): string {
+  try {
+    return crypto.randomUUID()
+  } catch {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  }
+}
+
+/**
  * Feed items ride a channel rather than localStorage on purpose. The parent
  * spec's whole pitch is that attendee names are read by the browser and stay
  * there; writing them to a well-known storage key weakens that for no gain.
@@ -23,9 +38,10 @@ function channel(): BroadcastChannel | null {
   return publisher
 }
 
-function readMessage(value: unknown): FeedMessage | null {
+function readMessage(value: unknown): (FeedMessage & { from: string }) | null {
   if (typeof value !== 'object' || value === null) return null
   const raw = value as Record<string, unknown>
+  if (typeof raw.from !== 'string') return null
   if (typeof raw.feedId !== 'string' || !Array.isArray(raw.items)) return null
   // Same guard as readFeeds (storage.ts), and not because today's consumer
   // would break without it: App keys its live-items record with a computed key
@@ -45,11 +61,17 @@ function readMessage(value: unknown): FeedMessage | null {
     if (typeof item.id !== 'string' || typeof item.label !== 'string') return null
     items.push({ id: item.id, label: item.label })
   }
-  return { feedId: raw.feedId, items }
+  return { from: raw.from, feedId: raw.feedId, items }
 }
 
 export function publishFeed(message: FeedMessage): void {
-  channel()?.postMessage(message)
+  channel()?.postMessage({ ...message, from: self })
+}
+
+function readGone(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null) return null
+  const gone = (value as Record<string, unknown>).gone
+  return typeof gone === 'string' ? gone : null
 }
 
 /**
@@ -84,22 +106,58 @@ function listen(handle: (data: unknown) => void): () => void {
   }
 }
 
+/**
+ * Follows one publisher: whichever is heard first, answering a request or
+ * publishing a change. The rest are ignored until that one leaves, when this
+ * asks again and follows whoever answers next. A publisher that vanishes
+ * without saying so (a crash, a killed tab) leaves the roster frozen, the
+ * same as no editor at all.
+ */
 export function subscribeFeed(onMessage: (message: FeedMessage) => void): () => void {
+  let source: string | null = null
   return listen((data) => {
+    const gone = readGone(data)
+    if (gone !== null) {
+      if (gone === source) {
+        source = null
+        requestFeeds()
+      }
+      return
+    }
     const message = readMessage(data)
-    if (message) onMessage(message)
+    if (!message) return
+    source ??= message.from
+    if (message.from !== source) return
+    onMessage({ feedId: message.feedId, items: message.items })
   })
+}
+
+/**
+ * Tells followers to find another publisher. Sent when a window stops
+ * answering requests and again on pagehide, which runs where React's
+ * cleanup does not: a closed or reloaded tab.
+ */
+function announceGone(): void {
+  channel()?.postMessage({ gone: self })
 }
 
 /**
  * For the publisher. Every reader screens the traffic it cares about, so a
  * request never reaches a roster subscriber and a roster never wakes one of
  * these — the two message shapes share a channel, not a meaning.
+ *
+ * Unsubscribing is leaving: followers of this window go looking for another.
  */
 export function subscribeFeedRequests(onRequest: () => void): () => void {
-  return listen((data) => {
+  const stop = listen((data) => {
     if (typeof data === 'object' && data !== null && (data as Record<string, unknown>).request) {
       onRequest()
     }
   })
+  window.addEventListener('pagehide', announceGone)
+  return () => {
+    window.removeEventListener('pagehide', announceGone)
+    stop()
+    announceGone()
+  }
 }

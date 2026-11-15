@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import { publishFeed, requestFeeds, subscribeFeed, subscribeFeedRequests } from './bus'
+import {
+  FEED_CHANNEL,
+  publishFeed,
+  requestFeeds,
+  subscribeFeed,
+  subscribeFeedRequests,
+} from './bus'
 
 /**
  * BroadcastChannel delivers on a later turn of the event loop — usually the
@@ -134,5 +140,92 @@ describe('feed bus', () => {
     // arrived on had unsubscribing not worked.
     expect(seenA).not.toHaveBeenCalled()
     stopB()
+  })
+
+  describe('with several publishers', () => {
+    /** Another editor tab: the same channel under a different name. */
+    function stranger(from: string) {
+      const peer = new BroadcastChannel(FEED_CHANNEL)
+      return {
+        publish: (items: { id: string; label: string }[]) =>
+          peer.postMessage({ from, feedId: 'sim', items }),
+        leave: () => peer.postMessage({ gone: from }),
+        close: () => peer.close(),
+      }
+    }
+
+    it('follows the first publisher it hears and ignores the rest', async () => {
+      const seen = vi.fn()
+      const stop = subscribeFeed(seen)
+      const other = stranger('other')
+
+      publishFeed({ feedId: 'sim', items: [{ id: 'ana', label: 'Ana' }] })
+      await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(1))
+      other.publish([{ id: 'bo', label: 'Bo' }])
+      publishFeed({ feedId: 'sim', items: [] })
+
+      await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(2))
+      expect(seen).not.toHaveBeenCalledWith({ feedId: 'sim', items: [{ id: 'bo', label: 'Bo' }] })
+      stop()
+      other.close()
+    })
+
+    it('asks again and follows the next publisher once its own leaves', async () => {
+      const seen = vi.fn()
+      const asked = vi.fn()
+      const stop = subscribeFeed(seen)
+      const stopAsked = subscribeFeedRequests(asked)
+      const first = stranger('first')
+      const second = stranger('second')
+
+      first.publish([{ id: 'ana', label: 'Ana' }])
+      await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(1))
+
+      second.leave()
+      await flush()
+      expect(asked).not.toHaveBeenCalled()
+
+      first.leave()
+      await vi.waitFor(() => expect(asked).toHaveBeenCalledTimes(1))
+      second.publish([{ id: 'bo', label: 'Bo' }])
+      first.publish([])
+
+      await vi.waitFor(() =>
+        expect(seen).toHaveBeenLastCalledWith({
+          feedId: 'sim',
+          items: [{ id: 'bo', label: 'Bo' }],
+        }),
+      )
+      await flush()
+      expect(seen).toHaveBeenCalledTimes(2)
+      stop()
+      stopAsked()
+      first.close()
+      second.close()
+    })
+
+    it('announces leaving when it stops answering requests', async () => {
+      const peer = new BroadcastChannel(FEED_CHANNEL)
+      const heard = vi.fn()
+      peer.addEventListener('message', (event) => heard(event.data))
+
+      subscribeFeedRequests(() => {})()
+
+      await vi.waitFor(() => expect(heard).toHaveBeenCalledWith({ gone: expect.any(String) }))
+      peer.close()
+    })
+
+    it('drops a roster that does not say who sent it', async () => {
+      const seen = vi.fn()
+      const stop = subscribeFeed(seen)
+      const peer = new BroadcastChannel(FEED_CHANNEL)
+
+      peer.postMessage({ feedId: 'sim', items: [] })
+      await flush()
+
+      expect(seen).not.toHaveBeenCalled()
+      stop()
+      peer.close()
+    })
   })
 })
