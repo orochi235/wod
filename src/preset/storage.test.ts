@@ -3,7 +3,7 @@ import type { SimulatedFeedConfig } from '../feed/types'
 import { MIN_POLL_INTERVAL_MS } from '../meet/poll'
 import { readParts } from '../slice/parts'
 import { DEFAULT_PRESET } from './defaults'
-import { loadPreset, PRESET_KEY, parsePreset, savePreset } from './storage'
+import { loadPreset, PRESET_KEY, parsePreset, savePreset, UNREADABLE_PRESET_KEY } from './storage'
 
 describe('parsePreset', () => {
   it('returns the default for null', () => {
@@ -501,6 +501,14 @@ describe('loadPreset and savePreset', () => {
     savePreset(edited)
     expect(window.localStorage.getItem(PRESET_KEY)).toBeTruthy()
     expect(loadPreset()).toEqual(edited)
+  })
+
+  it('keeps a copy of a stored preset it cannot read before the default replaces it', () => {
+    const newer = JSON.stringify({ ...DEFAULT_PRESET, version: 99, name: 'from the future' })
+    window.localStorage.setItem(PRESET_KEY, newer)
+    expect(loadPreset()).toBe(DEFAULT_PRESET)
+    savePreset({ ...DEFAULT_PRESET, name: 'edited' })
+    expect(window.localStorage.getItem(UNREADABLE_PRESET_KEY)).toBe(newer)
   })
 })
 

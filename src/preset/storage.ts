@@ -31,6 +31,13 @@ import type {
 
 export const PRESET_KEY = 'wod.preset.current'
 
+/**
+ * Where a stored preset this build cannot read is copied before the default
+ * replaces it, since the next save would otherwise overwrite the only copy
+ * (a preset from a newer build, say).
+ */
+export const UNREADABLE_PRESET_KEY = 'wod.preset.unreadable'
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -608,7 +615,16 @@ export function parsePreset(raw: string | null): Preset {
 
 export function loadPreset(): Preset {
   try {
-    return parsePreset(window.localStorage.getItem(PRESET_KEY))
+    const raw = window.localStorage.getItem(PRESET_KEY)
+    const preset = parsePreset(raw)
+    if (
+      raw !== null &&
+      preset === DEFAULT_PRESET &&
+      window.localStorage.getItem(UNREADABLE_PRESET_KEY) === null
+    ) {
+      window.localStorage.setItem(UNREADABLE_PRESET_KEY, raw)
+    }
+    return preset
   } catch {
     return DEFAULT_PRESET
   }
