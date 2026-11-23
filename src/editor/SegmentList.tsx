@@ -1,5 +1,5 @@
 import { PropertyPanel } from '@weasel-js/labkit'
-import { Button } from '@weasel-js/labkit/weasel-ui'
+import { Button } from '@weasel-js/ui'
 import type { Composition } from '../compose/types'
 import { getSlice, SLICE_LIST } from '../slice/registry'
 import { wedgeOwners } from '../tricks/resolve'

@@ -95,18 +95,6 @@
   border-radius: 0.3rem;
 }
 
-.trick-card__title {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 0.4rem;
-  align-items: center;
-}
-
-.trick-card__recipe {
-  font-size: 0.8em;
-  opacity: 0.75;
-}
-
 .trick-card__conflict {
   margin: 0;
   font-size: 0.85em;
@@ -173,12 +161,6 @@
   flex-direction: column;
   gap: 0.25rem;
   margin-top: 0.5rem;
-}
-
-.trick-card__enable {
-  grid-row: span 2;
-  display: inline-flex;
-  align-items: center;
 }
 
 /* The way out was a bare text link sitting among the import/export links, and

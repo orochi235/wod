@@ -1,4 +1,5 @@
-import { LayerList, type LayerMove, PropertyPanel } from '@weasel-js/labkit'
+import { PropertyPanel } from '@weasel-js/labkit'
+import { type EffectKind, EffectList, type EffectListItem } from '@weasel-js/ui'
 import { type Conflict, conflictText } from '../tricks/conflicts'
 import { getRecipe, RECIPE_LIST } from '../tricks/registry'
 import type { RecipeId, Trick } from '../tricks/types'
@@ -11,7 +12,7 @@ export type TrickLibraryProps = {
   conflicts: Conflict[]
   selectedId: string | null
   onChange: (tricks: Trick[]) => void
-  onSelect: (trickId: string) => void
+  onSelect: (trickId: string | null) => void
 }
 
 function newTrickId(tricks: Trick[], recipe: RecipeId): string {
@@ -20,13 +21,32 @@ function newTrickId(tricks: Trick[], recipe: RecipeId): string {
   return `${recipe}${n}`
 }
 
-/** Order is the conflict resolution mechanism, so reordering is a real edit. */
-export function reorder(tricks: Trick[], move: LayerMove): Trick[] {
-  const moving = new Set(move.ids)
-  const moved = tricks.filter((trick) => moving.has(trick.id))
-  if (moved.length === 0) return tricks
-  const rest = tricks.filter((trick) => !moving.has(trick.id))
-  return [...rest.slice(0, move.index), ...moved, ...rest.slice(move.index)]
+type TrickCard = EffectListItem
+
+/** A conflicted trick's card wears this kind's color in place of its recipe's. */
+const CONFLICTED = ':conflicted'
+const CONFLICT_COLOR = { space: 'srgb', coords: [0xe7 / 255, 0x6f / 255, 0x51 / 255] }
+
+const KINDS: Record<string, EffectKind> = Object.fromEntries(
+  RECIPE_LIST.flatMap((recipe, index) => [
+    [recipe.id, { label: recipe.name, color: index }],
+    [recipe.id + CONFLICTED, { label: recipe.name, color: CONFLICT_COLOR }],
+  ]),
+)
+
+/**
+ * The tricks in the cards' order, with each card's name and switch. Order is
+ * the conflict resolution mechanism, so reordering is a real edit.
+ */
+export function applyCards(tricks: Trick[], cards: readonly TrickCard[]): Trick[] {
+  const byId = new Map(tricks.map((trick) => [trick.id, trick]))
+  return cards.flatMap((card) => {
+    const trick = byId.get(card.id)
+    if (!trick) return []
+    return trick.name === card.name && trick.enabled === card.on
+      ? [trick]
+      : [{ ...trick, name: card.name, enabled: card.on }]
+  })
 }
 
 export function TrickLibrary({
@@ -43,77 +63,46 @@ export function TrickLibrary({
 
   return (
     <PropertyPanel title="Tricks" className="trick-library">
-      <LayerList
-        // LayerList stops reading defaultCollapsed once a card is folded by hand,
-        // so a selection made elsewhere (a ghost row in the segment list) would
-        // not open its form. Keying on the selection remounts the list.
-        key={selectedId ?? 'none'}
-        label="Tricks"
-        items={tricks.map((trick) => {
-          const recipe = getRecipe(trick.recipe)
-          return {
+      {tricks.length === 0 ? (
+        <p>No tricks yet.</p>
+      ) : (
+        <EffectList<TrickCard>
+          aria-label="Tricks"
+          items={tricks.map((trick) => ({
             id: trick.id,
-            label: trick.name,
-            // A card draws no `leading`; that slot holds its drag handle.
-            title: (
-              <span className="trick-card__title">
-                <label className="trick-card__enable">
-                  <input
-                    type="checkbox"
-                    aria-label={`Enable ${trick.name}`}
-                    checked={trick.enabled}
-                    onChange={(event) => replace(trick.id, { enabled: event.target.checked })}
-                  />
-                </label>
-                <span className="trick-card__name">{trick.name}</span>
-                <span className="trick-card__recipe">{recipe?.name ?? trick.recipe}</span>
-              </span>
-            ),
-            tone: conflictsOf(trick.id).length > 0 ? '#e76f51' : undefined,
-            defaultCollapsed: trick.id !== selectedId,
-          }
-        })}
-        selectedIds={selectedId ? [selectedId] : []}
-        onSelect={(ids) => {
-          if (ids[0]) onSelect(ids[0])
-        }}
-        empty={<p>No tricks yet.</p>}
-        onReorder={(move) => onChange(reorder(tricks, move))}
-        onRemove={(id) => onChange(tricks.filter((other) => other.id !== id))}
-        renderBody={(item) => {
-          const trick = tricks.find((entry) => entry.id === item.id)
-          if (!trick) return null
-          const recipe = getRecipe(trick.recipe)
-          const own = conflictsOf(trick.id)
-          return (
-            <>
-              {own.length > 0 && (
-                <output className="trick-card__conflict" aria-label={`${trick.name} conflicts`}>
-                  ⚠ {conflictText(trick.id, own)}
-                </output>
-              )}
-              {recipe && (
-                <>
-                  <label className="trick-card__rename">
-                    <span>Name</span>
-                    <input
-                      aria-label={`Rename ${trick.name}`}
-                      value={trick.name}
-                      onChange={(event) => replace(trick.id, { name: event.target.value })}
-                    />
-                  </label>
+            kind: conflictsOf(trick.id).length > 0 ? trick.recipe + CONFLICTED : trick.recipe,
+            name: trick.name,
+            on: trick.enabled,
+          }))}
+          kinds={KINDS}
+          onChange={(cards) => onChange(applyCards(tricks, cards))}
+          selected={selectedId}
+          onSelectionChange={onSelect}
+          renderBody={(card) => {
+            const trick = tricks.find((entry) => entry.id === card.id)
+            if (!trick) return null
+            const recipe = getRecipe(trick.recipe)
+            const own = conflictsOf(trick.id)
+            return (
+              <>
+                {own.length > 0 && (
+                  <output className="trick-card__conflict" aria-label={`${trick.name} conflicts`}>
+                    ⚠ {conflictText(trick.id, own)}
+                  </output>
+                )}
+                {recipe && (
                   <RecipeForm
                     fields={recipe.fields}
                     params={trick.params}
                     segments={segments}
                     onChange={(params) => replace(trick.id, { params })}
                   />
-                </>
-              )}
-            </>
-          )
-        }}
-      />
+                )}
+              </>
+            )
+          }}
+        />
+      )}
 
       <label className="trick-library__add">
         <span>Add a trick</span>

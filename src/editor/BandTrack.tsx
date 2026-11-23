@@ -1,4 +1,4 @@
-import { Slider, type Thumb } from '@weasel-js/labkit/weasel-ui'
+import { Slider, type Thumb } from '@weasel-js/ui'
 import type { CSSProperties } from 'react'
 import type { Breakpoint } from '../slice/breakpoints'
 import { turnFraction } from '../slice/turns'
@@ -118,7 +118,7 @@ export function BandTrack({
         constraint="ordered"
         trackHeight={34}
         className="bands__slider"
-        ariaLabel="Width boundary at"
+        aria-label="Width boundary at"
         onRemoveThumb={() => true}
         readoutPlacement="below-thumb"
         renderReadout={(stop) => turnFraction(stop.degrees)}

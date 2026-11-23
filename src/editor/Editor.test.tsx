@@ -109,40 +109,39 @@ describe('Editor integration', () => {
     // contributes no row at all.
     expect(screen.queryByRole('button', { name: /owned by slow burn/i })).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+    await userEvent.click(screen.getByRole('switch', { name: /run slow burn/i }))
 
     expect(screen.getByRole('button', { name: /owned by slow burn/i })).toBeInTheDocument()
   })
 
   it('opens the owning trick in the right column when its ghost row is clicked', async () => {
     render(<Editor />)
-    await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+    await userEvent.click(screen.getByRole('switch', { name: /run slow burn/i }))
     // Adding a trick selects the new one, which folds the takeover's card.
     // 'Wedge label' is a takeover-only field, so it stands in for that form.
     await userEvent.selectOptions(screen.getByLabelText(/add a trick/i), 'vanish')
-    expect(screen.getByLabelText('Wedge label')).not.toBeVisible()
+    expect(screen.queryByLabelText('Wedge label')).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: /owned by slow burn/i }))
 
     // Crossing columns is the part only the Editor wires up: the segment list
-    // reports the selection and the trick library has to re-seed to honor it.
+    // reports the selection and the trick library has to open that card.
     expect(screen.getByLabelText('Wedge label')).toBeVisible()
     expect(screen.getByLabelText('Wedge label')).toHaveValue('free beer')
   })
 
   it('badges a conflict when two enabled tricks write the same weight', async () => {
     render(<Editor />)
-    await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+    await userEvent.click(screen.getByRole('switch', { name: /run slow burn/i }))
     await userEvent.selectOptions(screen.getByLabelText(/add a trick/i), 'vanish')
     // The new vanish trick defaults to every segment, which the full-share
     // takeover also drives to zero.
-    await userEvent.click(
-      screen.getByRole('checkbox', { name: /Enable Named wedges shrink away/i }),
-    )
+    await userEvent.click(screen.getByRole('switch', { name: /run Named wedges shrink away/i }))
     // The badge lives in the card body, so the card has to be open to see it —
     // adding a trick selected the new one, which leaves slow burn folded.
-    const card = screen.getByRole('group', { name: /slow burn\s*one wedge swallows the wheel$/i })
-    await userEvent.click(within(card).getByRole('button', { expanded: false }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Drag to reorder slow burn', pressed: false }),
+    )
     // Named, not counted: the transport's scrub readout is also an <output>,
     // so a bare role query would pass with no conflict at all.
     expect(screen.getByRole('status', { name: /slow burn conflicts/i })).toHaveTextContent(
@@ -379,7 +378,7 @@ describe('Editor spin', () => {
     const harness = installSpinHarness()
     try {
       render(<Editor />)
-      await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+      await userEvent.click(screen.getByRole('switch', { name: /run slow burn/i }))
       const slider = screen.getByLabelText(/scrub/i)
       fireEvent.change(slider, { target: { value: slider.getAttribute('max') } })
       // The same full-share takeover a spin lands on: one label left.
@@ -408,7 +407,7 @@ describe('Editor spin', () => {
     const harness = installSpinHarness()
     try {
       render(<Editor />)
-      await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+      await userEvent.click(screen.getByRole('switch', { name: /run slow burn/i }))
       await userEvent.click(screen.getByRole('button', { name: /spin/i }))
       await harness.land()
 
@@ -441,7 +440,7 @@ describe('Editor spin', () => {
       await userEvent.selectOptions(screen.getByLabelText(/add a trick/i), 'swap')
       await choose('Trades with', SECOND.label)
       await userEvent.click(
-        screen.getByRole('checkbox', { name: /enable two wedges trade identities/i }),
+        screen.getByRole('switch', { name: /run two wedges trade identities/i }),
       )
       await userEvent.click(screen.getByRole('button', { name: /spin/i }))
       await harness.land()
@@ -572,7 +571,7 @@ describe('Editor locked', () => {
   async function rigThenLock() {
     window.localStorage.setItem(RIG_KEY, '1')
     render(<Editor />)
-    await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+    await userEvent.click(screen.getByRole('switch', { name: /run slow burn/i }))
     cleanup()
     window.localStorage.removeItem(RIG_KEY)
   }

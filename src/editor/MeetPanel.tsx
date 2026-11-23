@@ -1,5 +1,5 @@
 import { PropertyPanel, PropertyRow } from '@weasel-js/labkit'
-import { Button } from '@weasel-js/labkit/weasel-ui'
+import { Button } from '@weasel-js/ui'
 import { useEffect, useRef, useState } from 'react'
 import type { FeedItem, MeetFeedConfig } from '../feed/types'
 import { MeetApiError } from '../meet/api'
@@ -114,11 +114,11 @@ export function MeetPanel({ config, items, onItems, onChange }: MeetPanelProps) 
     <PropertyPanel title="Google Meet">
       <PropertyRow label="Connection">
         {connected ? (
-          <Button variant="ghost" ariaLabel="Reconnect" onClick={connect}>
+          <Button variant="ghost" aria-label="Reconnect" onClick={connect}>
             Reconnect
           </Button>
         ) : (
-          <Button stance="confirm" emphasis="high" fullWidth ariaLabel="Connect" onClick={connect}>
+          <Button stance="confirm" emphasis="high" fullWidth aria-label="Connect" onClick={connect}>
             Connect
           </Button>
         )}

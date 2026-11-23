@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Conflict } from '../tricks/conflicts'
 import type { Trick } from '../tricks/types'
 import type { Segment } from '../wheel/types'
-import { reorder, TrickLibrary } from './TrickLibrary'
+import { applyCards, TrickLibrary } from './TrickLibrary'
 
 const segments: Segment[] = [{ id: 'ana', label: 'Ana', weight: 1 }]
 
@@ -65,23 +65,24 @@ function ControlledTrickLibrary({
 describe('TrickLibrary', () => {
   it('lists every trick by its operator name', () => {
     renderLibrary()
-    expect(screen.getByText('slow burn')).toBeInTheDocument()
-    expect(screen.getByText('ana goes')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('slow burn')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('ana goes')).toBeInTheDocument()
   })
 
   it('shows the structural recipe name alongside it', () => {
     renderLibrary()
     // The same recipe name also appears as an <option> in the "Add a trick"
-    // catalog select further down the panel, so a bare getByText would match
-    // two elements. Scope to the card's own recipe badge.
-    expect(
-      screen.getByText(/One wedge swallows the wheel/, { selector: '.trick-card__recipe' }),
-    ).toBeInTheDocument()
+    // catalog select further down the panel, and cards size their kind label
+    // with hidden copies of every kind's; leave both out.
+    const shown = screen
+      .getAllByText(/One wedge swallows the wheel/)
+      .filter((el) => el.tagName !== 'OPTION' && !el.closest('[aria-hidden]'))
+    expect(shown).toHaveLength(1)
   })
 
   it('toggles a trick', async () => {
     const props = renderLibrary()
-    await userEvent.click(screen.getByRole('checkbox', { name: /enable slow burn/i }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Run slow burn' }))
     expect(props.onChange).toHaveBeenCalledWith([{ ...tricks[0], enabled: false }, tricks[1]])
   })
 
@@ -100,20 +101,18 @@ describe('TrickLibrary', () => {
   })
 
   it('renders the param form only for the expanded trick', () => {
-    // Only the selected trick's card starts open. LayerList keeps a folded
-    // card's body mounted but hidden, so this checks visibility. `vanish` (the
-    // unselected 'v' trick) has its own "Wedges" field, so its being hidden —
-    // not just an unrelated recipe's field — proves that card is folded.
+    // `vanish` (the unselected 'v' trick) has its own "Wedges" field, so its
+    // absence, not just an unrelated recipe's field, proves that card is folded.
     renderLibrary({ selectedId: 'beer' })
     expect(screen.getByLabelText('Wedge label')).toBeVisible()
     expect(screen.queryByLabelText('New label')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Wedges')).not.toBeVisible()
+    expect(screen.queryByLabelText('Wedges')).not.toBeInTheDocument()
   })
 
   it('renames a trick', async () => {
     const onChange = vi.fn()
     render(<ControlledTrickLibrary initialTricks={tricks} onChangeSpy={onChange} />)
-    const input = screen.getByLabelText('Rename slow burn')
+    const input = screen.getByLabelText('Name of card 1')
     await userEvent.clear(input)
     await userEvent.type(input, 'Z')
     const last = onChange.mock.calls.at(-1)?.[0] as Trick[]
@@ -128,18 +127,26 @@ describe('TrickLibrary', () => {
   })
 })
 
-describe('reorder', () => {
-  it('moves a trick after another', () => {
-    const next = reorder(tricks, { ids: ['beer'], parentId: null, index: 1 })
+describe('applyCards', () => {
+  const card = (trick: Trick) => ({
+    id: trick.id,
+    kind: trick.recipe,
+    name: trick.name,
+    on: trick.enabled,
+  })
+
+  it("takes the cards' order", () => {
+    const next = applyCards(tricks, [card(tricks[1]), card(tricks[0])])
     expect(next.map((trick) => trick.id)).toEqual(['v', 'beer'])
   })
 
-  it('moves a trick before another', () => {
-    const next = reorder(tricks, { ids: ['v'], parentId: null, index: 0 })
-    expect(next.map((trick) => trick.id)).toEqual(['v', 'beer'])
+  it("takes a card's name and switch", () => {
+    const next = applyCards(tricks, [{ ...card(tricks[0]), name: 'Z', on: false }, card(tricks[1])])
+    expect(next[0]).toEqual({ ...tricks[0], name: 'Z', enabled: false })
+    expect(next[1]).toBe(tricks[1])
   })
 
-  it('leaves the list alone when the source is unknown', () => {
-    expect(reorder(tricks, { ids: ['ghost'], parentId: null, index: 0 })).toEqual(tricks)
+  it('drops a trick whose card is gone', () => {
+    expect(applyCards(tricks, [card(tricks[1])])).toEqual([tricks[1]])
   })
 })
