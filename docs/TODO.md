@@ -8,3 +8,5 @@
   import that shows them, and the forgiving path kept for local recovery. `loadPreset` already copies an
   unreadable stored preset to `wod.preset.unreadable` before the default replaces it. (filed 2026-11-15
   from automated review)
+
+- **Not registered with alpo**, so weasel, blits and blinken releases don't reach it on their own (read 2026-11-25). Closes when `alpo` lists it.
